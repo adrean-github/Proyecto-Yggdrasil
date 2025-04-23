@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
-import Header from "../header";
+import { Search, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const medicos = [
   { nombre: "Dra. Ana López", especialidad: "Cardiología" },
@@ -12,65 +12,127 @@ const medicos = [
   { nombre: "Dr. Miguel Soto", especialidad: "Traumatología" },
   { nombre: "Dr. Andrés Rojas", especialidad: "Ginecología" },
   { nombre: "Dra. Paulina Navarro", especialidad: "Medicina Interna" },
-];
+].map((m) => ({
+  ...m,
+  enCita: Math.random() < 0.5,
+  minutosEnCita: Math.floor(Math.random() * 60)
+}));
 
 export default function MedicosOnline() {
   const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [especialidades, setEspecialidades] = useState([]);
+  const [filtroEspecialidad, setFiltroEspecialidad] = useState("Todas");
   const [lastUpdated, setLastUpdated] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const now = new Date().toLocaleString();
-    setLastUpdated(now);
+    setLastUpdated(new Date().toLocaleString());
+
+    // Extraer especialidades únicas
+    const unicas = [...new Set(medicos.map((m) => m.especialidad))];
+    setEspecialidades(unicas);
   }, []);
 
-  const medicosFiltrados = medicos.filter((m) =>
-    m.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    m.especialidad.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const medicosFiltrados = medicos.filter((m) => {
+    const coincideBusqueda =
+      m.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      m.especialidad.toLowerCase().includes(busqueda.toLowerCase());
+
+    const coincideEstado =
+      filtroEstado === "todos" || (filtroEstado === "enCita" ? m.enCita : !m.enCita);
+
+    const coincideEspecialidad =
+      filtroEspecialidad === "Todas" || m.especialidad === filtroEspecialidad;
+
+    return coincideBusqueda && coincideEstado && coincideEspecialidad;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-100 relative pb-20">
-      <Header />
+    <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
+      {/* Botón volver */}
+      <div className="mt-6 mb-4">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
+        >
+          <ArrowLeft size={20} />
+          Volver al Dashboard
+        </button>
+      </div>
 
-      <div className="px-6 py-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-[#5FB799]">
-          Médicos en Línea
-        </h1>
+      {/* Título */}
+      <h1 className="text-3xl font-bold text-center mb-6 text-[#5FB799]">
+        Médicos en Línea
+      </h1>
 
-        <div className="max-w-md mx-auto mb-6 relative">
+      {/* Buscador y filtros */}
+      <div className="flex flex-col md:flex-row items-center gap-4 justify-between mb-6">
+        <div className="relative w-full md:w-1/2">
           <input
             type="text"
             placeholder="Buscar por nombre o especialidad..."
-            className="w-full px-4 py-2 pr-10 rounded shadow border border-[#5FB799]  focus:outline-none focus:ring-2 focus:ring-[#5FB799] "
+            className="w-full px-4 py-2 pr-10 rounded shadow border border-[#5FB799]  focus:outline-none focus:ring-2 focus:ring-[#5FB799]"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
-          <Search className="absolute top-2.5 right-3 text-[#5FB799] " size={20} />
+          <Search className="absolute top-2.5 right-3 text-[#5FB799]" size={20} />
         </div>
 
-        {medicosFiltrados.length > 0 ? (
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {medicosFiltrados.map((medico, i) => (
-              <motion.div
-                key={i}
-                className="bg-white p-4 rounded shadow border border-[#5FB799] "
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <h2 className="text-lg font-semibold text-[#5FB799] ">
-                  {medico.nombre}
-                </h2>
-                <p className="text-sm text-gray-600">{medico.especialidad}</p>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-gray-500 mt-10">
-            No se encontraron médicos con ese criterio.
-          </div>
-        )}
+        <select
+          className="border px-3 py-2 rounded shadow text-sm focus:outline-none focus:ring-2 focus:ring-[#5FB799]"
+          value={filtroEspecialidad}
+          onChange={(e) => setFiltroEspecialidad(e.target.value)}
+        >
+          <option value="Todas">Todas las especialidades</option>
+          {especialidades.map((esp) => (
+            <option key={esp} value={esp}>{esp}</option>
+          ))}
+        </select>
+
+        <select
+          className="border px-3 py-2 rounded shadow text-sm focus:outline-none focus:ring-2 focus:ring-[#5FB799]"
+          value={filtroEstado}
+          onChange={(e) => setFiltroEstado(e.target.value)}
+        >
+          <option value="todos">Todos</option>
+          <option value="enCita">En cita</option>
+          <option value="disponible">Disponibles</option>
+        </select>
       </div>
+
+      {/* Lista de médicos */}
+      {medicosFiltrados.length > 0 ? (
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {medicosFiltrados.map((medico, i) => (
+            <motion.div
+              key={i}
+              className="bg-white p-4 rounded shadow border border-[#5FB799]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <h2 className="text-lg font-semibold text-[#5FB799]">
+                {medico.nombre}
+              </h2>
+              <p className="text-sm text-gray-600 mb-2">
+                {medico.especialidad}
+              </p>
+              {medico.enCita ? (
+                <p className="text-sm text-red-500 font-medium">
+                  En cita desde hace {medico.minutosEnCita} min
+                </p>
+              ) : (
+                <p className="text-sm text-green-600 font-medium">Disponible</p>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 mt-10">
+          No se encontraron médicos con ese criterio.
+        </div>
+      )}
 
       {/* Última actualización */}
       <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
