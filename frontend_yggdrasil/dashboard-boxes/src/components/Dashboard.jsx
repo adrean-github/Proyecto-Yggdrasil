@@ -17,9 +17,9 @@ const motivosInhabilitacion = [
 
 const getColor = (estado) => {
   switch (estado) {
-    case "ocupado":
+    case "Ocupado":
       return "bg-[#6EDFB5]";
-    case "disponible":
+    case "Disponible":
       return "bg-gray-300";
     case "inhabilitado":
       return "bg-[#FFD36E]";
@@ -30,9 +30,9 @@ const getColor = (estado) => {
 
 const getEstadoColor = (estado) => {
   switch (estado) {
-    case "ocupado":
+    case "Ocupado":
       return "text-[#6EDFB5]";
-    case "disponible":
+    case "Disponible":
       return "text-gray-500";
     case "inhabilitado":
       return "text-[#FFD36E]";
@@ -83,6 +83,35 @@ export default function Dashboard() {
 
     fetchBoxes();
   }, []);
+  const fetchBoxState = async (boxId, fecha, hora) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
+      const data = await response.json();
+      console.log(`Estado actualizado del box ${boxId}:`, data);
+  
+      setBoxes((prevBoxes) =>
+        prevBoxes.map((box) =>
+          box.idbox === boxId ? { ...box, estadobox: data.estado } : box
+        )
+      );
+    } catch (error) {
+      console.error("Error al obtener el estado del box:", error);
+    }
+  };
+  
+
+  const handleFechaHoraChange = (fecha, hora) => {
+    boxes.forEach((box) => {
+      fetchBoxState(box.idbox, fecha, hora);
+    });
+  };
+  
+  useEffect(() => {
+    if (boxes.length > 0) {
+      handleFechaHoraChange(filtroFecha, filtroHora);
+    }
+  }, [filtroFecha, filtroHora]);  // Este efecto se dispara cuando cambia la fecha o la hora
+  
 
   const handleMouseEnter = (box, e) => {
     const timeout = setTimeout(() => {
@@ -118,15 +147,14 @@ export default function Dashboard() {
   const boxesFiltrados = boxes.filter((b) => {
     const coincidePasillo = filtroPasillo === "Todos" || b.pasillobox === filtroPasillo;
     const coincideEstado = filtroEstado === "Todos" || b.estadobox === filtroEstado;
-    const esFuturo = isFuture();
-    const visibleEnFuturo = esFuturo ? b.estadobox !== "Ocupado" : true;
-    return coincidePasillo && coincideEstado && visibleEnFuturo;
+    //const esFuturo = isFuture();
+    //const visibleEnFuturo = esFuturo ? b.estadobox !== "Ocupado" : true;
+    return coincidePasillo && coincideEstado; //&& visibleEnFuturo;
   });
 
   const boxesFiltradosPorPasillo = boxes.filter((b) => {
     const esFuturo = isFuture();
-    return (filtroPasillo === "Todos" || b.pasillobox === filtroPasillo) &&
-           (esFuturo ? b.estadobox !== "Ocupado" : true);
+    return (filtroPasillo === "Todos" || b.pasillobox === filtroPasillo); //&& (esFuturo ? b.estadobox !== "Ocupado" : true);
   });
 
   const countByEstado = (estado) => boxesFiltradosPorPasillo.filter((b) => b.estadobox === estado).length;
