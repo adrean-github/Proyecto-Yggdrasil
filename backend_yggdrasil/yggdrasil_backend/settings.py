@@ -80,9 +80,10 @@ WSGI_APPLICATION = 'yggdrasil_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'yggdrasil',
-        'USER': 'root',         
-        'PASSWORD': 'alcoy1136',  
+        'NAME': 'yggdrasil2',
+        'USER': 'root',   
+        #'PASSWORD': 'alcoy1136'     
+        'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     }

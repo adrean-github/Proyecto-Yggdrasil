@@ -21,7 +21,7 @@ const getColor = (estado) => {
       return "bg-[#6EDFB5]";
     case "Disponible":
       return "bg-gray-300";
-    case "inhabilitado":
+    case "Inhabilitado":
       return "bg-[#FFD36E]";
     default:
       return "bg-gray-200";
@@ -34,7 +34,7 @@ const getEstadoColor = (estado) => {
       return "text-[#6EDFB5]";
     case "Disponible":
       return "text-gray-500";
-    case "inhabilitado":
+    case "Inhabilitado":
       return "text-[#FFD36E]";
     default:
       return "text-gray-400";
@@ -45,7 +45,7 @@ const estadosDisponibles = [
   { label: "Todos", valor: "Todos", color: "bg-[#DB1866]" },
   { label: "Disponible", valor: "Disponible", color: "bg-gray-300" },
   { label: "Ocupado", valor: "Ocupado", color: "bg-[#6EDFB5]" },
-  { label: "Inhabilitado", valor: "inhabilitado", color: "bg-[#FFD36E]" },
+  { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFD36E]" },
 ];
 
 const agruparEnDúos = (arr) => {
@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const [boxes, setBoxes] = useState([]);
+  const [boxesraw, setBoxesraw] = useState([]);
 
   const navigate = useNavigate();
 
@@ -76,6 +77,7 @@ export default function Dashboard() {
         const response = await fetch("http://localhost:8000/api/boxes/");  
         const data = await response.json();
         setBoxes(data);
+        setBoxesraw(data);
       } catch (error) {
         console.error("Error al obtener los boxes:", error);
       }
@@ -83,6 +85,23 @@ export default function Dashboard() {
 
     fetchBoxes();
   }, []);
+
+  const fetchBoxStateInhabilitado = async (boxId, fecha, hora) => {
+    try {
+      const response = await fetch(`"http://localhost:8000/api/boxes/"`);
+      const data = await response.json();
+      console.log(`Estado actualizado del box ${boxId}:`, data);
+  
+      setBoxes((prevBoxes) =>
+        prevBoxes.map((box) =>
+          box.idbox === boxId ? { ...box, estadobox: data.estado } : box
+        )
+      );
+    } catch (error) {
+      console.error("Error al obtener el estado del box:", error);
+    }
+  }; 
+
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
       const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
@@ -102,7 +121,12 @@ export default function Dashboard() {
 
   const handleFechaHoraChange = (fecha, hora) => {
     boxes.forEach((box) => {
-      fetchBoxState(box.idbox, fecha, hora);
+      if (box.estadobox == "Inhabilitado"){
+        fetchBoxStateInhabilitado(box.idbox, fecha, hora);
+  
+      }else{
+        fetchBoxState(box.idbox, fecha, hora);
+      }
     });
   };
   
@@ -110,7 +134,7 @@ export default function Dashboard() {
     if (boxes.length > 0) {
       handleFechaHoraChange(filtroFecha, filtroHora);
     }
-  }, [filtroFecha, filtroHora]);  // Este efecto se dispara cuando cambia la fecha o la hora
+  }, [filtroFecha, filtroHora, boxesraw]);  
   
 
   const handleMouseEnter = (box, e) => {
@@ -210,7 +234,7 @@ export default function Dashboard() {
           </div>
 
           <div className="overflow-y-auto max-h-[calc(100vh-180px)] pr-1">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {agruparEnDúos(pasillosMostrar).map((grupo, idx) => (
                 <motion.div
                   key={filtroPasillo + "-" + filtroEstado + "-" + idx}
