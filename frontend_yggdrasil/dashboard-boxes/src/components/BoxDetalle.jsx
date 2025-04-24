@@ -30,6 +30,8 @@ export default function BoxDetalle() {
     fetchBoxData();
   }, [id]);
 
+
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-[#5FB799]">
@@ -77,9 +79,9 @@ export default function BoxDetalle() {
           <p><strong>Pasillo:</strong> {boxData.pasillobox}</p>
           <p><strong>Especialidad:</strong> Cardiología</p>
           <p><strong>También puede usarse para:</strong> {"(Otras especialidades)"}</p>
-          <p><strong>Última agenda:</strong> a</p>
-          <p><strong>Próxima agenda:</strong> b</p>
-          <p><strong>Médico asignado:</strong> c</p>
+          <p><strong>Última agenda:</strong> {boxData.ult}</p>
+          <p><strong>Próxima agenda:</strong> {boxData.prox}</p>
+          <p><strong>Médico asignado:</strong> {boxData.med}</p>
         </motion.div>
 
         {/* Filtro de calendario */}

@@ -16,11 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from yggdrasilApp.views import BoxListView, EstadoBoxView
+from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/boxes/', BoxListView.as_view(), name='box-list'),
     path('api/boxes/<int:id>/', BoxListView.as_view(), name='box-detail'),
     path('api/estado_box/', EstadoBoxView.as_view(), name='estado_box'),
+    path('api/info_box/', InfoBoxView.as_view(), name='info_box'),
 ]

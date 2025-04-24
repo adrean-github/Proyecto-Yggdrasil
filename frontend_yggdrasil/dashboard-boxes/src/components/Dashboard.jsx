@@ -97,7 +97,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error al obtener el estado del box:", error);
     }
-  };
+  }; 
   
 
   const handleFechaHoraChange = (fecha, hora) => {
