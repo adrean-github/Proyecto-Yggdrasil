@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from yggdrasilApp.views import BoxListView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/boxes/', BoxListView.as_view(), name='box-list'),
+    path('api/boxes/<int:id>/', BoxListView.as_view(), name='box-detail'),
 ]

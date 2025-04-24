@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 const pasillos = ["Área A", "Área B", "Área C", "Área D", "Área E", "Área F", "Área G", "Área H", "Área I", "Área J", "Área K", "Área L"];
-const boxesPorPasillo = 15;
-
-const estados = ["ocupado", "ocupado", "ocupado", "ocupado", "disponible", "disponible", "disponible", "disponible", "disponible", "inhabilitado", "inhabilitado"];
+const estados = ["ocupado", "disponible", "inhabilitado"];
 const especialidades = ["Pediatría", "Traumatología", "Dermatología", "Medicina General", "Cardiología"];
 const motivosInhabilitacion = [
   "Reparaciones en curso",
@@ -15,22 +13,6 @@ const motivosInhabilitacion = [
   "Revisión técnica programada"
 ];
 
-const boxes = Array.from({ length: 180 }, (_, i) => {
-  const estado = estados[Math.floor(Math.random() * estados.length)];
-  const numEspecialidades = Math.floor(Math.random() * 3) + 1;
-  const especialidadesAsignadas = Array.from({ length: numEspecialidades }, () =>
-    especialidades[Math.floor(Math.random() * especialidades.length)]
-  );
-  const pasillo = pasillos[Math.floor(i / boxesPorPasillo)];
-  const motivo = estado === "inhabilitado" ? motivosInhabilitacion[Math.floor(Math.random() * motivosInhabilitacion.length)] : null;
-  return {
-    id: i + 1,
-    estado,
-    pasillo,
-    especialidades: [...new Set(especialidadesAsignadas)],
-    motivoInhabilitacion: motivo,
-  };
-});
 
 
 const getColor = (estado) => {
@@ -61,8 +43,8 @@ const getEstadoColor = (estado) => {
 
 const estadosDisponibles = [
   { label: "Todos", valor: "Todos", color: "bg-[#DB1866]" },
-  { label: "Disponible", valor: "disponible", color: "bg-gray-300" },
-  { label: "Ocupado", valor: "ocupado", color: "bg-[#6EDFB5]" },
+  { label: "Disponible", valor: "Disponible", color: "bg-gray-300" },
+  { label: "Ocupado", valor: "Ocupado", color: "bg-[#6EDFB5]" },
   { label: "Inhabilitado", valor: "inhabilitado", color: "bg-[#FFD36E]" },
 ];
 
@@ -84,7 +66,23 @@ export default function Dashboard() {
   const [hoverTimeout, setHoverTimeout] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+  const [boxes, setBoxes] = useState([]);
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchBoxes = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/boxes/");  
+        const data = await response.json();
+        setBoxes(data);
+      } catch (error) {
+        console.error("Error al obtener los boxes:", error);
+      }
+    };
+
+    fetchBoxes();
+  }, []);
 
   const handleMouseEnter = (box, e) => {
     const timeout = setTimeout(() => {
@@ -118,20 +116,20 @@ export default function Dashboard() {
   };
 
   const boxesFiltrados = boxes.filter((b) => {
-    const coincidePasillo = filtroPasillo === "Todos" || b.pasillo === filtroPasillo;
-    const coincideEstado = filtroEstado === "Todos" || b.estado === filtroEstado;
+    const coincidePasillo = filtroPasillo === "Todos" || b.pasillobox === filtroPasillo;
+    const coincideEstado = filtroEstado === "Todos" || b.estadobox === filtroEstado;
     const esFuturo = isFuture();
-    const visibleEnFuturo = esFuturo ? b.estado !== "ocupado" : true;
+    const visibleEnFuturo = esFuturo ? b.estadobox !== "Ocupado" : true;
     return coincidePasillo && coincideEstado && visibleEnFuturo;
   });
 
   const boxesFiltradosPorPasillo = boxes.filter((b) => {
     const esFuturo = isFuture();
-    return (filtroPasillo === "Todos" || b.pasillo === filtroPasillo) &&
-           (esFuturo ? b.estado !== "ocupado" : true);
+    return (filtroPasillo === "Todos" || b.pasillobox === filtroPasillo) &&
+           (esFuturo ? b.estadobox !== "Ocupado" : true);
   });
 
-  const countByEstado = (estado) => boxesFiltradosPorPasillo.filter((b) => b.estado === estado).length;
+  const countByEstado = (estado) => boxesFiltradosPorPasillo.filter((b) => b.estadobox === estado).length;
   const lastUpdated = new Date().toLocaleString();
   const pasillosMostrar = filtroPasillo === "Todos" ? pasillos : [filtroPasillo];
 
@@ -195,7 +193,7 @@ export default function Dashboard() {
                   transition={{ duration: 0.2 }}
                 >
                   {grupo.map((pasillo, pasilloIdx) => {
-                    const boxesPorGrupo = boxesFiltrados.filter((b) => b.pasillo === pasillo);
+                    const boxesPorGrupo = boxesFiltrados.filter((b) => b.pasillobox === pasillo);
                     const centrar = grupo.length === 1 && pasilloIdx === 0 ? "mx-auto" : "";
                     return (
                       <div key={pasillo} className={`bg-white rounded-2xl p-4 shadow-md border w-full flex flex-col min-h-[220px] max-w-full justify-center ${centrar}`}>
@@ -203,18 +201,18 @@ export default function Dashboard() {
                         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-x-3 sm:gap-y-2 justify-center items-center justify-items-center">
                           {boxesPorGrupo.map((box) => (
                             <motion.div
-                              key={box.id}
-                              className={`w-9 h-9 md:w-10 md:h-10 rounded-lg ${getColor(box.estado)} flex items-center justify-center text-[11px] md:text-sm font-bold text-white leading-none`}
-                              onMouseEnter={(e) => handleMouseEnter(box, e)}
-                              onMouseMove={handleMouseMove}
-                              onMouseLeave={handleMouseLeave}
-                              onClick={() => navigate(`/box/${box.id}`)}
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ delay: 0.05, duration: 0.2 }}
-                            >
-                              {box.id}
-                            </motion.div>
+                            key={box.idbox}
+                            className={`w-9 h-9 md:w-10 md:h-10 rounded-lg ${getColor(box.estadobox)} flex items-center justify-center text-[11px] md:text-sm font-bold text-white leading-none`}
+                            onMouseEnter={(e) => handleMouseEnter(box, e)}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={handleMouseLeave}
+                            onClick={() => navigate(`/box/${box.idbox}`)}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.05, duration: 0.2 }}
+                          >
+                            {box.idbox}
+                          </motion.div>
                           ))}
                         </div>
                       </div>
@@ -228,9 +226,9 @@ export default function Dashboard() {
 
         <div className="w-full md:w-80 flex flex-col justify-stretch gap-3">
           {[{ estado: "Todos", color: "bg-[#DB1866]", texto: "Ver todos los boxes", textoColor: "text-white" },
-            { estado: "disponible", color: "bg-gray-300", texto: "Boxes disponibles", textoColor: "text-gray-800" },
-            { estado: "ocupado", color: "bg-[#6EDFB5]", texto: "Boxes ocupados", textoColor: "text-white" },
-            { estado: "inhabilitado", color: "bg-[#FFD36E]", texto: "Boxes inhabilitados", textoColor: "text-white" }
+            { estado: "Disponible", color: "bg-gray-300", texto: "Boxes disponibles", textoColor: "text-gray-800" },
+            { estado: "Ocupado", color: "bg-[#6EDFB5]", texto: "Boxes ocupados", textoColor: "text-white" },
+            { estado: "Inhabilitado", color: "bg-[#FFD36E]", texto: "Boxes inhabilitados", textoColor: "text-white" }
           ].map((card, i) => (
             <div
               key={i}
@@ -262,23 +260,14 @@ export default function Dashboard() {
           className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-lg px-4 py-3 text-sm text-gray-800 w-60"
           style={{ top: mousePos.y + 15, left: mousePos.x + 15 }}
         >
-          <div className="font-semibold text-gray-900 mb-1">Box #{boxHover.id}</div>
+          <div className="font-semibold text-gray-900 mb-1">Box #{boxHover.idbox}</div>
           <div className="mb-1">
             <span className="font-medium">Estado:</span>{" "}
-            <span className={`font-semibold ${getEstadoColor(boxHover.estado)}`}>{boxHover.estado}</span>
+            <span className={`font-semibold`}>{boxHover.estadobox}</span>
           </div>
           <div className="mb-1">
-            <span className="font-medium">Pasillo:</span> {boxHover.pasillo}
+            <span className="font-medium">Pasillo:</span> {boxHover.pasillobox}
           </div>
-          <div className="mb-1">
-            <span className="font-medium">Uso para:</span>{" "}
-            {boxHover.especialidades.join(", ")}
-          </div>
-          {boxHover.estado === "inhabilitado" && (
-            <div className="mt-2 text-xs text-red-500">
-              <strong>Motivo de inhabilitación:</strong> {boxHover.motivoInhabilitacion}
-            </div>
-          )}
           <div className="text-xs text-gray-500 mt-2">Última cita: hace 20 mins</div>
         </div>
       )}

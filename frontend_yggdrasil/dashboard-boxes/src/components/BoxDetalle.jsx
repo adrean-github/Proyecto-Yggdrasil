@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
@@ -10,15 +10,41 @@ export default function BoxDetalle() {
   const navigate = useNavigate();
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
+  const [boxData, setBoxData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const boxData = {
-    estado: "Ocupado",
-    pasillo: "Área D",
-    especialidades: ["Cardiología", "Medicina General"],
-    ultimaCita: "10:30 AM",
-    proximaCita: "12:00 PM",
-    medico: "Dra. Gómez",
-  };
+  useEffect(() => {
+    const fetchBoxData = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
+        if (!response.ok) throw new Error("Error al obtener los datos del box");
+        const data = await response.json();
+        setBoxData(data);
+      } catch (error) {
+        console.error("Error al cargar datos del box:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBoxData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[#5FB799]">
+        Cargando información del Box...
+      </div>
+    );
+  }
+
+  if (!boxData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        No se pudo cargar la información del Box.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white px-4 md:px-8 py-6 relative">
@@ -47,13 +73,13 @@ export default function BoxDetalle() {
           animate={{ opacity: 1, y: 0 }}
         >
           <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Información General</h2>
-          <p><strong>Estado actual:</strong> {boxData.estado}</p>
-          <p><strong>Pasillo:</strong> {boxData.pasillo}</p>
-          <p><strong>Especialidad:</strong> {boxData.especialidades[0]}</p>
+          <p><strong>Estado actual:</strong> {boxData.estadobox}</p>
+          <p><strong>Pasillo:</strong> {boxData.pasillobox}</p>
+          <p><strong>Especialidad:</strong> Cardiología</p>
           <p><strong>También puede usarse para:</strong> {"(Otras especialidades)"}</p>
-          <p><strong>Última agenda:</strong> {boxData.ultimaCita}</p>
-          <p><strong>Próxima agenda:</strong> {boxData.proximaCita}</p>
-          <p><strong>Médico asignado:</strong> {boxData.medico}</p>
+          <p><strong>Última agenda:</strong> a</p>
+          <p><strong>Próxima agenda:</strong> b</p>
+          <p><strong>Médico asignado:</strong> c</p>
         </motion.div>
 
         {/* Filtro de calendario */}
