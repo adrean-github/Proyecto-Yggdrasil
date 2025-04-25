@@ -12,8 +12,15 @@ export default function BoxDetalle() {
   const [fechaFin, setFechaFin] = useState(new Date());
   const [boxData, setBoxData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState("");
+  
+  
+
 
   useEffect(() => {
+
+    setLastUpdated(new Date().toLocaleString());
+
     const fetchBoxData = async () => {
       try {
         const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
@@ -49,9 +56,9 @@ export default function BoxDetalle() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-4 md:px-8 py-6 relative">
+    <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
       {/* Botón volver */}
-      <div className="mb-4">
+      <div className="mt-6 mb-4">
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
@@ -60,6 +67,7 @@ export default function BoxDetalle() {
           Volver al Dashboard
         </button>
       </div>
+
 
       {/* Título */}
       <h1 className="text-3xl font-bold text-center mb-8 text-[#5FB799]">
@@ -126,6 +134,11 @@ export default function BoxDetalle() {
             Aquí se mostrará el calendario de agendas.
           </div>
         </motion.div>
+      </div>
+
+      {/* Última actualización */}
+      <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
+        Última actualización: {lastUpdated}
       </div>
     </div>
   );
