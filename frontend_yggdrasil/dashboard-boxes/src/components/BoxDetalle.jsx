@@ -137,7 +137,7 @@ export default function BoxDetalle() {
           </div>
         </motion.div>
       </div>
-
+              
       {/* Última actualización */}
       <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
         Última actualización: {lastUpdated}

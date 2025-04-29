@@ -50,18 +50,18 @@ class BoxListView(APIView):
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horainicioagenda__lt=hora.strftime('%H:%M:%S'),
                     horafinagenda__gte=hora.strftime('%H:%M:%S')
-                ).values('idmedico').first()
-
+                )
                 if not med:
-                    med = 'N/A' 
+                    x = 'N/A' 
                 else:
-                    med = med['idmedico']
+                    for ag in med:
+                        x = f"Dr. {ag.idmedico.nombre}"
 
                 estadobox = serializer.data['estadobox']
                 pasillobox = serializer.data['pasillobox']
 
         # Devuelve el estado
-                return Response({"ult": hora_fin, "prox": hora_prox, "med": med, "estadobox": estadobox, "pasillobox": pasillobox}, status=status.HTTP_200_OK)
+                return Response({"ult": hora_fin, "prox": hora_prox, "med": x, "estadobox": estadobox, "pasillobox": pasillobox}, status=status.HTTP_200_OK)
             
 
             except Box.DoesNotExist:
