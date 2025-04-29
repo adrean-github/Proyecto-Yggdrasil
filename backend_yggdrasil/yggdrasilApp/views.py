@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Box, Agendabox
+from .models import Box, Agendabox, Medico
 from .serializers import BoxSerializer
 from rest_framework.decorators import api_view
 from rest_framework import status
@@ -70,7 +70,7 @@ class BoxListView(APIView):
             boxes = Box.objects.all()
             serializer = BoxSerializer(boxes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        
+            
 class EstadoBoxView(APIView):
     def get(self, request, *args, **kwargs):
         # Obtiene los parámetros de la solicitud
@@ -135,3 +135,20 @@ class InfoBoxView(APIView):
 
         # Devuelve el estado
         return Response({"ult": hora_fin, "prox": hora_prox, "med": med}, status=status.HTTP_200_OK)
+
+class AgendaBox(APIView):
+    def get(self, request, *args, **kwargs):
+        box_id = kwargs.get('id')
+        agenda_box = Agendabox.objects.filter(idbox=box_id)
+        eventos = []
+        for ag in agenda_box:
+            fecha = ag.fechaagenda.strftime("%Y-%m-%d")
+            hora_inicio = ag.horainicioagenda.strftime("%H:%M:%S")
+            hora_fin = ag.horafinagenda.strftime("%H:%M:%S") if ag.horafinagenda else None
+
+            eventos.append({
+                "title": f"Dr. {ag.idmedico.nombre}" if ag.idmedico else "Consulta",
+                "start": f"{fecha}T{hora_inicio}",
+                "end": f"{fecha}T{hora_fin}" if hora_fin else None
+            })
+        return Response(eventos, status=status.HTTP_200_OK)

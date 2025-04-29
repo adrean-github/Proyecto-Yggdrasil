@@ -4,6 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import esLocale from '@fullcalendar/core/locales/es';
+
+
 
 export default function BoxDetalle() {
   const { id } = useParams();
@@ -11,6 +18,7 @@ export default function BoxDetalle() {
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [boxData, setBoxData] = useState(null);
+  const [agendaboxData, setagendaBoxData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("");
   
@@ -24,9 +32,11 @@ export default function BoxDetalle() {
     const fetchBoxData = async () => {
       try {
         const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
+        const agenda = await fetch(`http://localhost:8000/api/box/${id}/`);
         if (!response.ok) throw new Error("Error al obtener los datos del box");
         const data = await response.json();
         setBoxData(data);
+        setagendaBoxData(agenda);
       } catch (error) {
         console.error("Error al cargar datos del box:", error);
       } finally {
@@ -69,20 +79,17 @@ export default function BoxDetalle() {
       </div>
 
 
-      {/* Título */}
-      <h1 className="text-3xl font-bold text-center mb-8 text-[#5FB799]">
-        Detalle del Box #{id}
-      </h1>
+
 
       {/* Contenido principal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Información del box */}
         <motion.div
-          className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-3"
+          className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-3 col-span-1"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Información General</h2>
+          <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Información General Box #{id}</h2>
           <p><strong>Estado actual:</strong> {boxData.estadobox}</p>
           <p><strong>Pasillo:</strong> {boxData.pasillobox}</p>
           <p><strong>Especialidad:</strong> Cardiología</p>
@@ -94,44 +101,39 @@ export default function BoxDetalle() {
 
         {/* Filtro de calendario */}
         <motion.div
-          className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-4"
+          className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-4 col-span-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Agenda del Box</h2>
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-600">Desde:</label>
-              <DatePicker
-                selected={fechaInicio}
-                onChange={(date) => setFechaInicio(date)}
-                className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-[#5FB799]"
-                dateFormat="dd/MM/yyyy"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">Hasta:</label>
-              <DatePicker
-                selected={fechaFin}
-                onChange={(date) => setFechaFin(date)}
-                className="w-full px-3 py-2 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-[#5FB799]"
-                dateFormat="dd/MM/yyyy"
-              />
-            </div>
-            <button
-              className="bg-[#5FB799] text-white py-2 px-4 rounded hover:bg-[#4fa986] transition duration-200 w-full"
-              onClick={() => {
-                console.log("Buscar agendas entre:", fechaInicio, "y", fechaFin);
+          transition={{ delay: 0.1 }}>
+          <div className="border-t">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "timeGridWeek,dayGridMonth"
               }}
-            >
-              Buscar Agendas
-            </button>
-          </div>
-
-          <div className="border-t pt-4 text-center text-gray-500 text-sm">
-            Aquí se mostrará el calendario de agendas.
+              events={agendaboxData}
+              locale="es"
+              allDaySlot={false}
+              slotMinTime="08:00:00"
+              slotMaxTime="20:00:00" 
+              editable={false}
+              selectMirror={true}
+              nowIndicator={true}
+              slotLabelFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: 'short'
+              }}
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: 'short'
+              }}
+              contentHeight={300}
+            />
           </div>
         </motion.div>
       </div>

@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView
+from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/boxes/<int:id>/', BoxListView.as_view(), name='box-detail'),
     path('api/estado_box/', EstadoBoxView.as_view(), name='estado_box'),
     path('api/info_box/', InfoBoxView.as_view(), name='info_box'),
+    path('api/box/<int:id>/', AgendaBox.as_view(), name='agenda_box')
 ]

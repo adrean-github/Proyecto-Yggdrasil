@@ -14,7 +14,7 @@ class Agendabox(models.Model):
     idbox = models.ForeignKey('Box', models.DO_NOTHING, db_column='idBox')  # Field name made lowercase.
     idmedico = models.ForeignKey('Medico', models.DO_NOTHING, db_column='idMedico', blank=True, null=True)  # Field name made lowercase.
     horafinagenda = models.TimeField(db_column='horaFinAgenda', blank=True, null=True)  # Field name made lowercase.
-    estado = models.CharField(max_length=50, blank=True, null=True)
+    habilitada = models.IntegerField(db_column='Habilitada')  # Field name made lowercase.
 
     class Meta:
         managed = False
@@ -93,7 +93,6 @@ class AuthUserUserPermissions(models.Model):
 
 class Box(models.Model):
     idbox = models.AutoField(db_column='idBox', primary_key=True)  # Field name made lowercase.
-    idtipobox = models.ForeignKey('Tipobox', models.DO_NOTHING, db_column='idTipoBox', blank=True, null=True)  # Field name made lowercase.
     estadobox = models.CharField(db_column='estadoBox', max_length=20, blank=True, null=True)  # Field name made lowercase.
     pasillobox = models.CharField(db_column='pasilloBox', max_length=20, blank=True, null=True)  # Field name made lowercase.
     comentario = models.TextField(blank=True, null=True)
@@ -103,26 +102,15 @@ class Box(models.Model):
         db_table = 'box'
 
 
-class Cita(models.Model):
-    fechacita = models.OneToOneField(Agendabox, models.DO_NOTHING, db_column='fechaCita', primary_key=True)
-    rutpaciente = models.ForeignKey('Paciente', models.DO_NOTHING, db_column='rutPaciente')
-    horacita = models.TimeField(db_column='horaCita')
-    
-    # Relación con Agendabox utilizando 'idBox' como clave primaria
-    idbox = models.ForeignKey(Agendabox, models.DO_NOTHING, db_column='idBox', related_name='cita_idbox_set', blank=True, null=True)
-    
-    # Relación con Agendabox usando 'idbox' como referencia primaria sin 'to_field'
-    inicioagendabox = models.ForeignKey(Agendabox, models.DO_NOTHING, db_column='inicioAgendaBox', related_name='cita_inicioagendabox_set', blank=True, null=True)
-    
-    iniciocita = models.TimeField(db_column='inicioCita', blank=True, null=True)
-    fincita = models.TimeField(db_column='finCita', blank=True, null=True)
-    
-    estadocita = models.CharField(db_column='estadoCita', max_length=50, blank=True, null=True)
+class Boxtipobox(models.Model):
+    idbox = models.OneToOneField(Box, models.DO_NOTHING, db_column='idBox', primary_key=True)  # Field name made lowercase. The composite primary key (idBox, idTipoBox) found, that is not supported. The first column is selected.
+    idtipobox = models.ForeignKey('Tipobox', models.DO_NOTHING, db_column='idTipoBox')  # Field name made lowercase.
+    tipoprincipal = models.IntegerField(db_column='tipoPrincipal', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
         managed = False
-        db_table = 'cita'
-        unique_together = (('fechacita', 'rutpaciente', 'horacita'),)
+        db_table = 'boxtipobox'
+        unique_together = (('idbox', 'idtipobox'),)
 
 
 
