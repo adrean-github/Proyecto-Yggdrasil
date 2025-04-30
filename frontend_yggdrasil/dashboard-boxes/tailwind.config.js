@@ -4,15 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#ADE4DB',         // Verde agua para header
-        secondary: '#E7E8F2',       // Fondo suave
-        cardBlue: '#59A5F7',        // Cards de médicos
-        cardGreen: '#5AD6A4',       // Cards de ocupados
-        cardPurple: '#A979F8',      // Cards otros
-        cardCyan: '#4BC1F1',        // Cards disponibles
+        primary: '#ADE4DB',         
+        secondary: '#E7E8F2',       
+        cardBlue: '#59A5F7',       
+        cardGreen: '#5AD6A4',      
+        cardPurple: '#A979F8',     
+        cardCyan: '#4BC1F1',        
         textDark: '#333',
       }
     }
   },
   plugins: [],
 };
+
+

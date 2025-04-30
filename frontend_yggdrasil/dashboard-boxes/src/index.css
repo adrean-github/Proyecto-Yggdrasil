@@ -1,3 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  .fc-button {
+    @apply bg-[#5FB799] text-white rounded-md px-3 py-1 font-medium;
+  }
+
+  .fc-button:hover {
+    @apply bg-[#4fa986];
+  }
+}
+
+
+.fc .fc-button {
+  background-color: #5FB799; 
+  border: none;
+  color: white;
+  font-weight: bold;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.fc .fc-button:hover {
+  background-color: #4fa986; 
+}
+
+.fc .fc-button:disabled {
+  background-color: #a1d4bc;
+  color: #f0f0f0;
+  cursor: not-allowed;
+}

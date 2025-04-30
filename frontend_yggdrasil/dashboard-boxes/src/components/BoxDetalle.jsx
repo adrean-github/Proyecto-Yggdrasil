@@ -81,9 +81,9 @@ export default function BoxDetalle() {
 
 
 
-      {/* Contenido principal */}
+      {/*Contenido principal*/}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Información del box */}
+        {/*Información del box*/}
         <motion.div
           className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-3 col-span-1"
           initial={{ opacity: 0, y: 20 }}
@@ -99,7 +99,7 @@ export default function BoxDetalle() {
           <p><strong>Médico asignado:</strong> {boxData.med}</p>
         </motion.div>
 
-        {/* Filtro de calendario */}
+        {/*Filtro de calendario*/}
         <motion.div
           className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-4 col-span-2"
           initial={{ opacity: 0, y: 20 }}
@@ -115,13 +115,20 @@ export default function BoxDetalle() {
                 right: "timeGridWeek,dayGridMonth"
               }}
               events={agendaboxData}
-              locale="es"
+              locale={esLocale}
+              buttonText={{
+                today: 'Ver hoy',
+                week: 'Semana',
+                month: 'Mes'
+              }}
               allDaySlot={false}
               slotMinTime="08:00:00"
               slotMaxTime="20:00:00" 
               editable={false}
               selectMirror={true}
               nowIndicator={true}
+              eventTextColor="#000000"
+              eventColor = '#cfe4ff'
               slotLabelFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
