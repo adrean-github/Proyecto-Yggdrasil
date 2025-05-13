@@ -31,8 +31,8 @@ export default function BoxDetalle() {
 
     const fetchBoxData = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
-        const agenda = await fetch(`http://localhost:8000/api/box/${id}/`);
+        const response = await fetch(`http://10.135.45.43:8000/api/boxes/${id}/`);
+        const agenda = await fetch(`http://10.135.45.43:8000/api/box/${id}/`);
         if (!response.ok) throw new Error("Error al obtener los datos del box");
         const data = await response.json();
         setBoxData(data);

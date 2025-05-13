@@ -1,10 +1,3 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 
 
@@ -194,3 +187,30 @@ class Tipobox(models.Model):
     class Meta:
         managed = False
         db_table = 'tipobox'
+
+
+class Atenamb(models.Model):
+    idMedico = models.IntegerField()
+    idBox = models.CharField(max_length=32)
+    fecha = models.DateField()
+    horaInicio = models.TimeField()
+    horaFin = models.TimeField()
+
+    class Meta:
+        managed = False  # Para que Django no intente crearla/migrarla
+        db_table = 'atenamb'
+
+class LogAtenamb(models.Model):
+    ACCION_CHOICES = [
+        ('INSERT', 'Insert'),
+        ('UPDATE', 'Update'),
+        ('DELETE', 'Delete'),
+    ]
+
+    atenamb_id = models.IntegerField()
+    fecha_hora = models.DateTimeField(auto_now_add=False)
+    accion = models.CharField(max_length=6, choices=ACCION_CHOICES)
+
+    class Meta:
+        db_table = 'log_atenamb'
+        managed = False 

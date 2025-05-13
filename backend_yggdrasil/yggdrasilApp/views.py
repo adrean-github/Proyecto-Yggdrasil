@@ -1,13 +1,18 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Box, Agendabox, Medico
+from .models import Box, Agendabox, Medico, Atenamb, LogAtenamb
 from .serializers import BoxSerializer
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q
 from datetime import datetime
+from .event_listener import EventListener
+from django.utils.dateparse import parse_datetime
+from .event_listener import VistaActualizableDisp
+from rest_framework import serializers
+
 
 class BoxListView(APIView):
     def get(self, request, *args, **kwargs):
@@ -61,7 +66,13 @@ class BoxListView(APIView):
                 pasillobox = serializer.data['pasillobox']
 
         # Devuelve el estado
-                return Response({"ult": hora_fin, "prox": hora_prox, "med": x, "estadobox": estadobox, "pasillobox": pasillobox}, status=status.HTTP_200_OK)
+                return Response({
+                    "ult": hora_fin,
+                    "prox": hora_prox,
+                    "med": x, 
+                    "estadobox": estadobox, 
+                    "pasillobox": pasillobox
+                }, status=status.HTTP_200_OK)
             
 
             except Box.DoesNotExist:
@@ -71,6 +82,8 @@ class BoxListView(APIView):
             serializer = BoxSerializer(boxes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
             
+
+
 class EstadoBoxView(APIView):
     def get(self, request, *args, **kwargs):
         # Obtiene los parámetros de la solicitud
@@ -152,3 +165,49 @@ class AgendaBox(APIView):
                 "end": f"{fecha}T{hora_fin}" if hora_fin else None
             })
         return Response(eventos, status=status.HTTP_200_OK)
+
+class DatosModificadosAPIView(APIView):
+    def get(self, request, fecha_hora_str):
+        try:
+            # Parsear la fecha y hora desde la URL
+            fecha_hora = parse_datetime(fecha_hora_str)
+            if fecha_hora is None:
+                raise ValueError("Formato inválido")
+        except ValueError:
+            return Response({"error": "Formato de fecha/hora inválido. Usa YYYY-MM-DDTHH:MM:SS"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Obtener IDs de registros modificados desde la fecha indicada
+        logs = LogAtenamb.objects.using('simulador')\
+            .filter(fecha_hora__gte=fecha_hora)\
+            .values_list('atenamb_id', flat=True)\
+            .distinct()
+
+        # Obtener los datos de atenamb con esos IDs
+        datos = list(
+            Atenamb.objects.using('simulador')
+            .filter(id__in=logs)
+            .values()
+        )
+
+        return Response(datos, status=status.HTTP_200_OK)
+
+
+class VistaActualizableDispSerializer(serializers.Serializer):
+    actualizado = serializers.BooleanField()
+
+class VistaActualizableDispView(APIView):
+    def get(self, request):
+        vista = VistaActualizableDisp()
+        # Capturamos el valor actual antes de resetear
+        data = {"actualizado": vista.actualizado}
+        # Resetear el flag después de capturarlo
+        vista.resetear()
+        return Response(data)
+
+    def put(self, request):
+        vista = VistaActualizableDisp()
+        serializer = VistaActualizableDispSerializer(data=request.data)
+        if serializer.is_valid():
+            vista.actualizado = serializer.validated_data['actualizado']
+            return Response({"message": "Flag actualizado correctamente."})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

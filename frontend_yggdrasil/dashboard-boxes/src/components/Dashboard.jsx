@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -56,6 +56,8 @@ const agruparEnDúos = (arr) => {
   return res;
 };
 
+
+
 export default function Dashboard() {
   const [filtroPasillo, setFiltroPasillo] = useState("Todos");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
@@ -71,25 +73,59 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchBoxes = async () => {
-      try {
-        const response = await fetch("http://localhost:8000/api/boxes/");  
-        const data = await response.json();
-        setBoxes(data);
-        setBoxesraw(data);
-      } catch (error) {
-        console.error("Error al obtener los boxes:", error);
-      }
-    };
+  const fetchBoxes = async () => {
+    try {
+      const response = await fetch("http://10.135.45.43:8000/api/boxes/");  
+      const data = await response.json();
+      setBoxes(data);
+      setBoxesraw(data);
+    } catch (error) {
+      console.error("Error al obtener los boxes:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchBoxes();
   }, []);
 
+
+  const fetchActualizacion = async () => {
+    try {
+      const response = await fetch("http://10.135.45.43:8000/api/verificar_actualizacion", {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.actualizado;
+    } catch (error) {
+      console.error("Error al verificar actualizaciones:", error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      const hayActualizacion = await fetchActualizacion();
+      
+      if (hayActualizacion) {
+        console.log("Hay actualizaciones, actualizando boxes...");
+        const nuevosBoxes = await fetchBoxes();
+        if (nuevosBoxes) {
+          setBoxes(nuevosBoxes);
+        }
+      } else {
+        console.log("No hay actualizaciones.");
+      }
+    }, 3000); // Cada 30 segundos
+
+    return () => clearInterval(intervalId);
+  }, [filtroFecha, filtroHora]);
+
   const fetchBoxStateInhabilitado = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`"http://localhost:8000/api/boxes/"`);
-      const data = await response.json();
       console.log(`Estado actualizado del box ${boxId}:`, data);
   
       setBoxes((prevBoxes) =>
@@ -104,7 +140,7 @@ export default function Dashboard() {
 
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
+      const response = await fetch(`http://10.135.45.43:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
       const data = await response.json();
       console.log(`Estado actualizado del box ${boxId}:`, data);
   
