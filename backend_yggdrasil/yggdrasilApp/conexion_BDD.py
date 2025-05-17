@@ -10,6 +10,7 @@ class ConexionBDD:
             response = requests.get(f"{self.api_url}{fecha_hora_str}/")
 
             if response.status_code == 200:
+                print("Todo bien")
                 return response.json()  
             else:
                 print(f"Error en la API: {response.status_code}")

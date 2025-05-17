@@ -14,90 +14,72 @@ from .event_listener import VistaActualizableDisp
 from rest_framework import serializers
 
 
+
 class BoxListView(APIView):
     def get(self, request, *args, **kwargs):
         box_id = kwargs.get('id')
+        fecha = datetime.now().date()
+        hora = datetime.now().time()
 
         if box_id:
             try:
                 idbox = Box.objects.get(idbox=box_id)
                 serializer = BoxSerializer(idbox)
 
-                fecha = datetime.now().date()
-                hora = datetime.now().time()
-
-
-                # Realiza la consulta en la base de datos
+                # Última atención finalizada
                 hora_fin = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
-                    horafinagenda__lt=hora.strftime('%H:%M:%S') 
+                    horafinagenda__lt=hora.strftime('%H:%M:%S')
                 ).order_by('-horafinagenda').values('horafinagenda').first()
+                hora_fin = hora_fin['horafinagenda'] if hora_fin else 'N/A'
 
-                if not hora_fin:
-                    hora_fin = 'N/A'
-                else:
-                    hora_fin = hora_fin['horafinagenda']
-
+                # Próxima atención
                 hora_prox = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horainicioagenda__gte=hora.strftime('%H:%M:%S')
-                ).order_by('horafinagenda').values('horainicioagenda').first()
+                ).order_by('horainicioagenda').values('horainicioagenda').first()
+                hora_prox = hora_prox['horainicioagenda'] if hora_prox else 'N/A'
 
-                if not hora_prox:
-                    hora_prox = 'N/A'
-                else:
-                    hora_prox = hora_prox['horainicioagenda']
-
+                # Médico actual
                 med = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horainicioagenda__lt=hora.strftime('%H:%M:%S'),
                     horafinagenda__gte=hora.strftime('%H:%M:%S')
-                )
-                if not med:
-                    x = 'N/A' 
-                else:
-                    for ag in med:
-                        x = f"Dr. {ag.idmedico.nombre}"
+                ).first()
+                medico = f"Dr. {med.idmedico.nombre}" if med else 'N/A'
 
-                estadobox = serializer.data['estadobox']
-                pasillobox = serializer.data['pasillobox']
-
-        # Devuelve el estado
                 return Response({
                     "ult": hora_fin,
                     "prox": hora_prox,
-                    "med": x, 
-                    "estadobox": estadobox, 
-                    "pasillobox": pasillobox
+                    "med": medico,
+                    "estadobox": serializer.data['estadobox'],
+                    "pasillobox": serializer.data['pasillobox'],
+                    "especialidades": serializer.data['especialidades'],
+                    "especialidad_principal": serializer.data['especialidad_principal'],
                 }, status=status.HTTP_200_OK)
-            
 
             except Box.DoesNotExist:
                 return Response({'error': 'Box no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
         else:
             boxes = Box.objects.all()
             serializer = BoxSerializer(boxes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-            
 
 
 class EstadoBoxView(APIView):
     def get(self, request, *args, **kwargs):
-        # Obtiene los parámetros de la solicitud
         idbox = request.query_params.get('idbox')
         fecha = request.query_params.get('fecha')
         hora = request.query_params.get('hora')
 
-        # Valida que los parámetros no sean nulos
         if not idbox or not fecha or not hora:
             raise ValidationError("Faltan parámetros: idbox, fecha y hora son requeridos.")
 
 
-
-        # Realiza la consulta en la base de datos
         estado = Agendabox.objects.filter(
             Q(idbox=idbox),
             Q(fechaagenda=fecha),
@@ -110,22 +92,18 @@ class EstadoBoxView(APIView):
         else:
             estBox = 'Disponible'
 
-        # Devuelve el estado
         return Response({"estado": estBox}, status=status.HTTP_200_OK)
     
 
 class InfoBoxView(APIView):
     def get(self, request, *args, **kwargs):
-        # Obtiene los parámetros de la solicitud
         idbox = request.query_params.get('idbox')
         fecha = request.query_params.get('fecha')
         hora = request.query_params.get('hora')
 
-        # Valida que los parámetros no sean nulos
         if not idbox or not fecha or not hora:
             raise ValidationError("Faltan parámetros: idbox, fecha y hora son requeridos.")
 
-        # Realiza la consulta en la base de datos
         hora_fin = Agendabox.objects.filter(
             idbox=idbox,
             fechaagenda__lte=fecha,
@@ -145,8 +123,6 @@ class InfoBoxView(APIView):
             horafinagenda__gte=hora
         ).values_list('idmedico')
 
-
-        # Devuelve el estado
         return Response({"ult": hora_fin, "prox": hora_prox, "med": med}, status=status.HTTP_200_OK)
 
 class AgendaBox(APIView):
@@ -169,20 +145,20 @@ class AgendaBox(APIView):
 class DatosModificadosAPIView(APIView):
     def get(self, request, fecha_hora_str):
         try:
-            # Parsear la fecha y hora desde la URL
+            #Parsear la fecha y hora desde la URL
             fecha_hora = parse_datetime(fecha_hora_str)
             if fecha_hora is None:
                 raise ValueError("Formato inválido")
         except ValueError:
             return Response({"error": "Formato de fecha/hora inválido. Usa YYYY-MM-DDTHH:MM:SS"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener IDs de registros modificados desde la fecha indicada
+        #obtener IDs de registros modificados desde la fecha indicada
         logs = LogAtenamb.objects.using('simulador')\
             .filter(fecha_hora__gte=fecha_hora)\
             .values_list('atenamb_id', flat=True)\
             .distinct()
 
-        # Obtener los datos de atenamb con esos IDs
+        #obtener los datos de atenamb con esos Ids
         datos = list(
             Atenamb.objects.using('simulador')
             .filter(id__in=logs)
@@ -198,9 +174,9 @@ class VistaActualizableDispSerializer(serializers.Serializer):
 class VistaActualizableDispView(APIView):
     def get(self, request):
         vista = VistaActualizableDisp()
-        # Capturamos el valor actual antes de resetear
+        #acá capturamos el valor actual antes de resetear
         data = {"actualizado": vista.actualizado}
-        # Resetear el flag después de capturarlo
+        #Resetear el flag después de capturarlo
         vista.resetear()
         return Response(data)
 

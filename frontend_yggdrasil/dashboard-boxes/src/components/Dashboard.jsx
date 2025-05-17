@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-const pasillos = ["Área A", "Área B", "Área C", "Área D", "Área E", "Área F", "Área G", "Área H", "Área I", "Área J", "Área K", "Área L"];
+const pasillos = ["Traumatología - Gimnasio y curaciones", "Medicina", "Pedriatría", "Salud mental",
+  "Broncopulmonar - Cardiología", "Otorrinolaringología",
+  "Cirugías - Urología - Gastroenterología", "Ginecología - Obstetricia",
+  "Cuidados paliativos - Neurología - Oftalmología", "Gimnasio cardiovascular - Nutrición",
+  "Dermatología - UNACESS", "Hematología - Infectología - Misceláneo"];
+ 
 const estados = ["ocupado", "disponible", "inhabilitado"];
 const especialidades = ["Pediatría", "Traumatología", "Dermatología", "Medicina General", "Cardiología"];
 const motivosInhabilitacion = [
@@ -75,7 +80,7 @@ export default function Dashboard() {
 
   const fetchBoxes = async () => {
     try {
-      const response = await fetch("http://10.135.45.43:8000/api/boxes/");  
+      const response = await fetch("http://localhost:8000/api/boxes/");  
       const data = await response.json();
       setBoxes(data);
       setBoxesraw(data);
@@ -91,7 +96,7 @@ export default function Dashboard() {
 
   const fetchActualizacion = async () => {
     try {
-      const response = await fetch("http://10.135.45.43:8000/api/verificar_actualizacion", {
+      const response = await fetch("http://localhost:8000/api/verificar_actualizacion", {
         method: 'GET',
         credentials: 'include',
       });
@@ -119,7 +124,7 @@ export default function Dashboard() {
       } else {
         console.log("No hay actualizaciones.");
       }
-    }, 3000); // Cada 30 segundos
+    }, 3000); //cada 30 seg
 
     return () => clearInterval(intervalId);
   }, [filtroFecha, filtroHora]);
@@ -140,7 +145,7 @@ export default function Dashboard() {
 
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`http://10.135.45.43:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
+      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
       const data = await response.json();
       console.log(`Estado actualizado del box ${boxId}:`, data);
   

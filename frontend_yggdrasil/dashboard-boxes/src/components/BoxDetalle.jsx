@@ -31,8 +31,8 @@ export default function BoxDetalle() {
 
     const fetchBoxData = async () => {
       try {
-        const response = await fetch(`http://10.135.45.43:8000/api/boxes/${id}/`);
-        const agenda = await fetch(`http://10.135.45.43:8000/api/box/${id}/`);
+        const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
+        const agenda = await fetch(`http://localhost:8000/api/box/${id}/`);
         if (!response.ok) throw new Error("Error al obtener los datos del box");
         const data = await response.json();
         setBoxData(data);
@@ -67,7 +67,7 @@ export default function BoxDetalle() {
 
   return (
     <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
-      {/* Botón volver */}
+      {/*botón de  volver*/}
       <div className="mt-6 mb-4">
         <button
           onClick={() => navigate("/")}
@@ -92,8 +92,8 @@ export default function BoxDetalle() {
           <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Información General Box #{id}</h2>
           <p><strong>Estado actual:</strong> {boxData.estadobox}</p>
           <p><strong>Pasillo:</strong> {boxData.pasillobox}</p>
-          <p><strong>Especialidad:</strong> Cardiología</p>
-          <p><strong>También puede usarse para:</strong> {"(Otras especialidades)"}</p>
+          <p><strong>Especialidad:</strong> {boxData.especialidad_principal || 'No definida'}</p>
+          <p><strong>También puede usarse para:</strong> {boxData.especialidades.join(", ") || 'Ninguna'}</p>
           <p><strong>Última agenda:</strong> {boxData.ult}</p>
           <p><strong>Próxima agenda:</strong> {boxData.prox}</p>
           <p><strong>Médico asignado:</strong> {boxData.med}</p>
@@ -145,7 +145,7 @@ export default function BoxDetalle() {
         </motion.div>
       </div>
               
-      {/* Última actualización */}
+      {/*va la leyenda de la parte de abajo de la ultima actualización*/}
       <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
         Última actualización: {lastUpdated}
       </div>

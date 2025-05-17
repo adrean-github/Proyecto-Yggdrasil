@@ -29,7 +29,7 @@ export default function MedicosOnline() {
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
 
-    // Extraer especialidades únicas
+    //acá para extraer especialidades únicas
     const unicas = [...new Set(medicos.map((m) => m.especialidad))];
     setEspecialidades(unicas);
   }, []);
@@ -50,7 +50,7 @@ export default function MedicosOnline() {
 
   return (
     <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
-      {/* Botón volver */}
+      {/*botón de volver*/}
       <div className="mt-6 mb-4">
         <button
           onClick={() => navigate("/")}
@@ -61,12 +61,12 @@ export default function MedicosOnline() {
         </button>
       </div>
 
-      {/* Título */}
+      {/*Título*/}
       <h1 className="text-3xl font-bold text-center mb-6 text-[#5FB799]">
         Médicos en Línea
       </h1>
 
-      {/* Buscador y filtros */}
+      {/*buscador y filtros*/}
       <div className="flex flex-col md:flex-row items-center gap-4 justify-between mb-6">
         <div className="relative w-full md:w-1/2">
           <input
@@ -101,7 +101,7 @@ export default function MedicosOnline() {
         </select>
       </div>
 
-      {/* Lista de médicos */}
+      {/*lista de médicos*/}
       {medicosFiltrados.length > 0 ? (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {medicosFiltrados.map((medico, i) => (
@@ -134,7 +134,7 @@ export default function MedicosOnline() {
         </div>
       )}
 
-      {/* Última actualización */}
+
       <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
         Última actualización: {lastUpdated}
       </div>
