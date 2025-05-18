@@ -23,6 +23,8 @@ const getColor = (estado) => {
       return "bg-gray-300";
     case "Inhabilitado":
       return "bg-[#FFD36E]";
+    case 'Tope':
+      return "bg-[#FF4C4C]"
     default:
       return "bg-gray-200";
   }
@@ -36,6 +38,8 @@ const getEstadoColor = (estado) => {
       return "text-gray-500";
     case "Inhabilitado":
       return "text-[#FFD36E]";
+    case 'Tope':
+      return "text-[#FFD36E]"
     default:
       return "text-gray-400";
   }
@@ -43,6 +47,7 @@ const getEstadoColor = (estado) => {
 
 const estadosDisponibles = [
   { label: "Todos", valor: "Todos", color: "bg-[#DB1866]" },
+  { label: "Tope", valor: "Tope", color: "bg-[#FF4C4C]" },
   { label: "Disponible", valor: "Disponible", color: "bg-gray-300" },
   { label: "Ocupado", valor: "Ocupado", color: "bg-[#6EDFB5]" },
   { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFD36E]" },
@@ -75,7 +80,7 @@ export default function Dashboard() {
 
   const fetchBoxes = async () => {
     try {
-      const response = await fetch("http://10.135.45.43:8000/api/boxes/");  
+      const response = await fetch("http://localhost:8000/api/boxes/");  
       const data = await response.json();
       setBoxes(data);
       setBoxesraw(data);
@@ -91,7 +96,7 @@ export default function Dashboard() {
 
   const fetchActualizacion = async () => {
     try {
-      const response = await fetch("http://10.135.45.43:8000/api/verificar_actualizacion", {
+      const response = await fetch("http://localhost:8000/api/verificar_actualizacion", {
         method: 'GET',
         credentials: 'include',
       });
@@ -109,7 +114,9 @@ export default function Dashboard() {
   useEffect(() => {
     const intervalId = setInterval(async () => {
       const hayActualizacion = await fetchActualizacion();
-      
+      const ahora = new Date();
+      setFiltroFecha(ahora.toISOString().split("T")[0]);
+      setFiltroHora(ahora.toTimeString().slice(0, 5));
       if (hayActualizacion) {
         console.log("Hay actualizaciones, actualizando boxes...");
         const nuevosBoxes = await fetchBoxes();
@@ -119,7 +126,7 @@ export default function Dashboard() {
       } else {
         console.log("No hay actualizaciones.");
       }
-    }, 3000); // Cada 30 segundos
+    }, 3000); // Cada 3 segundos
 
     return () => clearInterval(intervalId);
   }, [filtroFecha, filtroHora]);
@@ -140,7 +147,7 @@ export default function Dashboard() {
 
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`http://10.135.45.43:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
+      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
       const data = await response.json();
       console.log(`Estado actualizado del box ${boxId}:`, data);
   
@@ -314,6 +321,7 @@ export default function Dashboard() {
 
         <div className="w-full md:w-80 flex flex-col justify-stretch gap-3">
           {[{ estado: "Todos", color: "bg-[#DB1866]", texto: "Ver todos los boxes", textoColor: "text-white" },
+            { estado: "Tope", color: "bg-[#FF4C4C]", texto: "Boxes con topes", textoColor: "text-white" },
             { estado: "Disponible", color: "bg-gray-300", texto: "Boxes disponibles", textoColor: "text-gray-800" },
             { estado: "Ocupado", color: "bg-[#6EDFB5]", texto: "Boxes ocupados", textoColor: "text-white" },
             { estado: "Inhabilitado", color: "bg-[#FFD36E]", texto: "Boxes inhabilitados", textoColor: "text-white" }

@@ -6,15 +6,15 @@ from .serializers import BoxSerializer
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery
 from datetime import datetime
 from .event_listener import EventListener
 from django.utils.dateparse import parse_datetime
 from .event_listener import VistaActualizableDisp
 from rest_framework import serializers
 
+class BoxListView(APIView):   
 
-class BoxListView(APIView):
     def get(self, request, *args, **kwargs):
         box_id = kwargs.get('id')
 
@@ -85,6 +85,16 @@ class BoxListView(APIView):
 
 
 class EstadoBoxView(APIView):
+
+    def hay_tope(agendas):
+        for i in range(len(agendas)):
+            a1 = agendas[i]
+            for j in range(i + 1, len(agendas)):
+                a2 = agendas[j]
+                if a1['horainicioagenda'] < a2['horafinagenda'] and a2['horainicioagenda'] < a1['horafinagenda']:
+                    return True
+        return False
+
     def get(self, request, *args, **kwargs):
         # Obtiene los parámetros de la solicitud
         idbox = request.query_params.get('idbox')
@@ -95,20 +105,20 @@ class EstadoBoxView(APIView):
         if not idbox or not fecha or not hora:
             raise ValidationError("Faltan parámetros: idbox, fecha y hora son requeridos.")
 
-
-
         # Realiza la consulta en la base de datos
         estado = Agendabox.objects.filter(
             Q(idbox=idbox),
             Q(fechaagenda=fecha),
             Q(horainicioagenda__lt=hora),
             Q(horafinagenda__gt=hora)
-        ).exists()
+        ).count()
 
-        if estado:
+        if estado == 1:
             estBox = 'Ocupado'
-        else:
+        elif estado == 0:
             estBox = 'Disponible'
+        else:
+            estBox = 'Tope'
 
         # Devuelve el estado
         return Response({"estado": estBox}, status=status.HTTP_200_OK)
@@ -178,16 +188,23 @@ class DatosModificadosAPIView(APIView):
 
         # Obtener IDs de registros modificados desde la fecha indicada
         logs = LogAtenamb.objects.using('simulador')\
-            .filter(fecha_hora__gte=fecha_hora)\
+            .filter(fecha_hora__gt=fecha_hora)\
             .values_list('atenamb_id', flat=True)\
             .distinct()
+        
+        log_subquery = LogAtenamb.objects.using('simulador')\
+            .filter(atenamb_id=OuterRef('pk'), fecha_hora__gt=fecha_hora)\
+            .order_by('-fecha_hora')\
+            .values('accion')[:1] 
 
-        # Obtener los datos de atenamb con esos IDs
+        # Obtener los datos de Atenamb con el tipo de acción incluido
         datos = list(
             Atenamb.objects.using('simulador')
             .filter(id__in=logs)
+            .annotate(accion=Subquery(log_subquery))
             .values()
         )
+
 
         return Response(datos, status=status.HTTP_200_OK)
 

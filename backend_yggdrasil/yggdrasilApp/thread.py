@@ -13,18 +13,19 @@ def iniciar_flujo_actualizacion():
         actualizador.agregar_observador(vista)
         adapter = AgendaAdapter()
         conexion = ConexionBDD()
-
+        dt = datetime.now().strftime('%Y-%m-%dT%H:%M:00')
         while True:
-            dt = (datetime.now() - timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:00')
             print("Ejecutando flujo de actualización...", dt)
             try:
+                dt1 = datetime.now()
                 datos_crudos = conexion.obtener_datos_cliente(dt)
                 agenda_boxes = adapter.adaptar_datos(datos_crudos)
                 actualizador.actualizar(agenda_boxes)
                 print("Flujo completado con éxito.\n")
+                dt = dt1.strftime('%Y-%m-%dT%H:%M:%S')
             except Exception as e:
                 print("Error durante la ejecución:", e)
-            time.sleep(10)  # Esperar 5 minutos
+            time.sleep(100)  # Esperar 5 minutos
 
     hilo = threading.Thread(target=run, daemon=True)
     hilo.start()

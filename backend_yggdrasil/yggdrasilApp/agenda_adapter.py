@@ -15,5 +15,5 @@ class AgendaAdapter:
                 horafinagenda=item['horaFin'],
                 habilitada=1
             )
-            agenda_boxes.append(agenda_box)
+            agenda_boxes.append((agenda_box, item['accion']))
         return agenda_boxes

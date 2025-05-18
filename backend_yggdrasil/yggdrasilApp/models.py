@@ -12,7 +12,6 @@ class Agendabox(models.Model):
     class Meta:
         managed = False
         db_table = 'agendabox'
-        unique_together = (('fechaagenda', 'horainicioagenda', 'idbox'),)
 
 
 class AuthGroup(models.Model):
@@ -169,15 +168,6 @@ class Medico(models.Model):
     class Meta:
         managed = False
         db_table = 'medico'
-
-
-class Paciente(models.Model):
-    rutpaciente = models.AutoField(db_column='rutPaciente', primary_key=True)  # Field name made lowercase.
-    nombre = models.CharField(max_length=100, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'paciente'
 
 
 class Tipobox(models.Model):
