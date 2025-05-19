@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
-const pasillos = ["Área A", "Área B", "Área C", "Área D", "Área E", "Área F", "Área G", "Área H", "Área I", "Área J", "Área K", "Área L"];
+const pasillos = ["Traumatología - Gimnasio y curaciones", "Medicina", "Pedriatría", "Salud mental",
+  "Broncopulmonar - Cardiología", "Otorrinolaringología",
+  "Cirugías - Urología - Gastroenterología", "Ginecología - Obstetricia",
+  "Cuidados paliativos - Neurología - Oftalmología", "Gimnasio cardiovascular - Nutrición",
+  "Dermatología - UNACESS", "Hematología - Infectología - Misceláneo"];
+ 
 const estados = ["ocupado", "disponible", "inhabilitado"];
 const especialidades = ["Pediatría", "Traumatología", "Dermatología", "Medicina General", "Cardiología"];
 const motivosInhabilitacion = [
@@ -75,7 +80,7 @@ export default function Dashboard() {
 
   const [boxes, setBoxes] = useState([]);
   const [boxesraw, setBoxesraw] = useState([]);
-
+  const [enVivo, setEnVivo] = useState(true);
   const navigate = useNavigate();
 
   const fetchBoxes = async () => {
@@ -112,14 +117,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    if (!enVivo) return;
     const intervalId = setInterval(async () => {
       const hayActualizacion = await fetchActualizacion();
       const ahora = new Date();
-      setFiltroFecha(ahora.toISOString().split("T")[0]);
+      setFiltroFecha(ahora.toLocaleDateString('sv-SE'));
       setFiltroHora(ahora.toTimeString().slice(0, 5));
       if (hayActualizacion) {
         console.log("Hay actualizaciones, actualizando boxes...");
-        const nuevosBoxes = await fetchBoxes();
+        const nuevosBoxes = await handleFechaHoraChange(filtroFecha, filtroHora);
         if (nuevosBoxes) {
           setBoxes(nuevosBoxes);
         }
@@ -129,7 +135,7 @@ export default function Dashboard() {
     }, 3000); // Cada 3 segundos
 
     return () => clearInterval(intervalId);
-  }, [filtroFecha, filtroHora]);
+  }, [filtroFecha, filtroHora, enVivo]);
 
   const fetchBoxStateInhabilitado = async (boxId, fecha, hora) => {
     try {
@@ -201,8 +207,9 @@ export default function Dashboard() {
 
   const volverAVivo = () => {
     const ahora = new Date();
-    setFiltroFecha(ahora.toISOString().split("T")[0]);
+    setFiltroFecha(ahora.toLocaleDateString('sv-SE'));
     setFiltroHora(ahora.toTimeString().slice(0, 5));
+    setEnVivo(true);
   };
   
   const isFuture = () => {
@@ -210,6 +217,17 @@ export default function Dashboard() {
     const filtroCompleto = new Date(`${filtroFecha}T${filtroHora}`);
     return filtroCompleto > now;
   };
+
+  const handleFechaChange = (fecha) => {
+    setFiltroFecha(fecha);
+    if (enVivo) setEnVivo(false);
+  };
+
+  const handleHoraChange = (hora) => {
+    setFiltroHora(hora);
+    if (enVivo) setEnVivo(false);
+  };
+
 
   const boxesFiltrados = boxes.filter((b) => {
     const coincidePasillo = filtroPasillo === "Todos" || b.pasillobox === filtroPasillo;
@@ -249,9 +267,9 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-2 text-sm">
               <label>Fecha:</label>
-              <input type="date" value={filtroFecha} onChange={(e) => setFiltroFecha(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+              <input type="date" value={filtroFecha} onChange={(e) => handleFechaChange(e.target.value)} className="border rounded px-2 py-1 text-sm" />
               <label>Hora:</label>
-              <input type="time" value={filtroHora} onChange={(e) => setFiltroHora(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+              <input type="time" value={filtroHora} onChange={(e) => handleHoraChange(e.target.value)} className="border rounded px-2 py-1 text-sm" />
               <button
               onClick={volverAVivo}
               className="bg-[#4fa986] text-white px-3 py-1 rounded hover:bg-[#3e8d72] transition text-xs font-semibold"

@@ -1,4 +1,6 @@
 from django.apps import AppConfig
+import os
+import threading
 
 
 class YggdrasilConfig(AppConfig):
@@ -6,5 +8,6 @@ class YggdrasilConfig(AppConfig):
     name = 'yggdrasilApp'
 
     def ready(self):
-        from .thread import iniciar_flujo_actualizacion
-        iniciar_flujo_actualizacion()
+        if os.environ.get('RUN_MAIN') == 'true':
+            from .thread import iniciar_flujo_actualizacion
+            iniciar_flujo_actualizacion()

@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Agendabox(models.Model):
-    fechaagenda = models.DateField(db_column='fechaAgenda', primary_key=True)  # Field name made lowercase. The composite primary key (fechaAgenda, horaInicioAgenda, idBox) found, that is not supported. The first column is selected.
+    fechaagenda = models.DateField(db_column='fechaAgenda')  # Field name made lowercase. The composite primary key (fechaAgenda, horaInicioAgenda, idBox) found, that is not supported. The first column is selected.
     horainicioagenda = models.TimeField(db_column='horaInicioAgenda')  # Field name made lowercase.
     idbox = models.ForeignKey('Box', models.DO_NOTHING, db_column='idBox')  # Field name made lowercase.
     idmedico = models.ForeignKey('Medico', models.DO_NOTHING, db_column='idMedico', blank=True, null=True)  # Field name made lowercase.
@@ -83,25 +83,41 @@ class AuthUserUserPermissions(models.Model):
         unique_together = (('user', 'permission'),)
 
 
+
+class Tipobox(models.Model):
+    idtipobox = models.AutoField(db_column='idTipoBox', primary_key=True)
+    tipo = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'tipobox'
+
+
 class Box(models.Model):
-    idbox = models.AutoField(db_column='idBox', primary_key=True)  # Field name made lowercase.
-    estadobox = models.CharField(db_column='estadoBox', max_length=20, blank=True, null=True)  # Field name made lowercase.
-    pasillobox = models.CharField(db_column='pasilloBox', max_length=20, blank=True, null=True)  # Field name made lowercase.
+    idbox = models.AutoField(db_column='idBox', primary_key=True)
+    estadobox = models.CharField(db_column='estadoBox', max_length=20, blank=True, null=True)
+    pasillobox = models.CharField(db_column='pasilloBox', max_length=20, blank=True, null=True)
     comentario = models.TextField(blank=True, null=True)
+
+    tipoboxes = models.ManyToManyField(
+        'Tipobox',
+        through='Boxtipobox',
+        related_name='boxes'
+    )
 
     class Meta:
         managed = False
         db_table = 'box'
 
 
-class Boxtipobox(models.Model):
-    idbox = models.OneToOneField(Box, models.DO_NOTHING, db_column='idBox', primary_key=True)  # Field name made lowercase. The composite primary key (idBox, idTipoBox) found, that is not supported. The first column is selected.
-    idtipobox = models.ForeignKey('Tipobox', models.DO_NOTHING, db_column='idTipoBox')  # Field name made lowercase.
-    tipoprincipal = models.IntegerField(db_column='tipoPrincipal', blank=True, null=True)  # Field name made lowercase.
+class BoxTipoBox(models.Model):
+    idbox = models.ForeignKey(Box, on_delete=models.CASCADE, db_column='idBox', primary_key=True)
+    idtipobox = models.ForeignKey(Tipobox, on_delete=models.CASCADE, db_column='idTipoBox')
+    tipoprincipal = models.BooleanField(db_column='tipoPrincipal', default=False)
 
     class Meta:
-        managed = False
         db_table = 'boxtipobox'
+        managed = False  
         unique_together = (('idbox', 'idtipobox'),)
 
 
@@ -170,13 +186,6 @@ class Medico(models.Model):
         db_table = 'medico'
 
 
-class Tipobox(models.Model):
-    idtipobox = models.AutoField(db_column='idTipoBox', primary_key=True)  # Field name made lowercase.
-    tipo = models.CharField(max_length=50, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'tipobox'
 
 
 class Atenamb(models.Model):
@@ -187,7 +196,7 @@ class Atenamb(models.Model):
     horaFin = models.TimeField()
 
     class Meta:
-        managed = False  # Para que Django no intente crearla/migrarla
+        managed = False  
         db_table = 'atenamb'
 
 class LogAtenamb(models.Model):
