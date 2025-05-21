@@ -32,7 +32,7 @@ def iniciar_flujo_actualizacion():
                 dt = dt1.strftime('%Y-%m-%dT%H:%M:%S')
             except Exception as e:
                 print("Error durante la ejecución:", e)
-            time.sleep(10) 
+            time.sleep(3) 
 
     hilo_actualizacion  = threading.Thread(target=run, daemon=True)
     hilo_actualizacion.start()

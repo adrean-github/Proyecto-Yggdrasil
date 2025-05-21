@@ -294,7 +294,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="overflow-y-auto max-h-[calc(100vh-180px)] pr-1">
+          <div className="overflow-y-auto max-h-[calc(120vh-180px)] pr-1">
             <AnimatePresence mode="sync">
               {agruparEnDúos(pasillosMostrar).map((grupo, idx) => (
                 <motion.div
@@ -381,10 +381,20 @@ export default function Dashboard() {
           </div>
           <div className="mb-1">
             <span className="font-medium">Pasillo:</span> {boxHover.pasillobox}
-          </div>
-          <div className="text-xs text-gray-500 mt-2">Última cita: hace 20 mins</div>
+
+
         </div>
+
+
+
+        </div>
+        
       )}
+      
+
+        <footer>
+          <div  className="text-xs text-gray-500 mt-2 margin-top: 20px;">Última cita: hace 20 mins</div>
+        </footer>
     </div>
   );
 }
