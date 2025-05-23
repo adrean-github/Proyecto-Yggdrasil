@@ -2,13 +2,7 @@ from rest_framework import serializers
 from .models import Box, Agendabox, Atenamb , Tipobox, BoxTipoBox
 from django.db.models import Prefetch
 
-"""
 
-class BoxSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Box
-        fields ='__all__'
-"""
 
 class AgendaboxSerializer(serializers.ModelSerializer):
     class Meta:
