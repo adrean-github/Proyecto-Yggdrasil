@@ -172,15 +172,8 @@ const renderTableWithPagination = (data) => {
   return (
   <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
     {/* Botón de volver */}
-    <div className="mt-6 mb-6">
-      <button
-        type="button"
-        onClick={() => navigate("/DashboardBoxes")}
-        className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline transition-colors duration-200"
-      >
-        <ArrowLeft size={20} />
-        Volver al Dashboard
-      </button>
+    <div className="flex justify-center mt-6 mb-3">
+        <h1 className="center text-3xl font-semibold mb-3 text-[#5FB799]">Simulador de Agendas</h1>
     </div>
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -206,7 +199,7 @@ const renderTableWithPagination = (data) => {
           </button>
         </form>
         <div
-            className={`cursor-default bg-[#EF2C3C] text-white py-5 px-4 rounded-xl shadow-md flex flex-col justify-center items-center text-center border border-white`}
+            className={`cursor-default bg-[#FFCF3C] text-white py-5 px-4 rounded-xl shadow-md flex flex-col justify-center items-center text-center border border-white`}
         >
             <div className="text-4xl font-bold">
             {desaprobados.length}
