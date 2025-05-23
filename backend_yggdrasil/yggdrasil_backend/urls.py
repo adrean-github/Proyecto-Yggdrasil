@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
-                                VistaActualizableDispView, login_view, logout_view, user_info, upload_file
+                                VistaActualizableDispView, login_view, logout_view, user_info, upload_file, confirmar_guardado_agendas
 
 
 urlpatterns = [
@@ -33,4 +33,5 @@ urlpatterns = [
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),
     path('api/upload/', upload_file),
+    path('api/confirmar-agendas/', confirmar_guardado_agendas, name='confirmar-agendas'),
 ]

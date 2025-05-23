@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Box, Agendabox, Medico, Atenamb, LogAtenamb
 from .serializers import BoxSerializer, AgendaboxSerializer
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q, OuterRef, Subquery
@@ -19,7 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import MultiPartParser, FormParser
 import pandas as pd
 from django.http import JsonResponse
-
+from rest_framework.permissions import IsAuthenticated
 
 
 
@@ -262,7 +262,7 @@ def user_info(request):
 
 
 
-
+GLOBAL = []
 
 @csrf_exempt
 def upload_file(request):
@@ -289,6 +289,8 @@ def upload_file(request):
 
         aprobados, desaprobados = simulador.simular(datos)
 
+        GLOBAL.append(aprobados)
+
         serializer_aprobados = AgendaboxSerializer(aprobados, many=True)
         serializer_desaprobados = AgendaboxSerializer(desaprobados, many=True)
 
@@ -301,3 +303,14 @@ def upload_file(request):
     except Exception as e:
         print(e)
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def confirmar_guardado_agendas(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Solo se permite POST'}, status=405)
+    try:
+        agendas = GLOBAL.pop()
+        Agendabox.objects.bulk_create(agendas)
+        return JsonResponse({"mensaje": "Agendas confirmadas y guardadas exitosamente"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
