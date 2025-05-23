@@ -1,10 +1,10 @@
 import threading
 import time
 from datetime import datetime, timedelta
-from .conexion_BDD import ConexionBDD
-from .agenda_adapter import AgendaAdapter
-from .actualizador_datos import ActualizadorDatos
-from .event_listener import VistaActualizableDisp
+from .modulos.conexion_BDD import ConexionBDD
+from .modulos.agenda_adapter import AgendaAdapter
+from .modulos.actualizador_datos import ActualizadorDatos
+from .modulos.event_listener import VistaActualizableDisp
 
 hilo_actualizacion = None
 
@@ -32,7 +32,7 @@ def iniciar_flujo_actualizacion():
                 dt = dt1.strftime('%Y-%m-%dT%H:%M:%S')
             except Exception as e:
                 print("Error durante la ejecución:", e)
-            time.sleep(3) 
+            time.sleep(300) 
 
     hilo_actualizacion  = threading.Thread(target=run, daemon=True)
     hilo_actualizacion.start()

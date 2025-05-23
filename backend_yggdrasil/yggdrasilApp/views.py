@@ -2,15 +2,17 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Box, Agendabox, Medico, Atenamb, LogAtenamb
-from .serializers import BoxSerializer
+from .serializers import BoxSerializer, AgendaboxSerializer
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q, OuterRef, Subquery
 from datetime import datetime
-from .event_listener import EventListener
+from .modulos.event_listener import EventListener
 from django.utils.dateparse import parse_datetime
-from .event_listener import VistaActualizableDisp
+from .modulos.event_listener import VistaActualizableDisp
+from .modulos.agenda_adapter import SimuladorAdapter
+from .modulos.simulador_agenda import SimuladorAgenda
 from rest_framework import serializers
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -273,17 +275,29 @@ def upload_file(request):
 
     try:
         if archivo.name.endswith('.csv'):
-            df = pd.read_csv(archivo, sep='|')
+            df = pd.read_csv(archivo, sep=',')
         elif archivo.name.endswith('.xlsx'):
             df = pd.read_excel(archivo)
         else:
             return JsonResponse({'error': 'Formato de archivo no soportado'}, status=400)
 
+        sAdapter = SimuladorAdapter()
+
+        simulador = SimuladorAgenda()
+
+        datos = sAdapter.adaptar_datos(df)
+
+        aprobados, desaprobados = simulador.simular(datos)
+
+        serializer_aprobados = AgendaboxSerializer(aprobados, many=True)
+        serializer_desaprobados = AgendaboxSerializer(desaprobados, many=True)
+
         return JsonResponse({
             'mensaje': 'Archivo recibido correctamente',
-            'filas': len(df),
-            'columnas': list(df.columns),
+            'aprobados': serializer_aprobados.data,
+            'desaprobados': serializer_desaprobados.data,
         })
 
     except Exception as e:
+        print(e)
         return JsonResponse({'error': str(e)}, status=500)

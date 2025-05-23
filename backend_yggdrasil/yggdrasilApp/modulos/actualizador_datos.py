@@ -1,4 +1,4 @@
-from .models import Agendabox
+from ..models import Agendabox
 from django.db.models import Q
 from .observable import Observable
 
