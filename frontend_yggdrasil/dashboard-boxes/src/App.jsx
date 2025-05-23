@@ -5,9 +5,9 @@ import Dashboard from "./components/Dashboard";
 import MedicosOnline from "./components/MedicosOnline";
 import BoxDetalle from "./components/BoxDetalle";
 import Login from "./components/Login";
-import PrivateRoute from "./components/privateroute"
+import ReservaNoMedica from "./components/ReservaNoMedica";
+import PrivateRoute from "./components/privateroute";
 
-// Componente auxiliar para condicionar el header
 function LayoutWithHeader({ children }) {
   const location = useLocation();
   const hideHeaderPaths = ["/login"];
@@ -26,7 +26,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
-            path="/"
+            path="/DashboardBoxes"
             element={
               <PrivateRoute>
                 <Dashboard />
@@ -46,6 +46,14 @@ export default function App() {
             element={
               <PrivateRoute>
                 <BoxDetalle />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reserva-no-medica"
+            element={
+              <PrivateRoute>
+                <ReservaNoMedica />
               </PrivateRoute>
             }
           />

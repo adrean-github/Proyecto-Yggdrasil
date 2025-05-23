@@ -5,7 +5,7 @@ import '../Login.css';
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,9 +20,26 @@ function Login() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('Login exitoso', data);
-        navigate('/'); 
+        const userRes = await fetch('http://localhost:8000/api/user/', {
+          credentials: 'include',
+        });
+
+        if (userRes.ok) {
+          const user = await userRes.json();
+          console.log("Usuario obtenido:", user);
+
+          const roles = Array.isArray(user.roles) ? user.roles : [];
+
+          if (roles.includes('gestion')) {
+            navigate('/DashboardBoxes');
+          } else if (roles.includes('jefe_pasillo')) {
+            navigate('/reserva-no-medica');
+          } else {
+            alert('No tienes permisos asignados para acceder a ninguna página.');
+          }
+        } else {
+          alert('No se pudo obtener la información del usuario.');
+        }
       } else {
         alert('Credenciales inválidas');
       }
