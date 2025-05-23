@@ -40,7 +40,7 @@ export default function Header() {
             <a href="#" className="hover:text-green-900 font-semibold">Agendas</a>
             <a href="#" className="hover:text-green-900 font-semibold">Notificaciones</a>
             <a href="#" className="hover:text-green-900 font-semibold">Solicitudes</a>
-            <a href="/simulador" className="hover:text-green-900 font-semibold">Simulador</a>
+            <a href="/simulador" className="hover:text-green-900 font-semibold">Simular agendas</a>
             {!checking && (
               user ? (
                 <div className="relative">

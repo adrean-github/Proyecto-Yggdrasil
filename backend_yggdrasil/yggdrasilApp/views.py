@@ -33,34 +33,40 @@ class BoxListView(APIView):
                 serializer = BoxSerializer(idbox)
 
                 # Última atención finalizada
-                hora_fin = Agendabox.objects.filter(
+                ultima_atencion = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horafinagenda__lt=hora.strftime('%H:%M:%S')
-                ).order_by('-horafinagenda').values('horafinagenda').first()
-                hora_fin = hora_fin['horafinagenda'] if hora_fin else 'N/A'
+                ).order_by('-horafinagenda').first()
+                
+                hora_fin = ultima_atencion.horafinagenda.strftime('%H:%M') if ultima_atencion else 'N/A'
+                tipo_ultima = 'No Médica' if ultima_atencion and ultima_atencion.esMedica == 0 else 'Médica' if ultima_atencion else 'N/A'
 
                 # Próxima atención
-                hora_prox = Agendabox.objects.filter(
+                proxima_atencion = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horainicioagenda__gte=hora.strftime('%H:%M:%S')
-                ).order_by('horainicioagenda').values('horainicioagenda').first()
-                hora_prox = hora_prox['horainicioagenda'] if hora_prox else 'N/A'
+                ).order_by('horainicioagenda').first()
+                
+                hora_prox = proxima_atencion.horainicioagenda.strftime('%H:%M') if proxima_atencion else 'N/A'
+                tipo_proxima = 'No Médica' if proxima_atencion and proxima_atencion.esMedica == 0 else 'Médica' if proxima_atencion else 'N/A'
 
                 # Médico actual
-                med = Agendabox.objects.filter(
+                atencion_actual = Agendabox.objects.filter(
                     idbox=idbox,
                     fechaagenda=fecha.strftime('%Y-%m-%d'),
                     horainicioagenda__lt=hora.strftime('%H:%M:%S'),
                     horafinagenda__gte=hora.strftime('%H:%M:%S')
                 ).first()
-                medico = f"Dr. {med.idmedico.nombre}" if med else 'N/A'
+                
+                medico = f"Dr. {atencion_actual.idmedico.nombre}" if atencion_actual and atencion_actual.idmedico else 'N/A'
+                tipo_actual = 'No Médica' if atencion_actual and atencion_actual.esMedica == 0 else 'Médica' if atencion_actual else 'N/A'
 
                 return Response({
-                    "ult": hora_fin,
-                    "prox": hora_prox,
-                    "med": medico,
+                    "ult": f"{hora_fin} ({tipo_ultima})",
+                    "prox": f"{hora_prox} ({tipo_proxima})",
+                    "med": f"{medico} ({tipo_actual})" if medico != 'N/A' else medico,
                     "estadobox": serializer.data['estadobox'],
                     "pasillobox": serializer.data['pasillobox'],
                     "especialidades": serializer.data['especialidades'],
@@ -69,7 +75,6 @@ class BoxListView(APIView):
 
             except Box.DoesNotExist:
                 return Response({'error': 'Box no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
         else:
             boxes = Box.objects.all()
             serializer = BoxSerializer(boxes, many=True)
@@ -142,22 +147,30 @@ class InfoBoxView(APIView):
         ).values_list('idmedico')
 
         return Response({"ult": hora_fin, "prox": hora_prox, "med": med}, status=status.HTTP_200_OK)
-
 class AgendaBox(APIView):
     def get(self, request, *args, **kwargs):
         box_id = kwargs.get('id')
         agenda_box = Agendabox.objects.filter(idbox=box_id)
         eventos = []
+        
         for ag in agenda_box:
             fecha = ag.fechaagenda.strftime("%Y-%m-%d")
             hora_inicio = ag.horainicioagenda.strftime("%H:%M:%S")
             hora_fin = ag.horafinagenda.strftime("%H:%M:%S") if ag.horafinagenda else None
-
+            
             eventos.append({
-                "title": f"Dr. {ag.idmedico.nombre}" if ag.idmedico else "Consulta",
+                "title": f"Dr. {ag.idmedico.nombre}" if ag.idmedico else "Reserva no médica",
                 "start": f"{fecha}T{hora_inicio}",
-                "end": f"{fecha}T{hora_fin}" if hora_fin else None
+                "end": f"{fecha}T{hora_fin}" if hora_fin else None,
+                "esMedica": ag.esMedica, 
+                "color": "#d8b4fe" if ag.esMedica == 0 else "#cfe4ff", 
+                "textColor": "#000000",
+                "extendedProps": {
+                    "tipo": "No Médica" if ag.esMedica == 0 else "Médica",
+                    "observaciones": ag.observaciones or ""
+                }
             })
+            
         return Response(eventos, status=status.HTTP_200_OK)
 
 class DatosModificadosAPIView(APIView):

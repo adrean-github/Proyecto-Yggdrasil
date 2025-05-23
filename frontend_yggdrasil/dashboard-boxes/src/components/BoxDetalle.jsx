@@ -10,33 +10,34 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 
-
-
 export default function BoxDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
   const [boxData, setBoxData] = useState(null);
-  const [agendaboxData, setagendaBoxData] = useState(null);
+  const [agendaboxData, setagendaBoxData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("");
-  
-  
-
 
   useEffect(() => {
-
     setLastUpdated(new Date().toLocaleString());
 
     const fetchBoxData = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/boxes/${id}/`);
-        const agenda = await fetch(`http://localhost:8000/api/box/${id}/`);
-        if (!response.ok) throw new Error("Error al obtener los datos del box");
-        const data = await response.json();
-        setBoxData(data);
-        setagendaBoxData(agenda);
+        const [boxResponse, agendaResponse] = await Promise.all([
+          fetch(`http://localhost:8000/api/boxes/${id}/`),
+          fetch(`http://localhost:8000/api/box/${id}/`)
+        ]);
+
+        if (!boxResponse.ok) throw new Error("Error al obtener los datos del box");
+        if (!agendaResponse.ok) throw new Error("Error al obtener las agendas");
+
+        const boxData = await boxResponse.json();
+        const agendaData = await agendaResponse.json();
+
+        setBoxData(boxData);
+        setagendaBoxData(Array.isArray(agendaData) ? agendaData : []);
       } catch (error) {
         console.error("Error al cargar datos del box:", error);
       } finally {
@@ -47,8 +48,6 @@ export default function BoxDetalle() {
     fetchBoxData();
   }, [id]);
 
-
-  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-[#5FB799]">
@@ -67,7 +66,6 @@ export default function BoxDetalle() {
 
   return (
     <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
-      {/*botón de  volver*/}
       <div className="mt-6 mb-4">
         <button
           onClick={() => navigate("/DashboardBoxes")}
@@ -78,12 +76,7 @@ export default function BoxDetalle() {
         </button>
       </div>
 
-
-
-
-      {/*Contenido principal*/}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/*Información del box*/}
         <motion.div
           className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-3 col-span-1"
           initial={{ opacity: 0, y: 20 }}
@@ -99,12 +92,12 @@ export default function BoxDetalle() {
           <p><strong>Médico asignado:</strong> {boxData.med}</p>
         </motion.div>
 
-        {/*Filtro de calendario*/}
         <motion.div
           className="bg-white border border-[#5FB799] rounded p-6 shadow space-y-4 col-span-2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}>
+          transition={{ delay: 0.1 }}
+        >
           <div className="border-t">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -114,7 +107,11 @@ export default function BoxDetalle() {
                 center: "title",
                 right: "timeGridWeek,dayGridMonth"
               }}
-              events={agendaboxData}
+              events={agendaboxData.map(event => ({
+                ...event,
+                color: event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff', 
+                textColor: '#000000'
+              }))}
               locale={esLocale}
               buttonText={{
                 today: 'Ver hoy',
@@ -127,8 +124,6 @@ export default function BoxDetalle() {
               editable={false}
               selectMirror={true}
               nowIndicator={true}
-              eventTextColor="#000000"
-              eventColor = '#cfe4ff'
               slotLabelFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
@@ -145,7 +140,6 @@ export default function BoxDetalle() {
         </motion.div>
       </div>
               
-      {/*va la leyenda de la parte de abajo de la ultima actualización*/}
       <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
         Última actualización: {lastUpdated}
       </div>
