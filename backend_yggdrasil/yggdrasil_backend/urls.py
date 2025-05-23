@@ -17,7 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
-                                VistaActualizableDispView, login_view, logout_view, user_info
+                                VistaActualizableDispView, login_view, logout_view, user_info, upload_file
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/boxes/', BoxListView.as_view(), name='box-list'),
@@ -30,4 +32,5 @@ urlpatterns = [
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),
+    path('api/upload/', upload_file),
 ]

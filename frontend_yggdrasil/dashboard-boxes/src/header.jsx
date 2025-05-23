@@ -34,8 +34,8 @@ export default function Header() {
 
         <div className="hidden md:flex items-center gap-4">
           <nav className="flex gap-4 text-sm text-[#5FB799]">
-            <a href="/" className="hover:text-green-900 font-semibold">Home</a>
-            <a href="/" className="hover:text-green-900 font-semibold">Dashboard de actualidad</a>
+            <a href="/DashboardBoxes" className="hover:text-green-900 font-semibold">Home</a>
+            <a href="/DashboardBoxes" className="hover:text-green-900 font-semibold">Dashboard de actualidad</a>
             <a href="#" className="hover:text-green-900 font-semibold">Boxes</a>
             <a href="#" className="hover:text-green-900 font-semibold">Agendas</a>
             <a href="#" className="hover:text-green-900 font-semibold">Notificaciones</a>

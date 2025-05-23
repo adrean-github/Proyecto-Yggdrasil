@@ -41,10 +41,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # el puerto del frontend Vite
+    "http://localhost:5173",
+    "http://localhost:3000"  # el puerto del frontend Vite
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -77,8 +78,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        #'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -86,8 +87,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        #'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     }

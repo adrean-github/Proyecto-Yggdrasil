@@ -12,6 +12,11 @@ from .event_listener import EventListener
 from django.utils.dateparse import parse_datetime
 from .event_listener import VistaActualizableDisp
 from rest_framework import serializers
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import MultiPartParser, FormParser
+import pandas as pd
+from django.http import JsonResponse
 
 
 
@@ -252,3 +257,33 @@ def user_info(request):
         'username':request.user.username,
         'roles':roles
     })
+
+
+
+
+
+@csrf_exempt
+def upload_file(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Solo se permite POST'}, status=405)
+
+    archivo = request.FILES.get('archivo')
+    if not archivo:
+        return JsonResponse({'error': 'No se recibió ningún archivo'}, status=400)
+
+    try:
+        if archivo.name.endswith('.csv'):
+            df = pd.read_csv(archivo, sep='|')
+        elif archivo.name.endswith('.xlsx'):
+            df = pd.read_excel(archivo)
+        else:
+            return JsonResponse({'error': 'Formato de archivo no soportado'}, status=400)
+
+        return JsonResponse({
+            'mensaje': 'Archivo recibido correctamente',
+            'filas': len(df),
+            'columnas': list(df.columns),
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

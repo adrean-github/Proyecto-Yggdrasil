@@ -7,6 +7,7 @@ import BoxDetalle from "./components/BoxDetalle";
 import Login from "./components/Login";
 import ReservaNoMedica from "./components/ReservaNoMedica";
 import PrivateRoute from "./components/privateroute";
+import Simulador from "./components/Simulador";
 
 function LayoutWithHeader({ children }) {
   const location = useLocation();
@@ -38,6 +39,14 @@ export default function App() {
             element={
               <PrivateRoute>
                 <MedicosOnline />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/simulador"
+            element={
+              <PrivateRoute>
+                <Simulador />
               </PrivateRoute>
             }
           />
