@@ -16,8 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, VistaActualizableDispView
-
+from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
+                                VistaActualizableDispView, login_view, logout_view, user_info
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/boxes/', BoxListView.as_view(), name='box-list'),
@@ -27,4 +27,7 @@ urlpatterns = [
     path('api/box/<int:id>/', AgendaBox.as_view(), name='agenda_box'),
     path('api/modificados-desde/<str:fecha_hora_str>/', DatosModificadosAPIView.as_view(), name='datos_modificados'),
     path('api/verificar_actualizacion/', VistaActualizableDispView.as_view(), name='vista_flag'),
+    path('api/login/', login_view, name='login_view'),
+    path('api/logout/',logout_view, name='logout_view'),
+    path('api/user/', user_info, name='user_info'),
 ]

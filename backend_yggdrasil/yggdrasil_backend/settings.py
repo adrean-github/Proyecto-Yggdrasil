@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'corsheaders'
 ]
 
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -40,8 +41,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+CORS_ALLOW_ALL_ORIGINS = False
 
-CORS_ALLOW_ALL_ORIGINS = True  # IMPORTANTE: Desactiva esto
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # el puerto del frontend Vite
 ]
@@ -76,8 +77,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        'PASSWORD': 'alcoy1136',    
-        #'PASSWORD': '123456',  
+        #'PASSWORD': 'alcoy1136',    
+        'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -85,8 +86,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        'PASSWORD': 'alcoy1136',    
-        #'PASSWORD': '123456',  
+        #'PASSWORD': 'alcoy1136',    
+        'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -133,3 +134,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+LOGIN_URL = '/api/login/' 

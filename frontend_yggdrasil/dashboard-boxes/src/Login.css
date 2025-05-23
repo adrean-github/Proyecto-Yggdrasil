@@ -1,0 +1,75 @@
+/* src/pages/Login.css */
+
+.login-container {
+    display: flex;
+    height: 100vh;
+    font-family: sans-serif;
+  }
+  
+  .left-panel {
+    flex: 1;
+    background-color: #5fb197;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 5rem;
+  }
+  
+  .left-panel h1 {
+    font-size: 3rem;
+    font-weight: bold;
+  }
+  
+  .left-panel h2 {
+    font-size: 2rem;
+    margin-bottom: 0;
+  }
+  
+  .right-panel {
+    flex: 1;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-form {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .login-form input {
+    margin: 0.5rem 0;
+    padding: 0.75rem;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .login-form button {
+    background-color: #5fb197;
+    color: white;
+    padding: 0.75rem;
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+    margin-top: 1rem;
+    cursor: pointer;
+  }
+  
+  .login-form .forgot {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #5fb197;
+    text-decoration: none;
+  }
+  
+  .logo {
+    max-width: 200px;
+    margin-bottom: 2rem;
+  }
+  

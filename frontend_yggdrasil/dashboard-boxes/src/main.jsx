@@ -4,7 +4,5 @@ import DashboardBoxes from './App.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <DashboardBoxes />
-  </React.StrictMode>
+  <DashboardBoxes />
 )
