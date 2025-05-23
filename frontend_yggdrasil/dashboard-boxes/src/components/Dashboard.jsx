@@ -35,26 +35,12 @@ const getColor = (estado) => {
   }
 };
 
-const getEstadoColor = (estado) => {
-  switch (estado) {
-    case "Ocupado":
-      return "text-[#6EDFB5]";
-    case "Disponible":
-      return "text-gray-500";
-    case "Inhabilitado":
-      return "text-[#FFD36E]";
-    case 'Tope':
-      return "text-[#FFD36E]"
-    default:
-      return "text-gray-400";
-  }
-};
 
 const estadosDisponibles = [
   { label: "Todos", valor: "Todos", color: "bg-[#DB1866]" },
   { label: "Tope", valor: "Tope", color: "bg-[#FF4C4C]" },
   { label: "Disponible", valor: "Disponible", color: "bg-gray-300" },
-  { label: "Ocupado", valor: "Ocupado", color: "bg-[#6EDFB5]" },
+  { label: "Ocupado", valor: "Ocupado", color: "bg-[#5FB799]" },
   { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFD36E]" },
 ];
 
@@ -341,7 +327,7 @@ export default function Dashboard() {
           {[{ estado: "Todos", color: "bg-[#DB1866]", texto: "Ver todos los boxes", textoColor: "text-white" },
             { estado: "Tope", color: "bg-[#FF4C4C]", texto: "Boxes con topes", textoColor: "text-white" },
             { estado: "Disponible", color: "bg-gray-300", texto: "Boxes disponibles", textoColor: "text-gray-800" },
-            { estado: "Ocupado", color: "bg-[#6EDFB5]", texto: "Boxes ocupados", textoColor: "text-white" },
+            { estado: "Ocupado", color: "bg-[#5FB799]", texto: "Boxes ocupados", textoColor: "text-white" },
             { estado: "Inhabilitado", color: "bg-[#FFD36E]", texto: "Boxes inhabilitados", textoColor: "text-white" }
           ].map((card, i) => (
             <div

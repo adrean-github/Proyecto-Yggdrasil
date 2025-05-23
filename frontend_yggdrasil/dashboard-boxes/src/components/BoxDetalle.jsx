@@ -70,7 +70,7 @@ export default function BoxDetalle() {
       {/*botón de  volver*/}
       <div className="mt-6 mb-4">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/DashboardBoxes")}
           className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
         >
           <ArrowLeft size={20} />
