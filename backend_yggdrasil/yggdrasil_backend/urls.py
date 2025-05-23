@@ -17,8 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
-                                VistaActualizableDispView, login_view, logout_view, user_info, upload_file, confirmar_guardado_agendas
-
+                                VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
+                                BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, MisReservasView, BoxesRecomendadosView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,6 +29,11 @@ urlpatterns = [
     path('api/box/<int:id>/', AgendaBox.as_view(), name='agenda_box'),
     path('api/modificados-desde/<str:fecha_hora_str>/', DatosModificadosAPIView.as_view(), name='datos_modificados'),
     path('api/verificar_actualizacion/', VistaActualizableDispView.as_view(), name='vista_flag'),
+    path('api/agendas-no-medicas/<int:id>/', AgendasNoMedicasView.as_view()),
+    path('api/bloques-no-medicos/<int:id>/', BloquesNoMedicosDisponiblesView.as_view()),
+    path('api/reservar-no-medica/', CrearReservaNoMedicaView.as_view()),
+    path('api/boxes-recomendados/', BoxesRecomendadosView.as_view(), name='boxes_recomendados'),
+    path('api/mis-reservas/', MisReservasView.as_view(), name='mis_reservas'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),

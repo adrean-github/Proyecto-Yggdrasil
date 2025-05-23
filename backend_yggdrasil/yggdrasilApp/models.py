@@ -2,15 +2,18 @@ from django.db import models
 
 
 class Agendabox(models.Model):
+    id = models.AutoField(primary_key=True)
     fechaagenda = models.DateField(db_column='fechaAgenda')  # Field name made lowercase. The composite primary key (fechaAgenda, horaInicioAgenda, idBox) found, that is not supported. The first column is selected.
     horainicioagenda = models.TimeField(db_column='horaInicioAgenda')  # Field name made lowercase.
     idbox = models.ForeignKey('Box', models.DO_NOTHING, db_column='idBox')  # Field name made lowercase.
     idmedico = models.ForeignKey('Medico', models.DO_NOTHING, db_column='idMedico', blank=True, null=True)  # Field name made lowercase.
     horafinagenda = models.TimeField(db_column='horaFinAgenda', blank=True, null=True)  # Field name made lowercase.
     habilitada = models.IntegerField(db_column='Habilitada')  # Field name made lowercase.
+    esMedica = models.IntegerField(db_column="esMedica")
+    nombre_responsable = models.CharField(max_length=255, blank=True, null=True, db_column='responsable')
+    observaciones = models.TextField(blank=True, null=True, db_column='observacion')
 
     class Meta:
-        managed = False
         db_table = 'agendabox'
 
 
