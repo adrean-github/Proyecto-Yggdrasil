@@ -8,6 +8,8 @@ import Login from "./components/Login";
 import ReservaNoMedica from "./components/ReservaNoMedica";
 import PrivateRoute from "./components/privateroute";
 import Simulador from "./components/Simulador";
+import DashboardStats from "./components/DashboardStats";
+
 
 function LayoutWithHeader({ children }) {
   const location = useLocation();
@@ -19,6 +21,10 @@ function LayoutWithHeader({ children }) {
     </>
   );
 }
+
+
+
+
 
 export default function App() {
   return (
@@ -63,6 +69,14 @@ export default function App() {
             element={
               <PrivateRoute>
                 <ReservaNoMedica />
+              </PrivateRoute>
+            }
+          />    
+          <Route
+            path="/dashboard-stats"
+            element={
+              <PrivateRoute>
+                <DashboardStats />
               </PrivateRoute>
             }
           />

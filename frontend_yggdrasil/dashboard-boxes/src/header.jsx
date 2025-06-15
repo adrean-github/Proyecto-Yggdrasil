@@ -15,7 +15,15 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-white shadow-md px-6 py-4">
+    <header 
+      className="bg-white shadow-md px-6 py-4" 
+      style={{
+        boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", 
+        position: "sticky", 
+        top: 0, 
+        zIndex: 1000 
+      }}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img
