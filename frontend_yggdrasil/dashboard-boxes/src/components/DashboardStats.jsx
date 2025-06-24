@@ -108,9 +108,9 @@ const DashboardPage = () => {
   useEffect(() => {
     if (stats?.uso_especialidades) {
       const sorted = [...stats.uso_especialidades].sort((a, b) => b.value - a.value);
-      
+  
       let filtered;
-      switch(especialidadFilter) {
+      switch (especialidadFilter) {
         case 'top10':
           filtered = sorted.slice(0, 10);
           break;
@@ -123,11 +123,11 @@ const DashboardPage = () => {
         default:
           filtered = sorted;
       }
-      
+  
       setFilteredEspecialidades(filtered);
     }
   }, [stats?.uso_especialidades, especialidadFilter]);
-
+  
   //descargar reporte en diferentes formatos
   const handleDownloadReport = async (format) => {
     if (!stats) return;

@@ -428,11 +428,10 @@ from django.db.models.functions import ExtractWeekDay
 
 class DashboardStatsView(APIView):
     def get(self, request):
-        # Obtener parámetro de rango de tiempo
         time_range = request.query_params.get('range', 'week')
         today = timezone.now().date()
 
-        # Determinar el rango de fechas
+        # se determina el rango de fechas
         if time_range == 'day':
             start_date = end_date = today
             days = 1
@@ -449,29 +448,29 @@ class DashboardStatsView(APIView):
             start_date = today.replace(month=1, day=1)
             end_date = today.replace(month=12, day=31)
             days = (end_date - start_date).days + 1
-        else:  # default week
+        else:  # default semanal
             start_date = today - timedelta(days=today.weekday())
             end_date = start_date + timedelta(days=6)
             days = 7
 
-        # Filtrar reservas por el rango de fechas
+        #filtrar reservas por el rango de fechas
         reservas_query = Agendabox.objects.filter(
             fechaagenda__gte=start_date,
             fechaagenda__lte=end_date
         ).order_by('idbox', 'fechaagenda', 'horainicioagenda')
 
-        # Métricas generales
+        #métricas generales generales
         total_boxes = Box.objects.count()
         total_reservas = reservas_query.count()
         reservas_medicas = reservas_query.filter(esMedica=True).count()
         reservas_no_medicas = reservas_query.filter(esMedica=False).count()
 
-        # Calcular horas disponibles totales (8:00 a 18:00 = 10 horas)
+        #calcular horas disponibles totales
         horas_por_dia = 10
         minutos_por_dia = horas_por_dia * 60
         total_minutos_disponibles = total_boxes * days * minutos_por_dia
 
-        # Calcular minutos ocupados
+        #calcular minutos ocupados
         minutos_ocupados = reservas_query.annotate(
             duracion=ExpressionWrapper(
                 F('horafinagenda') - F('horainicioagenda'),
@@ -481,22 +480,22 @@ class DashboardStatsView(APIView):
             total_minutos=Sum('duracion')
         )['total_minutos'].total_seconds() / 60 if reservas_query.exists() else 0
 
-        # Calcular porcentaje de ocupación
+        #porcentaje de ocupación
         porcentaje_ocupacion = round(
             (minutos_ocupados / total_minutos_disponibles) * 100, 
             2
         ) if total_minutos_disponibles > 0 else 0
 
-        # Tiempo promedio de ocupación por reserva (en minutos)
+        # tiempo promedio de ocupación por reserva en minutos)
         tiempo_promedio_ocupacion = round(
             minutos_ocupados / total_reservas, 
             2
         ) if total_reservas > 0 else 0
 
-        # Cálculo de horas muertas (tiempo entre reservas)
+        #Cálculo de horas muertas 
         horas_muertas = 0
         if total_reservas > 1:
-            # Obtenemos todas las reservas ordenadas por box y fecha
+            #obtenemos todas las reservas ordenadas por box y fecha
             reservas_ordenadas = reservas_query.values(
                 'idbox',
                 'fechaagenda',
@@ -504,24 +503,22 @@ class DashboardStatsView(APIView):
                 'horafinagenda'
             ).order_by('idbox', 'fechaagenda', 'horainicioagenda')
 
-            # Convertimos a lista para poder iterar
             reservas_list = list(reservas_ordenadas)
             
-            # Calculamos tiempo entre reservas para cada box
+            # calculamos tiempo entre reservas para cada box
             tiempo_muerto_total = 0
             box_actual = None
             reserva_anterior = None
             
             for reserva in reservas_list:
                 if reserva['idbox'] != box_actual:
-                    # Cambio de box, reiniciamos
+                    #cambio de box, reiniciamos
                     box_actual = reserva['idbox']
                     reserva_anterior = None
                 
                 if reserva_anterior:
-                    # Calculamos tiempo entre fin de reserva anterior e inicio de esta
+                    #Calculamos tiempo entre fin de reserva anterior e inicio de esta
                     if reserva['fechaagenda'] == reserva_anterior['fechaagenda']:
-                        # Mismo día
                         fin_anterior = datetime.combine(
                             reserva_anterior['fechaagenda'], 
                             reserva_anterior['horafinagenda']
@@ -532,7 +529,7 @@ class DashboardStatsView(APIView):
                         )
                         tiempo_muerto = (inicio_actual - fin_anterior).total_seconds() / 60
                         
-                        # Solo contamos si es tiempo positivo (no solapamiento)
+                        #solo contamos si es tiempo positivo
                         if tiempo_muerto > 0:
                             tiempo_muerto_total += tiempo_muerto
                 
@@ -540,14 +537,14 @@ class DashboardStatsView(APIView):
             
             horas_muertas = round(tiempo_muerto_total / 60, 2)
 
-        # Box más utilizado y menos utilizado
+        #Box más utilizado y menos utilizado
         boxes_periodo = reservas_query.values('idbox').annotate(
             total=Count('idbox')
         ).order_by('-total')
         box_mas_utilizado = boxes_periodo.first()
         box_menos_utilizado = boxes_periodo.last()
 
-        # Ocupación por turnos (AM/PM)
+        #ocupación por turnos (AM/PM)
         ocupacion_am = reservas_query.filter(
             horainicioagenda__gte=time(8, 0),
             horafinagenda__lte=time(13, 0)
@@ -558,12 +555,12 @@ class DashboardStatsView(APIView):
             horafinagenda__lte=time(18, 0)
         ).count()
 
-        # Estadísticas por especialidad
+        #estadísticas por especialidad
         especialidades_stats = []
         relaciones_box_tipo = BoxTipoBox.objects.select_related('idtipobox').all()
         especialidades_dict = {}
         
-        # Primero contamos boxes por especialidad
+        #primero contamos boxes por especialidad
         for relacion in relaciones_box_tipo:
             nombre_especialidad = relacion.idtipobox.tipo
             if nombre_especialidad not in especialidades_dict:
@@ -578,7 +575,7 @@ class DashboardStatsView(APIView):
             if relacion.tipoprincipal:
                 especialidades_dict[nombre_especialidad]['es_principal'] = True
         
-        # Luego contamos reservas por especialidad
+        #lueego contamos reservas por especialidad
         for box in Box.objects.all():
             reservas_box = reservas_query.filter(idbox=box)
             relaciones_box = BoxTipoBox.objects.filter(idbox=box)
@@ -587,19 +584,18 @@ class DashboardStatsView(APIView):
                 nombre_especialidad = relacion.idtipobox.tipo
                 especialidades_dict[nombre_especialidad]['total_reservas'] += reservas_box.count()
         
-        # Convertimos a lista y ordenamos
         especialidades_stats = sorted(
             especialidades_dict.values(),
             key=lambda x: (-x['es_principal'], -x['total_reservas'])
         )
 
-        # Tipo de reservas (médicas vs no médicas)
+        #yipo de reservas (médicas vs no médicas)
         tipo_reservas = [
             {"name": "Médicas", "value": reservas_medicas},
             {"name": "No Médicas", "value": reservas_no_medicas},
         ]
 
-        # Tiempo promedio de atención médica vs no médica
+        #tiempo promedio de atención médica vs no médica
         tiempo_medico = reservas_query.filter(esMedica=True).annotate(
             duracion=ExpressionWrapper(
                 F('horafinagenda') - F('horainicioagenda'),
@@ -614,14 +610,13 @@ class DashboardStatsView(APIView):
             )
         ).aggregate(promedio=Avg('duracion'))['promedio']
 
-        # Evolución semanal de ocupación
+        #evolución semanal de ocupación
         evolucion_semana = reservas_query.annotate(
             dia_semana=ExtractWeekDay('fechaagenda')
         ).values('dia_semana').annotate(
             total=Count('id')
         ).order_by('dia_semana')
 
-        # Preparar respuesta
         response_data = {
             "total_boxes": total_boxes,
             "total_reservas": total_reservas,
