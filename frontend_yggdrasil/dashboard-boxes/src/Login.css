@@ -1,75 +1,328 @@
-/* src/pages/Login.css */
+
+:root {
+  --primary-color: #5fb197;
+  --secondary-color: #5fb197;
+  --accent-color: #e74c3c;
+  --light-color: #ecf0f1;
+  --dark-color: #2c3e50;
+  --success-color: #27ae60;
+  --error-color: #e74c3c;
+  --overlay-color: rgba(30, 45, 60, 0.7);
+  --green-filter: rgba(70, 130, 80, 0.10);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+}
 
 .login-container {
-    display: flex;
-    height: 100vh;
-    font-family: sans-serif;
+  display: flex;
+  min-height: 100vh;
+}
+
+.left-panel {
+  flex: 1;
+  background-image: url('/hospital-background.png');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+}
+
+.left-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    linear-gradient(var(--green-filter), var(--green-filter)),
+    var(--overlay-color);
+  z-index: 0;
+}
+
+.welcome-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  margin-top: -55px;
+}
+
+.welcome-content {
+  color: white;
+  max-width: 80%;
+  text-align: left;
+  animation: none;
+  position: relative;
+}
+
+
+.welcome-content h2, .welcome-content h1 {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid white;
+  opacity: 1;
+}
+
+
+
+.welcome-content h2 {
+  font-size: 2rem;
+  font-weight: 300;
+  animation:
+    typingH2 0.9s steps(15) 0.4s forwards,
+    blinkCaret 0.75s step-end 3,
+    hideCaret 0.1s linear 1.2s forwards;
+}
+
+.welcome-content h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: white;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid white;
+  opacity: 0;
+  animation:
+    typingH1 1.2s steps(20) 1.4s forwards,
+    blinkCaret 0.75s step-end 3 2.6s,
+    hideCaret 0.1s linear 7s forwards; 
+}
+
+
+.system-description {
+  position: relative;
+  top: 120px; 
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out 3.5s forwards;
+  margin-top: 1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.system-description p:first-child {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 0.8rem;
+  line-height: 1.6;
+}
+
+/*KEYFRAMESs*/
+
+@keyframes typingH2 {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes typingH1 {
+  from {
+    width: 0;
+    opacity: 1;
   }
-  
-  .left-panel {
-    flex: 1;
-    background-color: #5fb197;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: 5rem;
-  }
-  
-  .left-panel h1 {
-    font-size: 3rem;
-    font-weight: bold;
-  }
-  
-  .left-panel h2 {
-    font-size: 2rem;
-    margin-bottom: 0;
-  }
-  
-  .right-panel {
-    flex: 1;
-    background-color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .login-form {
+  to {
     width: 100%;
-    max-width: 320px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    opacity: 1;
   }
-  
-  .login-form input {
-    margin: 0.5rem 0;
-    padding: 0.75rem;
-    width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+}
+
+
+@keyframes blinkCaret {
+  from, to { border-color: transparent }
+  50% { border-color: white }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  
-  .login-form button {
-    background-color: #5fb197;
-    color: white;
-    padding: 0.75rem;
-    width: 100%;
-    border: none;
-    border-radius: 5px;
-    margin-top: 1rem;
-    cursor: pointer;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .login-form .forgot {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #5fb197;
-    text-decoration: none;
+}
+
+@keyframes hideCaret {
+  to {
+    border-right-color: transparent;
   }
-  
-  .logo {
-    max-width: 200px;
-    margin-bottom: 2rem;
-  }
-  
+}
+
+
+/*PANEL DERECHO*/
+
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  justify-content: center;
+}
+
+.login-form-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  max-width: 400px;
+  margin: 0 auto;
+  width: 90%;
+  transform: translateY(10px);
+  padding-top: 1rem;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.logo {
+  max-width: 220px;
+  margin: 0 auto 1.5rem;
+  display: block;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--dark-color);
+  font-size: 0.95rem;
+}
+
+.login-form input {
+  padding: 0.9rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.login-form input:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(95, 177, 151, 0.2);
+}
+
+.error-input {
+  border-color: var(--error-color) !important;
+}
+
+.error-input:focus {
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2) !important;
+}
+
+.error-message {
+  color: var(--error-color);
+  background-color: rgba(231, 76, 60, 0.1);
+  padding: 0.8rem;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+}
+
+.login-button {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 46px;
+  margin-top: 0.5rem;
+}
+
+.login-button:hover {
+  background-color: #5bb164;
+  transform: translateY(-1px);
+}
+
+.login-button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.forgot-password {
+  text-align: center;
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.3s ease;
+}
+
+.forgot-password:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.developer-info {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  text-align: center;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(10px);
+}
+
+.developer-text {
+  font-size: 0.75rem;
+  color: #555;
+  line-height: 1.3;
+  margin-top: 0.5rem;
+}
+
+.developer-text p {
+  margin-bottom: 0.3rem;
+}
+
+.developer-logo {
+  max-width: 70px;
+  margin-bottom: 0.3rem;
+}
+

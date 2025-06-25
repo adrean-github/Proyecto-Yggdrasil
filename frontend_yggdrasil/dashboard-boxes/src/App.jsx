@@ -23,9 +23,6 @@ function LayoutWithHeader({ children }) {
 }
 
 
-
-
-
 export default function App() {
   return (
     <Router>
