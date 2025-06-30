@@ -65,8 +65,8 @@ function Login() {
             <h2>HOLA,</h2>
             <h1>¡BIENVENIDO!</h1>
             <div className="system-description">
-              <p>Sistema de Gestión de Boxes Hospitalarios - Yggdrasil</p>
-              <p>Plataforma integral para lorem ipsun lorem ipsun lorem ipsun</p>
+              <p>Sistema de Gestión de Boxes Hospitalarios - "Yggdrasil"</p>
+              <p>Inspirado en Yggdrasil, el árbol de la vida, este sistema conecta cada box, agenda médica y profesional en un sistema vivo, siendo una herramienta que ayude fortalecer la coordinación, la eficiencia y trazabilidad de las consultas.</p>
             </div>
           </div>
         </div>

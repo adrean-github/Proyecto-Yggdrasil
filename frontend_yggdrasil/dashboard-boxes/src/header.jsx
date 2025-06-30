@@ -63,6 +63,11 @@ export default function Header() {
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-600"
+                        style={{
+                          display: 'inline-block', 
+                          whiteSpace: 'nowrap', 
+                          textAlign: 'center', 
+                        }}
                       >
                         Cerrar sesión
                       </button>

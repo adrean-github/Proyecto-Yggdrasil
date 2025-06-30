@@ -8,7 +8,7 @@
   --success-color: #27ae60;
   --error-color: #e74c3c;
   --overlay-color: rgba(30, 45, 60, 0.5);
-  --green-filter: rgba(70, 130, 80, 0.3);
+  --green-filter: rgba(71, 144, 84, 0.3);
 }
 
 * {
@@ -80,7 +80,7 @@ body {
 
 
 .welcome-content h2 {
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 300;
   animation:
     typingH2 0.9s steps(15) 0.4s forwards,
@@ -89,9 +89,9 @@ body {
 }
 
 .welcome-content h1 {
-  font-size: 3rem;
+  font-size: 4rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
+  margin-bottom: 3.5rem;
   color: white;
   overflow: hidden;
   white-space: nowrap;
@@ -106,7 +106,7 @@ body {
 
 .system-description {
   position: relative;
-  top: 120px; 
+  top: 80px; 
   opacity: 0;
   animation: fadeInUp 0.8s ease-out 3.5s forwards;
   margin-top: 1rem;
