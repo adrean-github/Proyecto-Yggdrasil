@@ -9,14 +9,21 @@ import ReservaNoMedica from "./components/ReservaNoMedica";
 import PrivateRoute from "./components/privateroute";
 import Simulador from "./components/Simulador";
 import DashboardStats from "./components/DashboardStats";
-
+import Home from "./components/HomePage";
+import HomeHeader from "./homeHeader";        
 
 function LayoutWithHeader({ children }) {
   const location = useLocation();
   const hideHeaderPaths = ["/login"];
+  
+  const isLandingPage = location.pathname === "/";
+  const shouldHideHeader = hideHeaderPaths.includes(location.pathname);
+
   return (
     <>
-      {!hideHeaderPaths.includes(location.pathname) && <Header />}
+      {!shouldHideHeader && (
+        isLandingPage ? <HomeHeader /> : <Header />
+      )}
       {children}
     </>
   );
@@ -28,7 +35,11 @@ export default function App() {
     <Router>
       <LayoutWithHeader>
         <Routes>
+          {/*Nueva ruta pública para la homepage */}
+          <Route path="/" element={<Home />} />
+
           <Route path="/login" element={<Login />} />
+          
           <Route
             path="/DashboardBoxes"
             element={
@@ -68,7 +79,7 @@ export default function App() {
                 <ReservaNoMedica />
               </PrivateRoute>
             }
-          />    
+          />
           <Route
             path="/dashboard-stats"
             element={

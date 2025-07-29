@@ -66,7 +66,7 @@ function Login() {
             <h1>¡BIENVENIDO!</h1>
             <div className="system-description">
               <p>Sistema de Gestión de Boxes Hospitalarios - "Yggdrasil"</p>
-              <p>Inspirado en Yggdrasil, el árbol de la vida, este sistema conecta cada box, agenda médica y profesional en un sistema vivo, siendo una herramienta que ayude fortalecer la coordinación, la eficiencia y trazabilidad de las consultas.</p>
+              <p>Inspirado en Yggdrasil, el árbol de la vida, este sistema conecta cada box, agenda médica y profesional en un sistema vivo, siendo una herramienta que ayuda a fortalecer la coordinación, la eficiencia y trazabilidad de las consultas.</p>
             </div>
           </div>
         </div>
