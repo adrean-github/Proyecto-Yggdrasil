@@ -38,7 +38,7 @@ const Homepage = () => {
 
         <div className="relative z-10 px-4 max-w-3xl mx-auto text-white">
           <p className="inline-flex px-4 py-2 text-base border border-white rounded-full font-pj">
-            Sistema de gestión hospitalaria
+            Sistema de gestión de boxes hospitalarios
           </p>
           <h1 className="mt-5 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl font-pj">
             Bienvenido a Yggdrasil
@@ -47,92 +47,98 @@ const Homepage = () => {
             Plataforma interna para gestionar y visualizar la disponibilidad de boxes de atención médica en el Hospital Padre Hurtado.
           </p>
           <div className="relative inline-flex mt-10 group justify-center">
-            {/* Aura / Glow animado */}
-            <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-green-400 via-green-500 to-green-600 rounded-xl blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
 
-            {/* Botón visible */}
+            <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-green-400 via-green-500 to-green-600 rounded-xl blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
             <a
                 href="/login"
                 className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-green-900 transition-all duration-200 bg-white font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
-                Iniciar sesión
+                Comenzar ahora
             </a>
           </div>
         </div>
       </section>
 
-      {/*Sección Servicios*/}
-      <section
-        id="servicios"
-        ref={serviciosRef}
-        className="pt-28 pb-16 bg-gray-100 min-h-screen"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/*Título*/}
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center font-pj">
-            Servicios principales
-          </h2>
+    {/*Sección 2*/}
+    <section id="servicios" ref={serviciosRef} className="pt-28 pb-32 bg-gray-100 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center font-pj">
+        Un lugar donde puedes...
+        </h2>
 
-          {/*cards*/}
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
-            <div className="p-6 bg-white shadow-md rounded-xl hover:shadow-xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Visualizar Boxes</h3>
-              <p className="text-gray-600">Consulta disponibilidad y estado en tiempo real.</p>
-              <a href="/DashboardBoxes" className="mt-4 inline-block text-blue-600 hover:underline">
-                Ir al panel
-              </a>
-            </div>
-
-            <div className="p-6 bg-white shadow-md rounded-xl hover:shadow-xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Médicos Online</h3>
-              <p className="text-gray-600">Ver médicos actualmente conectados y activos.</p>
-              <a href="/medicos" className="mt-4 inline-block text-blue-600 hover:underline">
-                Ver médicos
-              </a>
-            </div>
-
-            <div className="p-6 bg-white shadow-md rounded-xl hover:shadow-xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Reservas No Médicas</h3>
-              <p className="text-gray-600">Administra salas y espacios fuera de atención médica directa.</p>
-              <a href="/reserva-no-medica" className="mt-4 inline-block text-blue-600 hover:underline">
-                Gestionar reservas
-              </a>
-            </div>
-
-            <div className="p-6 bg-white shadow-md rounded-xl hover:shadow-xl transition-shadow duration-300">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Simulador de Flujos</h3>
-              <p className="text-gray-600">Proyecta escenarios de uso de boxes por área clínica.</p>
-              <a href="/simulador" className="mt-4 inline-block text-blue-600 hover:underline">
-                Simular
-              </a>
-            </div>
-          </div>
-
-          {/*call to action*/}
-          <div className="mt-16 text-center">
-            <p className="text-gray-700 max-w-xl mx-auto text-lg font-inter">
-              ¿Quieres saber más sobre cómo optimizar la gestión hospitalaria? Contacta a nuestro equipo para una demo personalizada.
-            </p>
-            <a
-              href="/contacto"
-              className="inline-block mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+        {/*CARDS*/}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+            {
+            title: "Visualizar Boxes",
+            desc: "Consulta la disponibilidad y estado en tiempo real de boxes, visualiza topes de horario y toma decisiones al momento.",
+            link: "/DashboardBoxes",
+            image: "/box.jpg"
+            },
+            {
+            title: "Reportes de uso",
+            desc: "Accede, crea y descarga reportes estadísticos de uso y ocupación de boxes.",
+            link: "/dashboard-stats",
+            image: "/estadisticas.jpg"
+            },
+            {
+            title: "Reservas No Médicas",
+            desc: "Como personal administrador o jefe de pasillo, puedes reservar boxes para actividades de uso no médico, sin topes de horario.",
+            link: "/reserva-no-medica",
+            image: "/reserva.jpg"
+            },
+            {
+            title: "Simulador de Flujos",
+            desc: "Carga archivos de Excel o .csv para proyectar escenarios de uso de boxes, evitando errores de planificación.",
+            link: "/simulador",
+            image: "/simulador.jpg"
+            },
+        ].map((card, idx) => (
+            <div
+            key={idx}
+            className="group relative w-full h-96 bg-gray-900 text-white rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:z-10 hover:scale-105 hover:shadow-2xl hover:rotate-0 transform rotate-[-2deg]"
+            style={{
+                backgroundImage: `url(${card.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+            }}
             >
-              Contactar ahora
-            </a>
-          </div>
+            <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity group-hover:bg-opacity-30"></div>
+            <div className="absolute bottom-0 p-6 z-10">
+                <h3 className="text-2xl font-bold">{card.title}</h3>
+                <p className="mt-2 text-sm text-gray-200">{card.desc}</p>
+                <a
+                href={card.link}
+                className="inline-block mt-4 px-4 py-2 bg-white text-gray-900 font-semibold rounded-lg text-sm hover:bg-gray-100 transition"
+                >
+                Acceder
+                </a>
+            </div>
+            </div>
+        ))}
         </div>
-      </section>
+    </div>
+    </section>
 
-      {/*img hospital*/}
-      <section className="py-16">
-        <div className="max-w-5xl mx-auto">
-          <img
-            src="https://www.redsalud.cl/sites/default/files/styles/blog_full/public/blog/img-hospitalpadrehurtado_0.jpg"
-            alt="Hospital Padre Hurtado"
-            className="rounded-xl shadow-lg w-full object-cover"
-          />
+      
+    {/* FOOTER */}
+    <footer className="bg-green-900 text-white pt-12 pb-20 mt-16">
+    <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
+        <p>© {new Date().getFullYear()} Yggdrasil · Hospital Padre Hurtado</p>
+        <div className="mt-4 sm:mt-0 space-x-4">
+            <a href="/login" className="hover:text-white">Login</a>
+            <a href="/contacto" className="hover:text-white">Contacto</a>
         </div>
-      </section>
+        </div>
+
+        <div className="mt-8 text-center text-xs text-gray-200">
+        Desarrollado con ❤️ por Elytra
+        </div>
+    </div>
+    </footer>
+
+
     </div>
   );
 };
