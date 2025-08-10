@@ -73,13 +73,13 @@ const Homepage = () => {
             title: "Visualizar Boxes",
             desc: "Consulta la disponibilidad y estado en tiempo real de boxes, visualiza topes de horario y toma decisiones al momento.",
             link: "/DashboardBoxes",
-            image: "/box.jpg"
+            image: "/box.png"
             },
             {
             title: "Reportes de uso",
             desc: "Accede, crea y descarga reportes estadísticos de uso y ocupación de boxes.",
             link: "/dashboard-stats",
-            image: "/estadisticas.jpg"
+            image: "/estadisticas.png"
             },
             {
             title: "Reservas No Médicas",
@@ -106,7 +106,7 @@ const Homepage = () => {
             <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity group-hover:bg-opacity-30"></div>
             <div className="absolute bottom-0 p-6 z-10">
                 <h3 className="text-2xl font-bold">{card.title}</h3>
-                <p className="mt-2 text-sm text-gray-200">{card.desc}</p>
+                <p className="mt-2 text-sm text-gray-100">{card.desc}</p>
                 <a
                 href={card.link}
                 className="inline-block mt-4 px-4 py-2 bg-white text-gray-900 font-semibold rounded-lg text-sm hover:bg-gray-100 transition"
