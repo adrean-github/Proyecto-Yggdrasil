@@ -14,13 +14,20 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+from django.http import HttpResponse
 from django.contrib import admin
 from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
                                 VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
                                 BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, MisReservasView, BoxesRecomendadosView, DashboardStatsView
 
+
+def home(request):
+    return HttpResponse("API de Yggdrasil funcionando")
+
 urlpatterns = [
+    path('', home),
     path('admin/', admin.site.urls),
     path('api/boxes/', BoxListView.as_view(), name='box-list'),
     path('api/boxes/<int:id>/', BoxListView.as_view(), name='box-detail'),

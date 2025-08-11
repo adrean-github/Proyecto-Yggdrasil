@@ -2,30 +2,73 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const Homepage = () => {
   const serviciosRef = useRef(null);
+  const yggdrasilRef = useRef(null);
+  const topRef = useRef(null);
+
   const [scrolling, setScrolling] = useState(false);
 
   useEffect(() => {
     const handleWheel = (e) => {
       if (scrolling) return;
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+      setScrolling(true);
 
       if (e.deltaY > 0) {
-        setScrolling(true);
-        serviciosRef.current?.scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => setScrolling(false), 1000);
+        if (window.scrollY < serviciosRef.current.offsetTop - 50) {
+          serviciosRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } else if (window.scrollY < yggdrasilRef.current.offsetTop - 50) {
+          yggdrasilRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        if (window.scrollY > yggdrasilRef.current.offsetTop - 50) {
+          serviciosRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } else if (window.scrollY > topRef.current.offsetTop + 50) {
+          topRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
       }
+
+      setTimeout(() => setScrolling(false), 600);
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
-
     return () => {
       window.removeEventListener('wheel', handleWheel);
     };
   }, [scrolling]);
 
+  const cards = [
+    {
+      title: "Visualizar Boxes",
+      desc: "Consulta la disponibilidad y estado en tiempo real de boxes, visualiza topes de horario y toma decisiones al momento.",
+      link: "/DashboardBoxes",
+      image: "/box.png"
+    },
+    {
+      title: "Reportes de uso",
+      desc: "Accede, crea y descarga reportes estadísticos de uso y ocupación de boxes.",
+      link: "/dashboard-stats",
+      image: "/estadisticas.png"
+    },
+    {
+      title: "Reservas No Médicas",
+      desc: "Como personal administrador o jefe de pasillo, puedes reservar boxes para actividades de uso no médico, sin topes de horario.",
+      link: "/reserva-no-medica",
+      image: "/res_no_med.png"
+    },
+    {
+      title: "Simulador de Agendas",
+      desc: "Carga archivos de Excel o .csv para proyectar escenarios de uso de boxes, evitando errores de planificación.",
+      link: "/simulador",
+      image: "/sim_agendas.png"
+    },
+  ];
+
   return (
     <div className="overflow-x-hidden bg-gray-50 min-h-screen scroll-smooth">
-      {/*Sección 1*/}
+      {/*sección 1*/}
       <section
+        ref={topRef}
         className="relative flex flex-col justify-center items-center text-center min-h-screen py-20 sm:py-24 lg:pt-32 xl:pb-10"
         style={{
           backgroundImage: 'url("/hospital por fuera.jpg")',
@@ -47,98 +90,114 @@ const Homepage = () => {
             Plataforma interna para gestionar y visualizar la disponibilidad de boxes de atención médica en el Hospital Padre Hurtado.
           </p>
           <div className="relative inline-flex mt-10 group justify-center">
-
             <div className="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-green-400 via-green-500 to-green-600 rounded-xl blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
             <a
-                href="/login"
-                className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-green-900 transition-all duration-200 bg-white font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              href="/login"
+              className="relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-green-900 transition-all duration-200 bg-white font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
-                Comenzar ahora
+              Comenzar ahora
             </a>
           </div>
         </div>
       </section>
 
-    {/*Sección 2*/}
-    <section id="servicios" ref={serviciosRef} className="pt-28 pb-32 bg-gray-100 min-h-screen">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center font-pj">
-        Un lugar donde puedes...
+      {/*sección 2*/}
+      <section
+        id="servicios"
+        ref={serviciosRef}
+        className="pt-28 pb-32 bg-gray-100 min-h-screen"
+      >
+        <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center font-pj max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          Un sitio donde puedes...
         </h2>
 
-        {/*CARDS*/}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-            {
-            title: "Visualizar Boxes",
-            desc: "Consulta la disponibilidad y estado en tiempo real de boxes, visualiza topes de horario y toma decisiones al momento.",
-            link: "/DashboardBoxes",
-            image: "/box.png"
-            },
-            {
-            title: "Reportes de uso",
-            desc: "Accede, crea y descarga reportes estadísticos de uso y ocupación de boxes.",
-            link: "/dashboard-stats",
-            image: "/estadisticas.png"
-            },
-            {
-            title: "Reservas No Médicas",
-            desc: "Como personal administrador o jefe de pasillo, puedes reservar boxes para actividades de uso no médico, sin topes de horario.",
-            link: "/reserva-no-medica",
-            image: "/reserva.jpg"
-            },
-            {
-            title: "Simulador de Flujos",
-            desc: "Carga archivos de Excel o .csv para proyectar escenarios de uso de boxes, evitando errores de planificación.",
-            link: "/simulador",
-            image: "/simulador.jpg"
-            },
-        ].map((card, idx) => (
+        <div className="accordion-container flex flex-col sm:flex-row w-full max-w-full h-[32rem] overflow-x-auto shadow-xl select-none">
+          {cards.map((card, idx) => (
             <div
-            key={idx}
-            className="group relative w-full h-96 bg-gray-900 text-white rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:z-10 hover:scale-105 hover:shadow-2xl hover:rotate-0 transform rotate-[-2deg]"
-            style={{
-                backgroundImage: `url(${card.image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-            }}
+              key={idx}
+              className={`
+                relative cursor-pointer flex-shrink-0 flex-grow transition-all duration-500 ease-in-out delay-75
+                flex-[1]
+                hover:flex-[5]
+                bg-cover bg-center
+                group
+              `}
+              style={{ backgroundImage: `url(${card.image})` }}
             >
-            <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity group-hover:bg-opacity-30"></div>
-            <div className="absolute bottom-0 p-6 z-10">
-                <h3 className="text-2xl font-bold">{card.title}</h3>
-                <p className="mt-2 text-sm text-gray-100">{card.desc}</p>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none"></div>
+
+              <div
+                className="absolute bottom-0 left-0 right-0 p-8 z-10 bg-gradient-to-t from-black/90 via-black/80 to-transparent flex flex-col justify-end h-54 transition-opacity duration-500 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              >
+                <div className="flex flex-col gap-1 w-full mb-2">
+                  <h3 className="text-2xl font-bold text-white drop-shadow-lg leading-tight">
+                    {card.title}
+                  </h3>
+                  <p className="text-sm text-gray-50 drop-shadow-md leading-snug">
+                    {card.desc}
+                  </p>
+                </div>
                 <a
-                href={card.link}
-                className="inline-block mt-4 px-4 py-2 bg-white text-gray-900 font-semibold rounded-lg text-sm hover:bg-gray-100 transition"
+                  href={card.link}
+                  className="inline-block mt-2 px-5 py-2 bg-white/90 text-gray-900 font-semibold rounded-lg text-sm hover:bg-white transition self-start"
                 >
-                Acceder
+                  Acceder
                 </a>
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/*secc 3*/}
+      <section ref={yggdrasilRef} className="pt-28 pb-32 bg-gray-100 min-h-screen">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center gap-10">
+          <div className="flex-1">
+            <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center font-pj max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              ¿Por qué Yggdrasil?
+            </h2>
+            <p className="text-lg text-gray-800 leading-relaxed text-justify bg-gray-50 p-6 rounded-xl shadow-sm">
+              Inspirado en <span className="font-semibold text-green-700">Yggdrasil</span>, el legendario árbol de la vida de la mitología nórdica, 
+              nuestro sistema es el tronco que une cada box, agenda y profesional en un organismo vivo.  
+              <br /><br />
+              Tal como las raíces y ramas sostienen y alimentan el árbol, Yggdrasil conecta las áreas del hospital 
+              para fortalecer la coordinación, aumentar la eficiencia y garantizar la trazabilidad de cada atención. 
+              Más que un sistema, es un puente entre tecnología y cuidado humano.
+              <br /><br />
+              Con Yggdrasil, cada box es un nodo vital en la red de salud, conectando entre sí, información y recursos para una atención más integral.
+            </p>
+          </div>
+
+          <div className="flex-1 flex justify-center">
+            <img
+              src="/yggdrasil_tree.png"
+              alt="Árbol Yggdrasil con nodos de boxes"
+              className="max-w-xs md:max-w-sm drop-shadow-lg"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/*footer */}
+      <footer className="bg-green-900 text-white pt-12 pb-20 mt-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
+            <p>© {new Date().getFullYear()} Yggdrasil · Hospital Padre Hurtado</p>
+            <div className="mt-4 sm:mt-0 space-x-4">
+              <a href="/login" className="hover:text-white">
+                Login
+              </a>
+              <a href="/contacto" className="hover:text-white">
+                Contacto
+              </a>
             </div>
-        ))}
-        </div>
-    </div>
-    </section>
+          </div>
 
-      
-    {/* FOOTER */}
-    <footer className="bg-green-900 text-white pt-12 pb-20 mt-16">
-    <div className="max-w-6xl mx-auto px-4">
-        <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
-        <p>© {new Date().getFullYear()} Yggdrasil · Hospital Padre Hurtado</p>
-        <div className="mt-4 sm:mt-0 space-x-4">
-            <a href="/login" className="hover:text-white">Login</a>
-            <a href="/contacto" className="hover:text-white">Contacto</a>
+          <div className="mt-8 text-center text-xs text-gray-200">
+            Desarrollado con ❤️ por Elytra
+          </div>
         </div>
-        </div>
-
-        <div className="mt-8 text-center text-xs text-gray-200">
-        Desarrollado con ❤️ por Elytra
-        </div>
-    </div>
-    </footer>
-
-
+      </footer>
     </div>
   );
 };
