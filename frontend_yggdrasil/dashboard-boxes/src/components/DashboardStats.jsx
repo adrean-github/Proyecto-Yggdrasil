@@ -53,7 +53,7 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/dashboard-stats/?range=${timeRange}`);
+        const response = await fetch(`/api/dashboard-stats/?range=${timeRange}`);
         if (!response.ok) throw new Error('Error al cargar datos');
         const data = await response.json();
         

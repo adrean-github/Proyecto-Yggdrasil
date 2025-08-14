@@ -6,7 +6,7 @@ import MedicosOnline from "./components/MedicosOnline";
 import BoxDetalle from "./components/BoxDetalle";
 import Login from "./components/Login";
 import ReservaNoMedica from "./components/ReservaNoMedica";
-import PrivateRoute from "./components/privateroute";
+import PrivateRoute from "./components/PrivateRoute";
 import Simulador from "./components/Simulador";
 import DashboardStats from "./components/DashboardStats";
 import Home from "./components/HomePage";

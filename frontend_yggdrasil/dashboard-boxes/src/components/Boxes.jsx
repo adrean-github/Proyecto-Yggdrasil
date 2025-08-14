@@ -71,7 +71,7 @@ export default function Boxes() {
 
   const fetchBoxes = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/boxes/");  
+      const response = await fetch("/api/boxes/");  
       const data = await response.json();
       setBoxes(data);
       setBoxesraw(data);
@@ -87,7 +87,7 @@ export default function Boxes() {
 
   const fetchActualizacion = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/verificar_actualizacion", {
+      const response = await fetch("api/verificar_actualizacion", {
         method: 'GET',
         credentials: 'include',
       });
@@ -118,7 +118,7 @@ export default function Boxes() {
       } else {
         console.log("No hay actualizaciones.");
       }
-    }, 3000); // Cada 3 segundos
+    }, 2000); // Cada 3 segundos
 
     return () => clearInterval(intervalId);
   }, [filtroFecha, filtroHora, enVivo]);
@@ -139,7 +139,7 @@ export default function Boxes() {
 
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
+      const response = await fetch(`/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
       const data = await response.json();
       console.log(`Estado actualizado del box ${boxId}:`, data);
   

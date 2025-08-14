@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+/*import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../Login.css';
 
@@ -130,6 +131,132 @@ function Login() {
           <img src="/developer-logo.png" alt="Logo Empresa Desarrolladora" className="developer-logo"  />
             <div className="developer-text">
               <p>Sistema desarrollado por <strong>Elytra</strong></p>
+              <p>Equipo: Adrean Torres, Ariel Van Kilsdonk</p>
+              <p>2025</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;
+
+*/
+
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "../Login.css";
+
+function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Simulación de login aceptando cualquier cosa
+    setTimeout(() => {
+      console.log("Login de prueba:", { username, password });
+
+      // Aquí decides a qué vista mandar por defecto
+      navigate("/boxes");
+      setIsLoading(false);
+    }, 500);
+  };
+
+  return (
+    <div className="login-container">
+      {/* Aviso discreto de pruebas */}
+      <div
+        style={{
+          backgroundColor: "#fff3cd",
+          border: "1px solid #ffeeba",
+          padding: "8px",
+          fontSize: "0.9rem",
+          color: "#856404",
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          borderRadius: "4px",
+          zIndex: 999,
+        }}
+      >
+        ⚠ Este sitio se encuentra en pruebas.  
+        Solo presiona "Iniciar sesión" para continuar.
+      </div>
+
+      <div className="left-panel">
+        <div className="welcome-container">
+          <div className="welcome-content">
+            <h2>HOLA,</h2>
+            <h1>¡BIENVENIDO!</h1>
+            <div className="system-description">
+              <p>
+                Sistema de Gestión de Boxes Hospitalarios - "Yggdrasil"
+              </p>
+              <p>
+                Inspirado en Yggdrasil, el árbol de la vida, este sistema conecta cada box, agenda médica y profesional en un sistema vivo, siendo una herramienta que ayuda a fortalecer la coordinación, la eficiencia y trazabilidad de las consultas.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="right-panel">
+        <div className="login-form-container">
+          <form onSubmit={handleSubmit} className="login-form">
+            <img
+              src="/Logo_HospitalPadreHurtado.png"
+              alt="Hospital Padre Hurtado"
+              className="logo"
+            />
+
+            <div className="form-group">
+              <label htmlFor="username">Usuario</label>
+              <input
+                id="username"
+                type="text"
+                placeholder="Ingresa tu usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Contraseña</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Ingresa tu contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <button type="submit" className="login-button" disabled={isLoading}>
+              {isLoading ? <span className="spinner"></span> : "Iniciar sesión"}
+            </button>
+
+            <a href="#" className="forgot-password">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </form>
+
+          <div className="developer-info">
+            <img
+              src="/developer-logo.png"
+              alt="Logo Empresa Desarrolladora"
+              className="developer-logo"
+            />
+            <div className="developer-text">
+              <p>
+                Sistema desarrollado por <strong>Elytra</strong>
+              </p>
               <p>Equipo: Adrean Torres, Ariel Van Kilsdonk</p>
               <p>2025</p>
             </div>

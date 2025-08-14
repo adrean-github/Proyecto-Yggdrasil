@@ -29,7 +29,7 @@ export default function ReservaNoMedica() {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/boxes-recomendados/?fecha=${fecha}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        `/api/boxes-recomendados/?fecha=${fecha}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
       );
       if (!response.ok) throw new Error("Error al buscar recomendaciones");
       const data = await response.json();
@@ -52,7 +52,7 @@ export default function ReservaNoMedica() {
       return;
     }
     try {
-        const response = await fetch('http://localhost:8000/api/reservar-no-medica/', {
+        const response = await fetch('/api/reservar-no-medica/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -79,7 +79,7 @@ export default function ReservaNoMedica() {
 
   const fetchReservasUsuario = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/mis-reservas/');
+      const response = await fetch('/api/mis-reservas/');
       const data = await response.json();
       setReservasUsuario(data);
     } catch (error) {

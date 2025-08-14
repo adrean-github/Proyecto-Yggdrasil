@@ -16,7 +16,7 @@ function UploadForm() {
   };
   const handleConfirmarGuardar = async () => {
   try {
-    const response = await fetch('http://localhost:8000/api/confirmar-agendas/', {
+    const response = await fetch('api/confirmar-agendas/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ function UploadForm() {
     formData.append('archivo', file);  // "archivo" es el nombre que esperará Django
 
     try {
-      const response = await fetch('http://localhost:8000/api/upload/', {
+      const response = await fetch('/api/upload/', {
         method: 'POST',
         body: formData,
         credentials: 'include', // si necesitas cookies para la sesión
