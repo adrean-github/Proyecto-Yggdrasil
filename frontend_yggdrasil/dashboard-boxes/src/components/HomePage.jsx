@@ -150,45 +150,49 @@ const Homepage = () => {
       </section>
 
       {/*secc 3*/}
-      <section ref={yggdrasilRef} className="pt-28 pb-32 bg-gray-100 min-h-screen">
+      <section
+        ref={yggdrasilRef}
+        className="pt-24 pb-28 bg-gray-100 min-h-screen"
+        style={{
+          backgroundImage: 'url("/yggdrasil_tree.png")',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right center',
+          backgroundSize: 'contain'
+        }}
+      >
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center gap-10">
           <div className="flex-1">
-            <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center font-pj max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              ¿Por qué "Yggdrasil"?
+            <h2 className="text-5xl font-bold text-gray-900 mb-12 text-center font-pj tracking-tight">
+              ¿Por qué <span className="text-[#005C48]">"Yggdrasil"</span>?
             </h2>
-            <p className="text-lg text-gray-800 leading-relaxed text-justify bg-gray-50 p-6 rounded-xl shadow-sm">
-              Inspirado en <span className="font-semibold text-green-700">Yggdrasil</span>, el legendario árbol de la vida de la mitología nórdica, 
+
+            <p className="text-xl text-gray-800 leading-loose text-justify bg-white/60 backdrop-blur-md p-4 rounded-2xl shadow-lg border-l-4 border-[#005C48] transition-all duration-500 hover:shadow-xl">
+              Inspirado en <span className="font-semibold text-[#005C48]">Yggdrasil</span>, el legendario árbol de la vida de la mitología nórdica, 
               nuestro sistema es el tronco que une cada box, agenda y profesional en un organismo vivo.  
               <br /><br />
-              Tal como las raíces y ramas sostienen y alimentan el árbol, Yggdrasil conecta las áreas del hospital 
-              para fortalecer la coordinación, aumentar la eficiencia y garantizar la trazabilidad de cada atención. 
+              Tal como las raíces y ramas sostienen y alimentan el árbol, <span className="italic">Yggdrasil conecta las áreas del hospital</span> 
+               para fortalecer la coordinación, aumentar la eficiencia y garantizar la trazabilidad de cada atención. 
               Más que un sistema, es un puente entre tecnología y cuidado humano.
               <br /><br />
-              Con Yggdrasil, cada box es un nodo vital en la red de salud, conectando entre sí, información y recursos para una atención más integral.
+              Con Yggdrasil, cada box es un <span className="font-bold text-[#005C48]">nodo vital</span> en la red de salud, conectando información y recursos para una atención más integral.
             </p>
           </div>
 
           <div className="flex-1 flex justify-center">
-            <img
-              src="/yggdrasil_tree.png"
-              alt="Árbol Yggdrasil con nodos de boxes"
-              className="max-w-xs md:max-w-sm drop-shadow-lg"
-            />
           </div>
         </div>
       </section>
 
+
+
       {/*footer */}
-      <footer className="bg-green-900 text-white pt-12 pb-20 mt-16">
+      <footer className="bg-[#005C48] text-white pt-12 pb-20 mt-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
-            <p>© {new Date().getFullYear()} Yggdrasil · Hospital Padre Hurtado</p>
+            <p>© {new Date().getFullYear()} Yggdrasil - Hospital Padre Hurtado</p>
             <div className="mt-4 sm:mt-0 space-x-4">
               <a href="/login" className="hover:text-white">
                 Login
-              </a>
-              <a href="/contacto" className="hover:text-white">
-                Contacto
               </a>
             </div>
           </div>

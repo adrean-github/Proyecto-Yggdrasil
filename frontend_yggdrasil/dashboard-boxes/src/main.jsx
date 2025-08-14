@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import DashboardBoxes from './App.jsx'
+import Home from './App.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <DashboardBoxes />
+  <Home />
 )

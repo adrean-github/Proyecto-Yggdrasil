@@ -36,7 +36,7 @@ function Login() {
           const roles = Array.isArray(user.roles) ? user.roles : [];
 
           if (roles.includes('gestion')) {
-            navigate('/DashboardBoxes');
+            navigate('/boxes');
           } else if (roles.includes('jefe_pasillo')) {
             navigate('/reserva-no-medica');
           } else {

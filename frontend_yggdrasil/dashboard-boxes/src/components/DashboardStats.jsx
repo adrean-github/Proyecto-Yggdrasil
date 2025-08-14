@@ -289,7 +289,7 @@ const DashboardPage = () => {
         gap: 2
       }}>
         <Button
-          onClick={() => navigate("/DashboardBoxes")}
+          onClick={() => navigate("/boxes")}
           startIcon={<ArrowLeft size={20} />}
           sx={{ color: '#5FB799', fontWeight: 'bold' }}
         >

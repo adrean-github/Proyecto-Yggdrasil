@@ -53,7 +53,7 @@ export default function MedicosOnline() {
       {/*botón de volver*/}
       <div className="mt-6 mb-4">
         <button
-          onClick={() => navigate("/DashboardBoxes")}
+          onClick={() => navigate("/boxes")}
           className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
         >
           <ArrowLeft size={20} />

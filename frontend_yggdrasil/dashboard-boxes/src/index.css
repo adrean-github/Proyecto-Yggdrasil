@@ -4,17 +4,17 @@
 
 @layer base {
   .fc-button {
-    @apply bg-[#5FB799] text-white rounded-md px-3 py-1 font-medium;
+    @apply bg-[#005C48] text-white rounded-md px-3 py-1 font-medium;
   }
 
   .fc-button:hover {
-    @apply bg-[#4fa986];
+    @apply bg-[#005C48];
   }
 }
 
 
 .fc .fc-button {
-  background-color: #5FB799; 
+  background-color: #005C48; 
   border: none;
   color: white;
   font-weight: bold;
@@ -24,7 +24,7 @@
 }
 
 .fc .fc-button:hover {
-  background-color: #4fa986; 
+  background-color: #005C48; 
 }
 
 .fc .fc-button:disabled {

@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Header from "./header";
-import Dashboard from "./components/Dashboard";
+import Boxes from "./components/Boxes";
 import MedicosOnline from "./components/MedicosOnline";
 import BoxDetalle from "./components/BoxDetalle";
 import Login from "./components/Login";
@@ -11,6 +11,7 @@ import Simulador from "./components/Simulador";
 import DashboardStats from "./components/DashboardStats";
 import Home from "./components/HomePage";
 import HomeHeader from "./homeHeader";        
+import { Box } from "lucide-react";
 
 function LayoutWithHeader({ children }) {
   const location = useLocation();
@@ -35,16 +36,15 @@ export default function App() {
     <Router>
       <LayoutWithHeader>
         <Routes>
-          {/*Nueva ruta pública para la homepage */}
           <Route path="/" element={<Home />} />
 
           <Route path="/login" element={<Login />} />
           
           <Route
-            path="/DashboardBoxes"
+            path="/boxes"
             element={
               <PrivateRoute>
-                <Dashboard />
+                <Boxes />
               </PrivateRoute>
             }
           />
@@ -65,7 +65,7 @@ export default function App() {
             }
           />
           <Route
-            path="/box/:id"
+            path="/boxes/:id"
             element={
               <PrivateRoute>
                 <BoxDetalle />

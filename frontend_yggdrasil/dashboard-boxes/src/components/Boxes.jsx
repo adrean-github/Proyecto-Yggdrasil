@@ -23,13 +23,13 @@ const motivosInhabilitacion = [
 const getColor = (estado) => {
   switch (estado) {
     case "Ocupado":
-      return "bg-[#6EDFB5]";
+      return "bg-[#1B5D52]";
     case "Disponible":
       return "bg-gray-300";
     case "Inhabilitado":
       return "bg-[#FFD36E]";
     case 'Tope':
-      return "bg-[#FF4C4C]"
+      return "bg-[#902525]"
     default:
       return "bg-gray-200";
   }
@@ -38,9 +38,9 @@ const getColor = (estado) => {
 
 const estadosDisponibles = [
   { label: "Todos", valor: "Todos", color: "bg-[#DB1866]" },
-  { label: "Tope", valor: "Tope", color: "bg-[#FF4C4C]" },
+  { label: "Tope", valor: "Tope", color: "bg-[#902525]" },
   { label: "Disponible", valor: "Disponible", color: "bg-gray-300" },
-  { label: "Ocupado", valor: "Ocupado", color: "bg-[#5FB799]" },
+  { label: "Ocupado", valor: "Ocupado", color: "bg-[#1B5D52]" },
   { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFD36E]" },
 ];
 
@@ -54,7 +54,7 @@ const agruparEnDúos = (arr) => {
 
 
 
-export default function Dashboard() {
+export default function Boxes() {
   const [filtroPasillo, setFiltroPasillo] = useState("Todos");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
   const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().split("T")[0]);
@@ -234,7 +234,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-2">
-      <div className="fixed bottom-0 left-0 w-full bg-[#4fa986] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
+      <div className="fixed bottom-0 left-0 w-full bg-[#005C48] text-center border-t border-white py-2 z-10 text-m text-white shadow-sm">
         Última actualización: {lastUpdated}
       </div>
 
@@ -258,7 +258,7 @@ export default function Dashboard() {
               <input type="time" value={filtroHora} onChange={(e) => handleHoraChange(e.target.value)} className="border rounded px-2 py-1 text-sm" />
               <button
               onClick={volverAVivo}
-              className="bg-[#4fa986] text-white px-3 py-1 rounded hover:bg-[#3e8d72] transition text-xs font-semibold"
+              className="bg-[#1B5D52] text-white px-3 py-1 rounded hover:bg-[#1B5D52] transition text-xs font-semibold"
               title="Volver al estado en vivo"
             >
               Ver en vivo
@@ -305,7 +305,7 @@ export default function Dashboard() {
                             onMouseEnter={(e) => handleMouseEnter(box, e)}
                             onMouseMove={handleMouseMove}
                             onMouseLeave={handleMouseLeave}
-                            onClick={() => navigate(`/box/${box.idbox}`)}
+                            onClick={() => navigate(`/boxes/${box.idbox}`)}
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.05, duration: 0.2 }}
@@ -325,9 +325,9 @@ export default function Dashboard() {
 
         <div className="w-full md:w-80 flex flex-col justify-stretch gap-3">
           {[{ estado: "Todos", color: "bg-[#DB1866]", texto: "Ver todos los boxes", textoColor: "text-white" },
-            { estado: "Tope", color: "bg-[#FF4C4C]", texto: "Boxes con topes", textoColor: "text-white" },
+            { estado: "Tope", color: "bg-[#902525]", texto: "Boxes con topes", textoColor: "text-white" },
             { estado: "Disponible", color: "bg-gray-300", texto: "Boxes disponibles", textoColor: "text-gray-800" },
-            { estado: "Ocupado", color: "bg-[#5FB799]", texto: "Boxes ocupados", textoColor: "text-white" },
+            { estado: "Ocupado", color: "bg-[#1B5D52]", texto: "Boxes ocupados", textoColor: "text-white" },
             { estado: "Inhabilitado", color: "bg-[#FFD36E]", texto: "Boxes inhabilitados", textoColor: "text-white" }
           ].map((card, i) => (
             <div

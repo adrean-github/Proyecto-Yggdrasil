@@ -1,11 +1,11 @@
 
 :root {
-  --primary-color: #5fb197;
-  --secondary-color: #5fb197;
+  --primary-color: #005C48;
+  --secondary-color: #24816d;
   --accent-color: #e74c3c;
   --light-color: #ecf0f1;
   --dark-color: #2c3e50;
-  --success-color: #27ae60;
+  --success-color: #18703d;
   --error-color: #e74c3c;
   --overlay-color: rgba(30, 45, 60, 0.5);
   --green-filter: rgba(71, 144, 84, 0.3);
@@ -183,6 +183,7 @@ body {
   width: 90%;
   transform: translateY(10px);
   padding-top: 1rem;
+  transition: all 0.3s ease-in-out;
 }
 
 .login-form {
@@ -262,7 +263,7 @@ body {
 }
 
 .login-button:hover {
-  background-color: #5bb164;
+  background-color: #3d9c47;
   transform: translateY(-1px);
 }
 
@@ -326,3 +327,69 @@ body {
   margin-bottom: 0.3rem;
 }
 
+/* Diseño general para pantallas grandes */
+.login-container {
+  display: flex;
+  height: 100vh;
+}
+
+.left-panel,
+.right-panel {
+  flex: 1;
+}
+
+/* Pantallas medianas (tablets) */
+@media (max-width: 1024px) {
+  .login-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .left-panel {
+    display: none; /* Opcional: ocultar panel izquierdo en tablets */
+  }
+
+  .right-panel {
+    width: 100%;
+    padding: 2rem;
+  }
+
+  .login-form-container {
+    margin: auto;
+    max-width: 400px;
+  }
+}
+
+/* Pantallas pequeñas (móviles) */
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+    height: auto;
+    padding: 1rem;
+  }
+
+  .left-panel {
+    display: none; /* Aseguramos que no ocupe espacio */
+  }
+
+  .right-panel {
+    width: 100%;
+  }
+
+  .login-form-container {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .login-form img.logo {
+    width: 150px;
+  }
+
+  .form-group input {
+    font-size: 16px;
+  }
+
+  .login-button {
+    width: 100%;
+  }
+}

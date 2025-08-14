@@ -32,7 +32,7 @@ export default function HomeHeader() {
         <nav className="hidden md:flex items-center gap-4">
             <a
                 href="/login"
-                className="text-sm font-semibold text-white bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full transition"
+                className="text-sm font-semibold text-white bg-[#005C48] hover:bg-[#00403A] px-4 py-2 rounded-full transition"
             >
                 Iniciar sesión
             </a>
@@ -46,7 +46,7 @@ export default function HomeHeader() {
             <nav className="flex flex-col gap-2 text-sm">
             <a
                 href="/login"
-                className="font-semibold text-white bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full transition text-center"
+                className="font-semibold text-white bg-green-500 hover:bg-[#005C48] px-4 py-2 rounded-full transition text-center"
             >
                 Iniciar sesión
             </a>
