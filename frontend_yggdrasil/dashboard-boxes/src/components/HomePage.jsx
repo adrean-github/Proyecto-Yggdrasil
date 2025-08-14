@@ -154,7 +154,7 @@ const Homepage = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row items-center gap-10">
           <div className="flex-1">
             <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center font-pj max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              ¿Por qué Yggdrasil?
+              ¿Por qué "Yggdrasil"?
             </h2>
             <p className="text-lg text-gray-800 leading-relaxed text-justify bg-gray-50 p-6 rounded-xl shadow-sm">
               Inspirado en <span className="font-semibold text-green-700">Yggdrasil</span>, el legendario árbol de la vida de la mitología nórdica, 
