@@ -80,9 +80,9 @@ export default function Header() {
           <nav className="flex gap-4 text-sm text-[#005C48]">
             <Link to="/" className="hover:text-[#005C48] font-semibold">Home</Link>
             <Link to="/dashboard-stats" className="hover:text-[#005C48] font-semibold">Dashboard</Link>
-            <Link to="/dashboard-boxes" className="hover:text-[#005C48] font-semibold">Boxes</Link>
+            <Link to="/boxes" className="hover:text-[#005C48] font-semibold">Boxes</Link>
             <Link to="/medicos" className="hover:text-[#005C48] font-semibold">Médicos</Link>
-            <Link to="/reserva-no-medica" className="hover:text-[#005C48] font-semibold">Agendas</Link>
+            <Link to="/agendas" className="hover:text-[#005C48] font-semibold">Agendas</Link>
             <Link to="/simulador" className="hover:text-[#005C48] font-semibold">Simulador</Link>
           </nav>
 
@@ -127,8 +127,8 @@ export default function Header() {
           <nav className="flex flex-col gap-2 text-sm text-[#005C48]">
             <Link to="/" className="hover:text-[#005C48] font-semibold">Home</Link>
             <Link to="/dashboard-stats" className="hover:text-[#005C48] font-semibold">Dashboard</Link>
-            <Link to="/dashboard-boxes" className="hover:text-[#005C48] font-semibold">Boxes</Link>
-            <Link to="/reserva-no-medica" className="hover:text-[#005C48] font-semibold">Agendas</Link>
+            <Link to="/boxes" className="hover:text-[#005C48] font-semibold">Boxes</Link>
+            <Link to="/agendas" className="hover:text-[#005C48] font-semibold">Agendas</Link>
             <Link to="/medicos" className="hover:text-[#005C48] font-semibold">Médicos</Link>
             <Link to="/simulador" className="hover:text-[#005C48] font-semibold">Simulador</Link>
 

@@ -138,3 +138,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 LOGIN_URL = '/api/login/' 
+
+SILENCED_SYSTEM_CHECKS = [
+    'fields.W342',
+]

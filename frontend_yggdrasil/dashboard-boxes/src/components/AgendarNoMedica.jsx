@@ -6,7 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format } from 'date-fns';
 
-export default function ReservaNoMedica() {
+export default function AgendarNoMedica() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState("");
   const [fecha, setFecha] = useState("");
@@ -77,9 +77,26 @@ export default function ReservaNoMedica() {
     }
   };
 
+
+  const liberarReserva = async (id) => {
+    try {
+
+      const response = await fetch(`http://localhost:8000/api/reservas/${id}/liberar`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error("Error al liberar la reserva");
+      setMensaje({ texto: "Reserva liberada con éxito", tipo: "success" });
+      fetchReservasUsuario();
+    } catch (error) {
+      setMensaje({ texto: error.message, tipo: "error" });
+    }
+  };
+
+
   const fetchReservasUsuario = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/mis-reservas/');
+      const response = await fetch('http://localhost:8000/api/mis-reservas-no-medicas/');
       const data = await response.json();
       setReservasUsuario(data);
     } catch (error) {
@@ -105,7 +122,8 @@ export default function ReservaNoMedica() {
     <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Paso 1: Selección de Fecha y Horario */}
+
+          {/*paso 1: selecc fecha y hora */}
           {pasoActual === 1 && (
             <motion.div
               className="bg-white border border-[#5FB799] rounded-lg p-6 shadow"
@@ -115,7 +133,6 @@ export default function ReservaNoMedica() {
               <h2 className="text-xl font-semibold text-[#5FB799] mb-4 flex items-center gap-2">
                 <Calendar size={20} /> Selecciona Fecha y Horario
               </h2>
-              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Fecha</label>
@@ -129,7 +146,6 @@ export default function ReservaNoMedica() {
                     minDate={new Date()}
                   />
                 </div>
-                
                 <div>
                   <label className="block text-sm font-medium mb-1">Hora Inicio</label>
                   <select
@@ -137,30 +153,39 @@ export default function ReservaNoMedica() {
                     onChange={(e) => setHoraInicio(e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 focus:border-[#5FB799] focus:ring-1 focus:ring-[#5FB799]"
                   >
-                    {Array.from({length: 13}, (_, i) => {
+                    {Array.from({ length: 13 }, (_, i) => {
                       const hour = 8 + i;
-                      const time = `${hour.toString().padStart(2, '0')}:00`;
-                      return <option key={time} value={time}>{time}</option>;
+                      return <option key={hour} value={`${hour.toString().padStart(2,'0')}:00`}>{`${hour}:00`}</option>;
                     })}
                   </select>
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium mb-1">Hora Fin</label>
-                  <select
+                <label className="block text-sm font-medium mb-1">Hora Fin</label>
+                <select
                     value={horaFin}
                     onChange={(e) => setHoraFin(e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 focus:border-[#5FB799] focus:ring-1 focus:ring-[#5FB799]"
-                  >
-                    {Array.from({length: 13}, (_, i) => {
-                      const hour = 8 + i;
-                      const time = `${hour.toString().padStart(2, '0')}:30`;
-                      return <option key={time} value={time}>{time}</option>;
+                >
+                    {Array.from({ length: 13 }, (_, i) => {
+                    const hour = 8 + i;
+                    const optionHora = `${hour.toString().padStart(2,'0')}:30`;
+
+                    const [hInicio, mInicio] = horaInicio.split(':').map(Number);
+                    const [hOpcion, mOpcion] = optionHora.split(':').map(Number);
+                    const minutosInicio = hInicio * 60 + mInicio;
+                    const minutosOpcion = hOpcion * 60 + mOpcion;
+
+                    if (minutosOpcion <= minutosInicio) return null;
+
+                    return (
+                        <option key={optionHora} value={optionHora}>
+                        {optionHora}
+                        </option>
+                    );
                     })}
-                  </select>
+                </select>
                 </div>
               </div>
-              
               <button
                 onClick={buscarBoxesRecomendados}
                 disabled={loading || !fecha}
@@ -173,7 +198,7 @@ export default function ReservaNoMedica() {
             </motion.div>
           )}
 
-          {/* Paso 2: Selección de Box Recomendado */}
+          {/*paso 2: selecc de Box Recomendado */}
           {pasoActual === 2 && (
             <motion.div
               className="bg-white border border-[#5FB799] rounded-lg p-6 shadow"
@@ -246,28 +271,52 @@ export default function ReservaNoMedica() {
           )}
         </div>
 
-        {/*reservas */}
+        {/*mis reservas*/}
         <div className="space-y-6">
           <motion.div
             className="bg-white border border-[#5FB799] rounded-lg p-6 shadow"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Mis Reservas Activas</h2>
-            
+            <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Mis reservas no médicas</h2>
             {reservasUsuario.length > 0 ? (
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 {reservasUsuario.map((reserva) => (
-                  <div key={reserva.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50">
-                    <div className="font-medium flex justify-between items-start">
-                      <span>Box {reserva.box_id}</span>
-                      <span className="text-xs bg-[#5FB799] text-white px-2 py-1 rounded">
-                        {reserva.estado || 'Confirmada'}
-                      </span>
+                  <div
+                    key={reserva.id}
+                    className="border border-gray-200 rounded p-3 hover:bg-gray-50 flex justify-between items-center"
+                  >
+                    <div>
+                      <div className="font-medium">Box {reserva.box_id}</div>
+                      <div className="text-sm">{reserva.fecha}</div>
+                      <div className="text-sm">{reserva.hora_inicio} - {reserva.hora_fin}</div>
+                      <div className="text-sm text-gray-600">{reserva.observaciones}</div>
                     </div>
-                    <div className="text-sm">{reserva.fecha}</div>
-                    <div className="text-sm">{reserva.hora_inicio} - {reserva.hora_fin}</div>
-                    <div className="text-sm text-gray-600 mt-1">{reserva.observaciones}</div>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm("¿Estás seguro de que quieres liberar esta reserva?")) {
+                          try {
+                            const response = await fetch(`http://localhost:8000/api/reservas/${reserva.id}/liberar/`, {
+                              method: 'DELETE',
+                            });
+                            const data = await response.json();
+                            if (response.ok) {
+                              setMensaje({ texto: data.mensaje, tipo: "success" });
+                              fetchReservasUsuario(); // refresca la lista
+                            } else {
+                              setMensaje({ texto: data.error || "Error al liberar la reserva", tipo: "error" });
+                            }
+                          } catch (error) {
+                            setMensaje({ texto: error.message, tipo: "error" });
+                          } finally {
+                            setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000); // desaparece notificación
+                          }
+                        }
+                      }}
+                      className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded"
+                    >
+                      Liberar
+                    </button>
                   </div>
                 ))}
               </div>
@@ -276,6 +325,7 @@ export default function ReservaNoMedica() {
             )}
           </motion.div>
         </div>
+
       </div>
 
       {/*notificaciones:P */}

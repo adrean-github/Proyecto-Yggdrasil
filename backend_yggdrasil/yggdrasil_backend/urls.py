@@ -20,7 +20,8 @@ from django.contrib import admin
 from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
                                 VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
-                                BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, MisReservasView, BoxesRecomendadosView, DashboardStatsView
+                                BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
+                                CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView
 
 
 def home(request):
@@ -39,8 +40,11 @@ urlpatterns = [
     path('api/agendas-no-medicas/<int:id>/', AgendasNoMedicasView.as_view()),
     path('api/bloques-no-medicos/<int:id>/', BloquesNoMedicosDisponiblesView.as_view()),
     path('api/reservar-no-medica/', CrearReservaNoMedicaView.as_view()),
+    path('api/reservar-medica/', CrearReservaMedicaView.as_view(), name='reservar-medica'),
     path('api/boxes-recomendados/', BoxesRecomendadosView.as_view(), name='boxes_recomendados'),
-    path('api/mis-reservas/', MisReservasView.as_view(), name='mis_reservas'),
+    path('api/mis-reservas-medicas/', MisReservasMedicasView.as_view(), name='mis-reservas-medicas'),
+    path('api/mis-reservas-no-medicas/', MisReservasNoMedicasView.as_view(), name='mis-reservas-no-medicas'),
+    path('api/reservas/<int:reserva_id>/liberar/', LiberarReservaView.as_view(), name='liberar-reserva'),
     path('api/dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),

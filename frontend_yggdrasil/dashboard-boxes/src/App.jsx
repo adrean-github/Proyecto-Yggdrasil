@@ -5,12 +5,14 @@ import Boxes from "./components/Boxes";
 import MedicosOnline from "./components/MedicosOnline";
 import BoxDetalle from "./components/BoxDetalle";
 import Login from "./components/Login";
-import ReservaNoMedica from "./components/ReservaNoMedica";
+import AgendarNoMedica from "./components/AgendarNoMedica";
 import PrivateRoute from "./components/privateroute";
 import Simulador from "./components/Simulador";
 import DashboardStats from "./components/DashboardStats";
 import Home from "./components/HomePage";
-import HomeHeader from "./homeHeader";        
+import HomeHeader from "./homeHeader";   
+import Agendas from "./components/Agendas"; 
+import AgendarMedica from "./components/AgendarMedica";
 import { Box } from "lucide-react";
 
 function LayoutWithHeader({ children }) {
@@ -73,10 +75,10 @@ export default function App() {
             }
           />
           <Route
-            path="/reserva-no-medica"
+            path="/agendas/agendar-no-medica"
             element={
               <PrivateRoute>
-                <ReservaNoMedica />
+                <AgendarNoMedica />
               </PrivateRoute>
             }
           />
@@ -85,6 +87,22 @@ export default function App() {
             element={
               <PrivateRoute>
                 <DashboardStats />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/agendas"
+            element={
+              <PrivateRoute>
+                <Agendas />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/agendas/agendar-medica"
+            element={
+              <PrivateRoute>
+                <AgendarMedica />
               </PrivateRoute>
             }
           />

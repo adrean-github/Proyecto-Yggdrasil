@@ -8,14 +8,14 @@ class Agendabox(models.Model):
     idbox = models.ForeignKey('Box', models.DO_NOTHING, db_column='idBox')  # Field name made lowercase.
     idmedico = models.ForeignKey('Medico', models.DO_NOTHING, db_column='idMedico', blank=True, null=True)  # Field name made lowercase.
     horafinagenda = models.TimeField(db_column='horaFinAgenda', blank=True, null=True)  # Field name made lowercase.
-    habilitada = models.IntegerField(db_column='Habilitada')  # Field name made lowercase.
+    habilitada = models.IntegerField(db_column='Habilitada')
     esMedica = models.IntegerField(db_column="esMedica")
     nombre_responsable = models.CharField(max_length=255, blank=True, null=True, db_column='responsable')
     observaciones = models.TextField(blank=True, null=True, db_column='observacion')
 
     class Meta:
         db_table = 'agendabox'
-
+        managed = False
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)

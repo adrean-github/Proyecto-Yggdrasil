@@ -356,6 +356,61 @@ class CrearReservaNoMedicaView(APIView):
         
 
 
+class CrearReservaMedicaView(APIView):
+    def post(self, request):
+        data = request.data
+
+        try:
+            fecha = datetime.strptime(data.get("fecha"), "%Y-%m-%d").date()
+            hora_inicio = datetime.strptime(data.get("horaInicioReserva"), "%H:%M").time()
+            hora_fin = datetime.strptime(data.get("horaFinReserva"), "%H:%M").time()
+        except (TypeError, ValueError):
+            return Response({'error': 'Formato de fecha u hora inválido'}, status=400)
+
+        box_id = data.get("box_id")
+        nombre = data.get("nombreResponsable")
+        observaciones = data.get("observaciones", "")
+        id_medico = data.get("idMedico")  # opcional, si quieres asociar médico
+
+        if not box_id or not nombre:
+            return Response({'error': 'Faltan campos requeridos'}, status=400)
+
+        conflicto = Agendabox.objects.filter(
+            idbox=box_id,
+            fechaagenda=fecha,
+            horainicioagenda__lt=hora_fin,
+            horafinagenda__gt=hora_inicio
+        ).exists()
+
+        if conflicto:
+            return Response({'error': 'Ya existe una agenda en ese bloque'}, status=400)
+
+        try:
+            nueva_agenda = Agendabox.objects.create(
+                fechaagenda=fecha,
+                horainicioagenda=hora_inicio,
+                horafinagenda=hora_fin,
+                idbox_id=box_id,
+                habilitada=0,
+                esMedica=1,  # acá se diferencia de la no médica
+                idmedico=id_medico,
+                nombre_responsable=nombre,
+                observaciones=observaciones
+            )
+
+            return Response({
+                'mensaje': 'Reserva médica creada exitosamente',
+                'id': nueva_agenda.id,
+                'box_id': nueva_agenda.idbox_id,
+                'fecha': fecha.strftime('%Y-%m-%d'),
+                'hora_inicio': hora_inicio.strftime('%H:%M'),
+                'hora_fin': hora_fin.strftime('%H:%M'),
+                'responsable': nueva_agenda.nombre_responsable
+            }, status=201)
+
+        except Exception as e:
+            return Response({'error': f'Error al crear la reserva: {str(e)}'}, status=500)
+
 class BoxesRecomendadosView(APIView):
     def get(self, request):
         fecha_str = request.query_params.get('fecha')
@@ -394,29 +449,82 @@ class BoxesRecomendadosView(APIView):
         return Response(boxes_data)
     
 
-
-class MisReservasView(APIView):
+class MisReservasMedicasView(APIView):
     def get(self, request):
+        id_medico = request.query_params.get("idMedico") 
 
+        ahora = datetime.now()
+        reservas = Agendabox.objects.filter(
+            esMedica=1,
+            habilitada=0,
+            fechaagenda__gte=ahora.date()
+        ).exclude(
+            fechaagenda=ahora.date(),
+            horafinagenda__lte=ahora.time()
+        )
+
+        if id_medico:
+            reservas = reservas.filter(idmedico=id_medico)
+
+        data = [
+            {
+                "id": r.id,
+                "box_id": r.idbox_id,
+                "fecha": r.fechaagenda.strftime("%Y-%m-%d"),
+                "hora_inicio": r.horainicioagenda.strftime("%H:%M"),
+                "hora_fin": r.horafinagenda.strftime("%H:%M"),
+                "responsable": r.nombre_responsable,
+                "habilitada": r.habilitada,
+                "puede_liberar": r.habilitada == 0
+            }
+            for r in reservas
+        ]
+
+        return Response(data, status=200)
+
+
+class MisReservasNoMedicasView(APIView):
+    def get(self, request):
+        nombre = request.query_params.get("nombreResponsable") 
+
+        ahora = datetime.now()
         reservas = Agendabox.objects.filter(
             esMedica=0,
-            nombre_responsable__isnull=False
-        ).order_by('-fechaagenda', '-horainicioagenda')
+            habilitada=0,
+            fechaagenda__gte=ahora.date()
+        ).exclude(
+            fechaagenda=ahora.date(),
+            horafinagenda__lte=ahora.time()
+        )
 
-        reservas_data = []
-        for reserva in reservas:
-            reservas_data.append({
-                'id': reserva.id,
-                'box_id': reserva.idbox_id,
-                'fecha': reserva.fechaagenda.strftime('%Y-%m-%d'),
-                'hora_inicio': reserva.horainicioagenda.strftime('%H:%M'),
-                'hora_fin': reserva.horafinagenda.strftime('%H:%M') if reserva.horafinagenda else None,
-                'responsable': reserva.nombre_responsable,
-                'observaciones': reserva.observaciones,
-            })
+        if nombre:
+            reservas = reservas.filter(nombre_responsable=nombre)
 
-        return Response(reservas_data)
-    
+        data = [
+            {
+                "id": r.id,
+                "box_id": r.idbox_id,
+                "fecha": r.fechaagenda.strftime("%Y-%m-%d"),
+                "hora_inicio": r.horainicioagenda.strftime("%H:%M"),
+                "hora_fin": r.horafinagenda.strftime("%H:%M"),
+                "responsable": r.nombre_responsable,
+                "habilitada": r.habilitada,
+                "puede_liberar": r.habilitada == 0
+            }
+            for r in reservas
+        ]
+
+        return Response(data, status=200)
+
+class LiberarReservaView(APIView):
+    def delete(self, request, reserva_id):
+        try:
+            reserva = Agendabox.objects.get(id=reserva_id)
+            reserva.delete()
+            return Response({'mensaje': 'Reserva eliminada/liberada'}, status=200)
+        except Agendabox.DoesNotExist:
+            return Response({'error': 'Reserva no encontrada'}, status=404)
+
 
 from django.db.models import Q, Count, Avg, ExpressionWrapper, DurationField, F, Sum
 from django.db.models.functions import ExtractWeekDay
