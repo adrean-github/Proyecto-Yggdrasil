@@ -9,6 +9,7 @@ import {
   Download,
   Trash2,
   Edit2,
+  RefreshCw
 } from "lucide-react";
 
 export default function Agenda() {
@@ -38,59 +39,338 @@ export default function Agenda() {
   const [loading, setLoading] = useState(false);
   const [sugerencias, setSugerencias] = useState([]);
   const [modal, setModal] = useState({ tipo: null, data: null, mensaje: null });
-
+  const [horasDisponibles, setHorasDisponibles] = useState({ inicio: [], fin: [] });
+  const [sugerenciasMedico, setSugerenciasMedico] = useState([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
+  const [errorSugerencias, setErrorSugerencias] = useState(null);
   const gestionRef = useRef(null);
 
-  // Autocomplete médico
+  // Autocomplete médico mejorado
   useEffect(() => {
-    if (vista !== "medico" || !filtroNombre) return;
+    if (!filtroNombre.trim()) {
+      setSugerencias([]);
+      setErrorSugerencias(null);
+      return;
+    }
+
+    if (vista !== "medico" || filtroNombre.length < 2) return;
+
     const fetchSugerencias = async () => {
+      setCargandoSugerencias(true);
+      setErrorSugerencias(null);
+      
       try {
         const res = await fetch(
           `http://localhost:8000/api/medico/sugerencias/?nombre=${encodeURIComponent(
             filtroNombre
           )}`
         );
-        if (!res.ok) throw new Error("Error fetching sugerencias");
-        setSugerencias(await res.json());
+        
+        if (!res.ok) throw new Error(res.statusText);
+        
+        const data = await res.json();
+        setSugerencias(data);
       } catch (err) {
         console.error("Error fetching sugerencias:", err);
+        setErrorSugerencias("No se pudieron cargar las sugerencias");
+        setSugerencias([]);
+      } finally {
+        setCargandoSugerencias(false);
       }
     };
+
     const timeout = setTimeout(fetchSugerencias, 300);
     return () => clearTimeout(timeout);
   }, [filtroNombre, vista]);
 
+  // Autocomplete para el modal de modificación
+  useEffect(() => {
+    if (!modal.data?.responsable || modal.data.responsable.length < 2) {
+      setSugerenciasMedico([]);
+      return;
+    }
+
+    const fetchSugerenciasModal = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/api/medico/sugerencias/?nombre=${encodeURIComponent(
+            modal.data.responsable
+          )}`
+        );
+        
+        if (!res.ok) throw new Error(res.statusText);
+        
+        const data = await res.json();
+        setSugerenciasMedico(data);
+      } catch (err) {
+        console.error("Error fetching sugerencias:", err);
+        setSugerenciasMedico([]);
+      }
+    };
+
+    const timeout = setTimeout(fetchSugerenciasModal, 300);
+    return () => clearTimeout(timeout);
+  }, [modal.data?.responsable]);
 
   const parseDateTime = (fecha, hora) => new Date(`${fecha}T${hora}:00`);
 
-  //marca topes de horario
-  const marcarTopes = (agendas) => {
-    return agendas.map((a, i) => {
-      let tope = false;
-      for (let j = 0; j < agendas.length; j++) {
-        if (i === j) continue;
-        const startA = parseDateTime(a.fecha, a.hora_inicio);
-        const endA = parseDateTime(a.fecha, a.hora_fin);
-        const startB = parseDateTime(agendas[j].fecha, agendas[j].hora_inicio);
-        const endB = parseDateTime(agendas[j].fecha, agendas[j].hora_fin);
-    
-        if (startA < endB && startB < endA) {
-          tope = agendas[j].id;
-          break;
+  const tieneConflicto = (agenda, todasLasAgendas) => {
+    return todasLasAgendas.some(a => {
+      if (a.id === agenda.id || a.box_id !== agenda.box_id || a.fecha !== agenda.fecha) {
+        return false;
+      }
+      
+      const startA = parseDateTime(agenda.fecha, agenda.hora_inicio);
+      const endA = parseDateTime(agenda.fecha, agenda.hora_fin);
+      const startB = parseDateTime(a.fecha, a.hora_inicio);
+      const endB = parseDateTime(a.fecha, a.hora_fin);
+      
+      return startA < endB && startB < endA;
+    });
+  };
+
+  // Función para marcar topes
+  const marcarTopes = async (agendasFiltradas) => {
+    try {
+      const boxesUnicos = [...new Set(agendasFiltradas.map(a => a.box_id))];
+      
+      let todasAgendas = [];
+      for (const boxId of boxesUnicos) {
+        const res = await fetch(
+          `http://localhost:8000/api/box/${boxId}/?desde=${desde}&hasta=${hasta}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          todasAgendas = [...todasAgendas, ...data.map(a => ({
+            id: a.id,
+            box_id: boxId,
+            fecha: a.start?.split("T")[0],
+            hora_inicio: a.start?.split("T")[1]?.slice(0, 5),
+            hora_fin: a.end?.split("T")[1]?.slice(0, 5)
+          }))];
         }
       }
-      return { ...a, tope };
-    });
-  }
-  const fetchAgendas = async () => {
-    if (!desde || !hasta)
-      return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un rango de fechas" });
 
+      const todas = [...todasAgendas, ...agendasFiltradas];
+      
+      return agendasFiltradas.map(a => {
+        const conflicto = todas.find(otra => 
+          otra.id !== a.id && 
+          otra.box_id === a.box_id &&
+          otra.fecha === a.fecha &&
+          tieneConflicto(a, todas)
+        );
+        
+        return {
+          ...a,
+          tope: conflicto ? conflicto.id : false
+        };
+      });
+      
+    } catch (err) {
+      console.error("Error marcando topes:", err);
+      return agendasFiltradas;
+    }
+  };
+
+  const validarModificacion = async (nuevaAgenda, agendas) => {
+    if (!nuevaAgenda.hora_inicio || !nuevaAgenda.hora_fin) {
+      return { valido: false, mensaje: "Debe completar horas de inicio y fin" };
+    }
+    
+    const start = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_inicio);
+    const end = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_fin);
+    
+    if (start >= end) {
+      return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
+    }
+    
+    // Verificar que el horario seleccionado esté dentro de los bloques libres
+    const bloquesLibres = await generarHorasLibres(
+      nuevaAgenda.fecha, 
+      nuevaAgenda.box_id
+    );
+    
+    const horarioValido = bloquesLibres.some(bloque => {
+      const bloqueInicio = parseDateTime(nuevaAgenda.fecha, bloque.inicio);
+      const bloqueFin = parseDateTime(nuevaAgenda.fecha, bloque.fin);
+      return start >= bloqueInicio && end <= bloqueFin;
+    });
+    
+    if (!horarioValido) {
+      return { 
+        valido: false, 
+        mensaje: "El horario seleccionado no está disponible"
+      };
+    }
+    
+    return { valido: true };
+  };
+  
+  // Función auxiliar para obtener bloques libres completos
+  const generarHorasLibres = async (fecha, box_id) => {
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/${box_id}/bloques-libres/?fecha=${fecha}`
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      return data.bloques_libres || [];
+    } catch (err) {
+      console.error("Error obteniendo bloques libres:", err);
+      return [];
+    }
+  };
+
+
+  const generarHorasDisponibles = async (fecha, box_id, horaInicioSeleccionada = null) => {
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/${box_id}/bloques-libres/?fecha=${fecha}`
+      );
+      
+      if (!res.ok) throw new Error("Error al obtener bloques libres");
+      
+      const data = await res.json();
+      const bloquesLibres = data.bloques_libres || [];
+      
+      if (!horaInicioSeleccionada) {
+        // Generar horas de inicio disponibles (todas las horas posibles)
+        const horasDisponibles = [];
+        
+        bloquesLibres.forEach(bloque => {
+          const [inicioH, inicioM] = bloque.inicio.split(':').map(Number);
+          const [finH, finM] = bloque.fin.split(':').map(Number);
+          
+          let h = inicioH;
+          let m = inicioM;
+          
+          while (h < finH || (h === finH && m < finM)) {
+            horasDisponibles.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+            
+            m += 30;
+            if (m >= 60) {
+              h += 1;
+              m -= 60;
+            }
+          }
+        });
+        
+        return horasDisponibles;
+      } else {
+        // Generar horas de fin disponibles basadas en la hora de inicio seleccionada
+        const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
+        
+        const horasFinDisponibles = [];
+        
+        bloquesLibres.forEach(bloque => {
+          const [bloqueH, bloqueM] = bloque.inicio.split(':').map(Number);
+          const [bloqueFinH, bloqueFinM] = bloque.fin.split(':').map(Number);
+          
+          // Verificar si la hora de inicio está dentro de este bloque
+          if ((horaH > bloqueH || (horaH === bloqueH && horaM >= bloqueM)) &&
+              (horaH < bloqueFinH || (horaH === bloqueFinH && horaM < bloqueFinM))) {
+            
+            // Calcular la primera hora de fin posible (30 minutos después)
+            let h = horaH;
+            let m = horaM + 30;
+            
+            if (m >= 60) {
+              h += 1;
+              m -= 60;
+            }
+            
+            // Generar horas hasta el fin del bloque
+            while (h < bloqueFinH || (h === bloqueFinH && m <= bloqueFinM)) {
+              horasFinDisponibles.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+              
+              m += 30;
+              if (m >= 60) {
+                h += 1;
+                m -= 60;
+              }
+            }
+          }
+        });
+        
+        return horasFinDisponibles;
+      }
+    } catch (err) {
+      console.error("Error generando horas disponibles:", err);
+      
+      // Fallback en caso de error
+      const horas = [];
+      const inicioDia = 8;
+      const finDia = 18;
+      const intervalo = 30;
+      
+      for (let h = inicioDia; h <= finDia; h++) {
+        for (let m = 0; m < 60; m += intervalo) {
+          if (h === finDia && m > 0) break;
+          horas.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        }
+      }
+      
+      return !horaInicioSeleccionada ? horas : horas.filter(h => {
+        const [hh, mm] = h.split(':').map(Number);
+        return hh > horaH || (hh === horaH && mm > horaM);
+      });
+    }
+  };
+  
+  // Actualización del useEffect para manejar las horas disponibles
+  useEffect(() => {
+    if (modal.tipo === "editar" && modal.data) {
+      const cargarHoras = async () => {
+        try {
+          // Cargar horas de inicio
+          const horasInicio = await generarHorasDisponibles(
+            modal.data.fecha, 
+            modal.data.box_id
+          );
+          
+          setHorasDisponibles(prev => ({
+            ...prev,
+            inicio: Array.isArray(horasInicio) ? horasInicio : []
+          }));
+          
+          // Si hay hora de inicio seleccionada, cargar horas de fin
+          if (modal.data.hora_inicio) {
+            const horasFin = await generarHorasDisponibles(
+              modal.data.fecha, 
+              modal.data.box_id, 
+              modal.data.hora_inicio
+            );
+            
+            setHorasDisponibles(prev => ({
+              ...prev,
+              fin: Array.isArray(horasFin) ? horasFin : []
+            }));
+          }
+        } catch (error) {
+          console.error("Error cargando horas:", error);
+          setHorasDisponibles({
+            inicio: [],
+            fin: []
+          });
+        }
+      };
+      
+      cargarHoras();
+    }
+  }, [modal.data?.fecha, modal.data?.box_id, modal.data?.hora_inicio]);
+  const fetchAgendas = async () => {
+    if (!desde || !hasta) {
+      return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un rango de fechas" });
+    }
+  
     try {
       setLoading(true);
       let url = "";
-
+  
       if (vista === "box") {
         if (!filtroId) return setModal({ tipo: "alerta", mensaje: "Debes ingresar un ID de box" });
         url = `http://localhost:8000/api/box/${filtroId}/?desde=${desde}&hasta=${hasta}`;
@@ -101,23 +381,54 @@ export default function Agenda() {
         if (!pasilloSeleccionado) return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un pasillo" });
         url = `http://localhost:8000/api/pasillo/?pasillo=${encodeURIComponent(pasilloSeleccionado)}&desde=${desde}&hasta=${hasta}`;
       }
-
+  
       const res = await fetch(url);
       if (!res.ok) throw new Error(await res.text());
       const fetchedData = await res.json();
 
-      const agendasProcesadas = fetchedData.map((a) => ({
-        id: a.id || "-",
-        box_id: a.box_id || filtroId || "-",
-        fecha: a.fecha || a.start?.split("T")[0] || "-",
-        hora_inicio: a.hora_inicio || a.start?.split("T")[1]?.slice(0, 5) || "-",
-        hora_fin: a.hora_fin || a.end?.split("T")[1]?.slice(0, 5) || "-",
-        tipo: a.tipo || a.extendedProps?.tipo || "-",
-        responsable: a.responsable || a.medico || "-",
-        observaciones: a.observaciones || "-",
-      }));
+      const limpiarDato = (valor, defecto = "-") => {
+        return valor !== null && valor !== undefined ? valor : defecto;
+      };
 
-      setAgendas(marcarTopes(agendasProcesadas));
+      const agendasProcesadas = fetchedData.map(a => {
+        if (vista === "box") {
+          return {
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id || filtroId),
+            fecha: a.start ? limpiarDato(a.start.split("T")[0]) : "-",
+            hora_inicio: a.start ? limpiarDato(a.start.split("T")[1]?.slice(0, 5)) : "-",
+            hora_fin: a.end ? limpiarDato(a.end.split("T")[1]?.slice(0, 5)) : "-",
+            tipo: limpiarDato(a.extendedProps?.tipo || (a.esMedica ? "Médica" : "No Médica")),
+            responsable: limpiarDato(a.medico),
+            observaciones: limpiarDato(a.extendedProps?.observaciones)
+          };
+        } else if (vista === "medico") {
+          return {
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id),
+            fecha: limpiarDato(a.fecha),
+            hora_inicio: limpiarDato(a.hora_inicio),
+            hora_fin: limpiarDato(a.hora_fin),
+            tipo: limpiarDato(a.tipo),
+            responsable: limpiarDato(a.medico),
+            observaciones: limpiarDato(a.observaciones)
+          }; 
+        } else if (vista === "pasillo") {
+          return {
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id),
+            fecha: limpiarDato(a.fecha),
+            hora_inicio: limpiarDato(a.hora_inicio),
+            hora_fin: limpiarDato(a.hora_fin),
+            tipo: limpiarDato(a.tipo),
+            responsable: limpiarDato(a.responsable),
+            observaciones: limpiarDato(a.observaciones)
+          };
+        }
+      });
+
+      const agendasConTopes = await marcarTopes(agendasProcesadas);
+      setAgendas(agendasConTopes);
     } catch (err) {
       console.error(err);
       setAgendas([]);
@@ -149,48 +460,88 @@ export default function Agenda() {
       setModal({ tipo: "alerta", mensaje: "Error eliminando: " + err.message });
     }
   };
-
+  const handleHoraInicioChange = async (e) => {
+    const nuevaHoraInicio = e.target.value;
+    const newData = { 
+      ...modal.data, 
+      hora_inicio: nuevaHoraInicio,
+      hora_fin: "" // Resetear hora fin al cambiar inicio
+    };
+    
+    setModal({ ...modal, data: newData, mensaje: null });
+    
+    // Cargar nuevas horas fin
+    if (nuevaHoraInicio) {
+      const horasFin = await generarHorasDisponibles(
+        newData.fecha, 
+        newData.box_id, 
+        nuevaHoraInicio
+      );
+      
+      setHorasDisponibles(prev => ({
+        ...prev,
+        fin: horasFin
+      }));
+    }
+  };
+  
   const modificarAgenda = async (e) => {
     e.preventDefault();
-
-    const data = {
-      fecha: modal.data.fecha,
-      hora_inicio: modal.data.hora_inicio,
-      hora_fin: modal.data.hora_fin,
-      observaciones: modal.data.observaciones,
-    };
-
+    
+    // Validación adicional
+    if (!modal.data.hora_inicio || !modal.data.hora_fin) {
+      return setModal({
+        ...modal,
+        mensaje: "Debes seleccionar tanto hora de inicio como de fin"
+      });
+    }
+  
+    // Verificar que la hora fin sea posterior a la hora inicio
+    const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(':').map(Number);
+    const [horaFinH, horaFinM] = modal.data.hora_fin.split(':').map(Number);
+    
+    if (horaFinH < horaInicioH || (horaFinH === horaInicioH && horaFinM <= horaInicioM)) {
+      return setModal({
+        ...modal,
+        mensaje: "La hora de fin debe ser posterior a la hora de inicio"
+      });
+    }
+  
     try {
-      // Verificar disponibilidad antes de modificar
-      const checkRes = await fetch(
-        `http://localhost:8000/api/check_disponibilidad/?idbox=${modal.data.box_id}&fecha=${modal.data.fecha}&hora_inicio=${modal.data.hora_inicio}&hora_fin=${modal.data.hora_fin}&id_agenda=${modal.data.id}`
-      );
-      const checkData = await checkRes.json();
-      if (!checkData.disponible) {
-        return setModal({
-          tipo: "alerta",
-          mensaje: `Horario en conflicto con la agenda #${checkData.conflicto_id}`,
-        });
-      }
-
       const res = await fetch(
         `http://localhost:8000/api/reservas/${modal.data.id}/modificar/`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            idbox: modal.data.box_id,
+            fechaagenda: modal.data.fecha,
+            horainicioagenda: modal.data.hora_inicio + ":00",
+            horafinagenda: modal.data.hora_fin + ":00",
+            nombre_responsable: modal.data.responsable,
+            observaciones: modal.data.observaciones,
+          }),
         }
       );
+      
       if (!res.ok) throw new Error(await res.text());
-      setModal({ tipo: "alerta", mensaje: "Agenda modificada correctamente" });
-      fetchAgendas();
+      
+      // Actualizar el estado y cerrar el modal
+      fetchAgendas(); // Recargar las agendas
+      setModal({ tipo: null, data: null, mensaje: null });
+      
     } catch (err) {
-      setModal({ tipo: "alerta", mensaje: "Error modificando: " + err.message });
+      setModal({
+        ...modal,
+        mensaje: `Error al guardar: ${err.message}`
+      });
     }
   };
+  
 
   return (
-    <div className="p-6 space-y-6">
+  <>
+    <div className="p-8 space-y-6">
       {/* ===== Agendamiento ===== */}
       <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento</h1>
       <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear</p>
@@ -262,20 +613,78 @@ export default function Agenda() {
       <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
         {vista === "box" && <input type="number" placeholder="ID de box" value={filtroId} onChange={(e)=>setFiltroId(e.target.value)}
                                    className="border rounded px-3 py-2 w-full sm:w-auto" />}
-        {vista === "medico" &&
+        {vista === "medico" && (
           <div className="relative w-full sm:w-auto">
-            <input type="text" placeholder="Nombre de médico" value={filtroNombre} onChange={(e)=>setFiltroNombre(e.target.value)}
-                   className="border rounded px-3 py-2 w-full"/>
-            {sugerencias.length>0 &&
-              <ul className="absolute bg-white border w-full max-h-40 overflow-auto z-10">
-                {sugerencias.map(s=>
-                  <li key={s.id} onClick={()=>{setFiltroNombre(s.nombre); setSugerencias([])}}
-                      className="px-2 py-1 hover:bg-gray-200 cursor-pointer">{s.nombre}</li>
-                )}
+            <input
+              type="text"
+              placeholder="Nombre de médico (mínimo 2 caracteres)"
+              value={filtroNombre}
+              onChange={(e) => {
+                setFiltroNombre(e.target.value);
+                setActiveIndex(-1);
+                if (e.target.value.length < 2) setSugerencias([]);
+              }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setTimeout(() => {
+                if (!document.activeElement?.closest('.sugerencias-container')) {
+                  setInputFocused(false);
+                }
+              }, 200)}
+              onKeyDown={(e) => {
+                if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                  e.preventDefault();
+                  if (e.key === 'ArrowDown') {
+                    setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                  } else if (e.key === 'ArrowUp') {
+                    setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                  } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                    setFiltroNombre(sugerencias[activeIndex].nombre);
+                    setSugerencias([]);
+                    setInputFocused(false);
+                  }
+                }
+              }}
+              className="border rounded px-3 py-2 w-full"
+            />
+            
+            {cargandoSugerencias && (
+              <div className="absolute right-3 top-2.5">
+                <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            )}
+            
+            {(inputFocused && sugerencias.length > 0) && (
+              <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                {sugerencias.map((medico, index) => (
+                  <li
+                    key={medico.id}
+                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                      index === activeIndex ? 'bg-blue-50' : ''
+                    }`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setFiltroNombre(medico.nombre);
+                      setSugerencias([]);
+                      setInputFocused(false);
+                    }}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    {medico.nombre}
+                  </li>
+                ))}
               </ul>
-            }
+            )}
+            
+            {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
+                {errorSugerencias || "No se encontraron médicos"}
+              </div>
+            )}
           </div>
-        }
+        )}
         {vista==="pasillo" &&
           <select value={pasilloSeleccionado} onChange={e=>setPasilloSeleccionado(e.target.value)}
                   className="border rounded px-3 py-2 w-full sm:w-auto">
@@ -301,7 +710,10 @@ export default function Agenda() {
 
       {/* Tabla agendas */}
       {agendas.length>0 ? (
-        <div className="overflow-x-auto mt-4 shadow rounded-lg">
+        <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+            <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+              Desliza horizontalmente para ver más columnas
+            </p>
           <table className="min-w-full border border-gray-200 rounded-lg">
             <thead className="bg-gray-100">
               <tr>
@@ -334,14 +746,39 @@ export default function Agenda() {
             </tbody>
           </table>
         </div>
-      ) : (
-        <p className="mt-4 text-gray-500">No hay agendas para mostrar.</p>
-      )}
+          ) : (
+            <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
+              <table className="min-w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    {["Agenda ID","Box","Fecha","Hora Inicio","Hora Fin","Tipo","Responsable","Observaciones","Acciones"].map(h =>
+                      <th key={h} className="px-4 py-3 border text-center">{h}</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="9" className="px-4 py-16 text-center bg-white">
+                      <div className="flex flex-col items-center justify-center">
+                        <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
+                        <h3 className="text-lg font-medium text-gray-500 mb-1">
+                          No hay agendas buscadas
+                        </h3>
+                        <p className="text-gray-400">
+                         Haz uso de los filtros superiores para buscar agendas
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
 
       {/* Modal */}
       {modal.tipo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 shadow-lg w-96">
+          <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
             {modal.tipo==="alerta" ? (
               <>
                 <h2 className="text-xl font-bold mb-4">Aviso</h2>
@@ -363,69 +800,204 @@ export default function Agenda() {
               </>
             ) : modal.tipo==="editar" ? (
               <>
-                <h2 className="text-xl font-bold mb-4">Modificar agenda #{modal.data.id}</h2>
-                <form onSubmit={modificarAgenda} className="space-y-4">
-                  <div>
-                    <label className="block mb-1">Fecha</label>
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
+                {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
+              </div>
+              
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const validacion = await validarModificacion(modal.data, agendas);
+                if (validacion.valido) {
+                  modificarAgenda(e);
+                } else {
+                  setModal({...modal, mensaje: validacion.mensaje});
+                }
+              }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Box</label>
+                  <input
+                    type="number"
+                    value={modal.data.box_id}
+                    onChange={async (e) => {
+                      const newData = { ...modal.data, box_id: e.target.value };
+                      const validacion = await validarModificacion(newData, agendas);
+                      setModal({ 
+                        ...modal, 
+                        data: newData,
+                        mensaje: validacion.valido ? null : validacion.mensaje
+                      });
+                      const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                      setHorasDisponibles({
+                        inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                        fin: []
+                      });
+                    }}
+                    className="border rounded px-3 py-2 w-full"
+                    required
+                  />
+                </div>
+
+                {/* Campo Fecha */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Fecha</label>
+                  <input
+                    type="date"
+                    value={modal.data.fecha}
+                    onChange={async (e) => {
+                      const newData = { ...modal.data, fecha: e.target.value };
+                      const validacion = await validarModificacion(newData, agendas);
+                      setModal({ 
+                        ...modal, 
+                        data: newData,
+                        mensaje: validacion.valido ? null : validacion.mensaje
+                      });
+                      const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                      setHorasDisponibles({
+                        inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                        fin: []
+                      });
+                    }}
+                    className="border rounded px-3 py-2 w-full"
+                    required
+                  />
+                </div>
+
+                {/* Campo Hora Inicio */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Hora inicio</label>
+                  <select
+                    value={modal.data.hora_inicio}
+                    onChange={handleHoraInicioChange}
+                    className="border rounded px-3 py-2 w-full"
+                    required
+                  >
+                    <option value="">Seleccione hora</option>
+                    {horasDisponibles.inicio.map((hora, i) => (
+                      <option key={i} value={hora}>{hora}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Campo Hora Fin */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Hora fin</label>
+                  <select
+                    value={modal.data.hora_fin}
+                    onChange={(e) => {
+                      const newData = { ...modal.data, hora_fin: e.target.value };
+                      setModal({ ...modal, data: newData });
+                    }}
+                    className="border rounded px-3 py-2 w-full"
+                    disabled={!modal.data.hora_inicio || horasDisponibles.fin.length === 0}
+                    required
+                  >
+                    <option value="">Seleccione hora</option>
+                    {horasDisponibles.fin.map((hora, i) => (
+                      <option key={i} value={hora}>{hora}</option>
+                    ))}
+                  </select>
+                  {modal.data.hora_inicio && horasDisponibles.fin.length === 0 && (
+                    <p className="text-red-500 text-sm">
+                      No hay horarios disponibles para la hora de inicio seleccionada.
+                      Pruebe con otra hora o verifique la disponibilidad del box.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 md:col-span-2 relative">
+                  <label className="block text-sm font-medium">Médico/Responsable <span className="text-red-500">*</span></label>
+                  <div className="relative">
                     <input
-                      type="date"
-                      value={modal.data.fecha}
-                      onChange={(e) =>
-                        setModal({ ...modal, data: { ...modal.data, fecha: e.target.value } })
-                      }
+                      type="text"
+                      value={modal.data.responsable}
+                      onChange={(e) => {
+                        setModal({ 
+                          ...modal, 
+                          data: { ...modal.data, responsable: e.target.value } 
+                        });
+                        setMostrarSugerencias(true);
+                      }}
+                      onFocus={() => setMostrarSugerencias(true)}
+                      onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                       className="border rounded px-3 py-2 w-full"
+                      required
                     />
+                    {mostrarSugerencias && sugerenciasMedico.length > 0 && (
+                      <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {sugerenciasMedico.map((medico) => (
+                          <li
+                            key={medico.id}
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setModal({
+                                ...modal,
+                                data: { ...modal.data, responsable: medico.nombre }
+                              });
+                              setMostrarSugerencias(false);
+                            }}
+                          >
+                            {medico.nombre}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <div>
-                    <label className="block mb-1">Hora inicio</label>
-                    <input
-                      type="time"
-                      value={modal.data.hora_inicio}
-                      onChange={(e) =>
-                        setModal({ ...modal, data: { ...modal.data, hora_inicio: e.target.value } })
-                      }
-                      className="border rounded px-3 py-2 w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1">Hora fin</label>
-                    <input
-                      type="time"
-                      value={modal.data.hora_fin}
-                      onChange={(e) =>
-                        setModal({ ...modal, data: { ...modal.data, hora_fin: e.target.value } })
-                      }
-                      className="border rounded px-3 py-2 w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1">Observaciones</label>
-                    <textarea
-                      value={modal.data.observaciones}
-                      onChange={(e) =>
-                        setModal({ ...modal, data: { ...modal.data, observaciones: e.target.value } })
-                      }
-                      className="border rounded px-3 py-2 w-full"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-gray-200 rounded"
-                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                    >
-                      Cancelar
-                    </button>
-                    <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
-                      Guardar cambios
-                    </button>
-                  </div>
-                </form>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-sm font-medium">Observaciones</label>
+                  <textarea
+                    value={modal.data.observaciones}
+                    onChange={(e) =>
+                      setModal({ ...modal, data: { ...modal.data, observaciones: e.target.value } })
+                    }
+                    className="border rounded px-3 py-2 w-full"
+                    rows="3"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 md:col-span-2 pt-4">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+                    onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                    disabled={!modal.data.hora_inicio || !modal.data.hora_fin || !modal.data.responsable || modal.mensaje}
+                  >
+                    Guardar cambios
+                  </button>
+                </div>
+              </form>
               </>
             ) : null}
           </div>
         </div>
       )}
+
     </div>
+      {/*Footer*/}
+      <footer className="bg-[#005C48] text-white pt-12 pb-20 mt-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
+            <p>© {new Date().getFullYear()} Yggdrasil - Hospital Padre Hurtado</p>
+            <div className="mt-4 sm:mt-0 space-x-4">
+              <a href="/login" className="hover:text-white">
+                Login
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center text-xs text-gray-200">
+            Desarrollado con ❤️ por Elytra
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

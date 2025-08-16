@@ -22,7 +22,7 @@ from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBo
                                 VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
                                 BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
                                 CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
-                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView
+                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView
 
 
 def home(request):
@@ -45,6 +45,7 @@ urlpatterns = [
     path('api/bloques-no-medicos/<int:id>/', BloquesNoMedicosDisponiblesView.as_view()),
     path('api/reservar-no-medica/', CrearReservaNoMedicaView.as_view()),
     path('api/reservar-medica/', CrearReservaMedicaView.as_view(), name='reservar-medica'),
+    path('api/<int:box_id>/bloques-libres/', BloquesLibresView.as_view(), name='bloques-libres'),
     path('api/boxes-recomendados/', BoxesRecomendadosView.as_view(), name='boxes_recomendados'),
     path('api/mis-reservas-medicas/', MisReservasMedicasView.as_view(), name='mis-reservas-medicas'),
     path('api/mis-reservas-no-medicas/', MisReservasNoMedicasView.as_view(), name='mis-reservas-no-medicas'),

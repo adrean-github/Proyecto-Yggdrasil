@@ -330,7 +330,7 @@ class SugerenciasMedicoView(APIView):
 
         medicos = Medico.objects.filter(nombre__icontains=nombre)[:10]
         data = [{"idMedico": m.idmedico, "nombre": m.nombre} for m in medicos]
-        return Response(data)
+        return Response(data[:10])
     
 class DatosModificadosAPIView(APIView):
     def get(self, request, fecha_hora_str):
@@ -913,6 +913,51 @@ class DashboardStatsView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+class BloquesLibresView(APIView):
+    def get(self, request, box_id):
+        fecha = request.GET.get('fecha')
+        duracion_min = int(request.GET.get('duracion', 30))  
+        
+        if not fecha:
+            return Response({'error': 'Se requiere parámetro fecha'}, status=400)
+        
+        try:
+            agendas = Agendabox.objects.filter(
+                idbox=box_id,
+                fechaagenda=fecha
+            ).order_by('horainicioagenda')
+            
+            bloques_libres = []
+            hora_actual = timezone.datetime.strptime(f"{fecha} 08:00", "%Y-%m-%d %H:%M")
+            hora_fin_dia = timezone.datetime.strptime(f"{fecha} 18:00", "%Y-%m-%d %H:%M")
+            
+            for agenda in agendas:
+                hora_inicio_agenda = timezone.datetime.strptime(f"{fecha} {agenda.horainicioagenda}", "%Y-%m-%d %H:%M:%S")
+                hora_fin_agenda = timezone.datetime.strptime(f"{fecha} {agenda.horafinagenda}", "%Y-%m-%d %H:%M:%S")
+                
+                if hora_actual < hora_inicio_agenda:
+                    diferencia = (hora_inicio_agenda - hora_actual).total_seconds() / 60
+                    if diferencia >= duracion_min:
+                        bloques_libres.append({
+                            'inicio': hora_actual.strftime("%H:%M"),
+                            'fin': hora_inicio_agenda.strftime("%H:%M")
+                        })
+                
+                hora_actual = max(hora_actual, hora_fin_agenda)
+            
+            if hora_actual < hora_fin_dia:
+                diferencia = (hora_fin_dia - hora_actual).total_seconds() / 60
+                if diferencia >= duracion_min:
+                    bloques_libres.append({
+                        'inicio': hora_actual.strftime("%H:%M"),
+                        'fin': hora_fin_dia.strftime("%H:%M")
+                    })
+            
+            return Response({'bloques_libres': bloques_libres})
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
