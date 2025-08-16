@@ -11,6 +11,8 @@ import {
   Edit2,
   RefreshCw
 } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+
 
 export default function Agenda() {
   const pasillos = [
@@ -47,8 +49,9 @@ export default function Agenda() {
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
   const [errorSugerencias, setErrorSugerencias] = useState(null);
   const gestionRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Autocomplete médico mejorado
+  //Autocomplete médico
   useEffect(() => {
     if (!filtroNombre.trim()) {
       setSugerencias([]);
@@ -86,7 +89,7 @@ export default function Agenda() {
     return () => clearTimeout(timeout);
   }, [filtroNombre, vista]);
 
-  // Autocomplete para el modal de modificación
+  //autocomplete para el modal de modificación
   useEffect(() => {
     if (!modal.data?.responsable || modal.data.responsable.length < 2) {
       setSugerenciasMedico([]);
@@ -132,7 +135,7 @@ export default function Agenda() {
     });
   };
 
-  // Función para marcar topes
+  //para marcar topes
   const marcarTopes = async (agendasFiltradas) => {
     try {
       const boxesUnicos = [...new Set(agendasFiltradas.map(a => a.box_id))];
@@ -188,7 +191,7 @@ export default function Agenda() {
       return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
     }
     
-    // Verificar que el horario seleccionado esté dentro de los bloques libres
+    //verificar que el horario seleccionado esté dentro de los bloques libres
     const bloquesLibres = await generarHorasLibres(
       nuevaAgenda.fecha, 
       nuevaAgenda.box_id
@@ -210,7 +213,7 @@ export default function Agenda() {
     return { valido: true };
   };
   
-  // Función auxiliar para obtener bloques libres completos
+  //para obtener bloques libres completos
   const generarHorasLibres = async (fecha, box_id) => {
     try {
       const res = await fetch(
@@ -547,11 +550,12 @@ export default function Agenda() {
       <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear</p>
 
       <div 
-        className="flex flex-col md:flex-row gap-6"
+        className="flex flex-col md:flex-row gap-6 "
         onMouseLeave={() => setTipoAgendamiento(null)} 
       >
         {/* Opción Médica */}
         <div
+          onClick={() => navigate('/agendas/agendar-medica')}
           onMouseEnter={() => setTipoAgendamiento("medica")}
           className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
           style={{
@@ -572,6 +576,7 @@ export default function Agenda() {
 
         {/* Opción No Médica */}
         <div
+          onClick={() => navigate('/agendas/agendar-no-medica')}
           onMouseEnter={() => setTipoAgendamiento("no_medica")}
           className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
           style={{
@@ -758,7 +763,7 @@ export default function Agenda() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="9" className="px-4 py-16 text-center bg-white">
+                    <td colSpan="9" className="px-4 py-32 text-center bg-white">
                       <div className="flex flex-col items-center justify-center">
                         <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
                         <h3 className="text-lg font-medium text-gray-500 mb-1">
