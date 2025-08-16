@@ -138,9 +138,9 @@ export default function Header() {
                   <div className="relative w-10 h-10 overflow-hidden bg-gray-100 rounded-full">
                     <img
                       className="w-full h-full object-cover"
-                      src={user.avatar || "/default-avatar.png"}
+                      src={user.avatar || "/gatoloco.jpg"}
                       alt={user.name || "Usuario"}
-                      onError={(e) => { e.target.src = "/default-avatar.png"; }}
+                      onError={(e) => { e.target.src = "/gatoloco.jpg"; }}
                     />
                   </div>
                   <div className="font-medium">

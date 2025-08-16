@@ -46,13 +46,18 @@ for day_offset in range(delta_days):
             hora_fin_str = f"{hora_fin:02}:00:00"
             
             medico = random.choice(medicos)  
-            
+            esmedicapesos = 0.9
+            if random.random() < esmedicapesos:
+                esmedica = 1
+            else:   
+                esmedica = 0
+
             #Insert para agendabox
             sql_agenda = """
-            INSERT INTO agendabox (fechaAgenda, horaInicioAgenda, idBox, idMedico, horaFinAgenda, Habilitada)
-            VALUES (%s, %s, %s, %s, %s, 1)
+            INSERT INTO agendabox (fechaAgenda, horaInicioAgenda, idBox, idMedico, horaFinAgenda, Habilitada, esMedica)
+            VALUES (%s, %s, %s, %s, %s, 1, %s)
             """
-            cursor.execute(sql_agenda, (fecha.strftime("%Y-%m-%d"), hora_inicio_str, box, medico, hora_fin_str))
+            cursor.execute(sql_agenda, (fecha.strftime("%Y-%m-%d"), hora_inicio_str, box, medico, hora_fin_str, esmedica))
             
             #Insert para atenamb
             sql_atenamb = """

@@ -16,7 +16,6 @@ class Agendabox(models.Model):
     class Meta:
         db_table = 'agendabox'
         managed = False
-
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=150)
 

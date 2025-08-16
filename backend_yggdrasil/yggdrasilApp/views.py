@@ -21,6 +21,8 @@ import pandas as pd
 from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated
 from django.db import models    
+import csv
+from django.http import HttpResponse
 
 class BoxListView(APIView):   
     def get(self, request, *args, **kwargs):
@@ -101,7 +103,6 @@ class EstadoBoxView(APIView):
         if not idbox or not fecha or not hora:
             raise ValidationError("Faltan parámetros: idbox, fecha y hora son requeridos.")
 
-        # Realiza la consulta en la base de datos
         estado = Agendabox.objects.filter(
             Q(idbox=idbox),
             Q(fechaagenda=fecha),
@@ -118,6 +119,30 @@ class EstadoBoxView(APIView):
 
         return Response({"estado": estBox}, status=status.HTTP_200_OK)
     
+
+class CheckDisponibilidadView(APIView):
+    def get(self, request):
+        idbox = request.query_params.get('idbox')
+        fecha = request.query_params.get('fecha')
+        hora_inicio = request.query_params.get('hora_inicio')
+        hora_fin = request.query_params.get('hora_fin')
+        id_agenda = request.query_params.get('id_agenda')  
+
+        if not all([idbox, fecha, hora_inicio, hora_fin]):
+            return Response({"error": "Faltan parámetros"}, status=status.HTTP_400_BAD_REQUEST)
+
+        conflict = Agendabox.objects.filter(
+            Q(idbox=idbox),
+            Q(fechaagenda=fecha),
+            Q(horainicioagenda__lt=hora_fin),
+            Q(horafinagenda__gt=hora_inicio)
+        )
+        if id_agenda:
+            conflict = conflict.exclude(id=id_agenda)
+
+        if conflict.exists():
+            return Response({"disponible": False, "conflicto_id": conflict.first().id})
+        return Response({"disponible": True})
 
 class InfoBoxView(APIView):
     def get(self, request, *args, **kwargs):
@@ -148,32 +173,165 @@ class InfoBoxView(APIView):
         ).values_list('idmedico')
 
         return Response({"ult": hora_fin, "prox": hora_prox, "med": med}, status=status.HTTP_200_OK)
+    
+
+def parse_date_param(date_str, param_name):
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValidationError(f"El parámetro '{param_name}' debe estar en formato YYYY-MM-DD")
+
+
 class AgendaBox(APIView):
     def get(self, request, *args, **kwargs):
         box_id = kwargs.get('id')
+        desde_str = request.query_params.get('desde')
+        hasta_str = request.query_params.get('hasta')
+
         agenda_box = Agendabox.objects.filter(idbox=box_id)
+
+        if desde_str:
+            desde = parse_date_param(desde_str, 'desde')
+            agenda_box = agenda_box.filter(fechaagenda__gte=desde)
+        if hasta_str:
+            hasta = parse_date_param(hasta_str, 'hasta')
+            agenda_box = agenda_box.filter(fechaagenda__lte=hasta)
+
+        agenda_box = agenda_box.order_by('fechaagenda', 'horainicioagenda')
+
         eventos = []
-        
         for ag in agenda_box:
             fecha = ag.fechaagenda.strftime("%Y-%m-%d")
             hora_inicio = ag.horainicioagenda.strftime("%H:%M:%S")
             hora_fin = ag.horafinagenda.strftime("%H:%M:%S") if ag.horafinagenda else None
-            
+
             eventos.append({
-                "title": f"Dr. {ag.idmedico.nombre}" if ag.idmedico else "Reserva no médica",
+                "id": ag.id,
+                "medico": f"{ag.idmedico.nombre}" if ag.idmedico else "Reserva no médica",
                 "start": f"{fecha}T{hora_inicio}",
                 "end": f"{fecha}T{hora_fin}" if hora_fin else None,
-                "esMedica": ag.esMedica, 
-                "color": "#d8b4fe" if ag.esMedica == 0 else "#cfe4ff", 
+                "esMedica": ag.esMedica,
+                "color": "#d8b4fe" if ag.esMedica == 0 else "#cfe4ff",
                 "textColor": "#000000",
                 "extendedProps": {
                     "tipo": "No Médica" if ag.esMedica == 0 else "Médica",
                     "observaciones": ag.observaciones or ""
                 }
             })
-            
-        return Response(eventos, status=status.HTTP_200_OK)
 
+        return Response(eventos)
+
+class AgendasPorPasilloView(APIView):
+    def get(self, request):
+        desde_str = request.query_params.get('desde')
+        hasta_str = request.query_params.get('hasta')
+        pasillo_param = request.query_params.get('pasillo')  
+        export = request.query_params.get('export')
+
+        if not desde_str or not hasta_str:
+            raise ValidationError("Se requieren los parámetros 'desde' y 'hasta'.")
+        if not pasillo_param:
+            raise ValidationError("Se requiere el parámetro 'pasillo'.")
+
+        desde = parse_date_param(desde_str, 'desde')
+        hasta = parse_date_param(hasta_str, 'hasta')
+
+        try:
+            pasillo_id = int(pasillo_param)
+            boxes = Box.objects.filter(pasillobox=pasillo_id).values_list('idbox', flat=True)
+        except ValueError:
+            boxes = Box.objects.filter(pasillobox__icontains=pasillo_param).values_list('idbox', flat=True)
+
+        agendas = Agendabox.objects.filter(
+            idbox__in=boxes,
+            fechaagenda__gte=desde,
+            fechaagenda__lte=hasta
+        ).order_by('fechaagenda', 'horainicioagenda')
+
+        data = [
+            {
+                "id": ag.id,
+                "box_id": ag.idbox_id, 
+                "fecha": ag.fechaagenda.strftime("%Y-%m-%d"),
+                "hora_inicio": ag.horainicioagenda.strftime("%H:%M") if ag.horainicioagenda else None,
+                "hora_fin": ag.horafinagenda.strftime("%H:%M") if ag.horafinagenda else None,
+                "tipo": "Médica" if ag.esMedica else "No Médica",
+                "responsable": f"{ag.idmedico.nombre}" if ag.idmedico else "No asignado",
+                "observaciones": ag.observaciones or ""
+            } for ag in agendas
+        ]
+
+        if export == "csv" and data:
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="agendas_pasillo.csv"'
+            writer = csv.DictWriter(response, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+            return response
+
+        return Response(data)
+
+
+    
+class AgendasPorMedicoView(APIView):
+    def get(self, request):
+        medico_param = request.query_params.get("medico") 
+        desde_str = request.query_params.get('desde')
+        hasta_str = request.query_params.get('hasta')
+        export = request.query_params.get('export')
+
+        if not medico_param:
+            raise ValidationError("Se requiere el parámetro 'medico'.")
+
+        try:
+            medico_id = int(medico_param)
+            agendas = Agendabox.objects.filter(idmedico=medico_id)
+        except ValueError:
+            agendas = Agendabox.objects.filter(idmedico__nombre__icontains=medico_param)
+
+        if desde_str:
+            desde = parse_date_param(desde_str, 'desde')
+            agendas = agendas.filter(fechaagenda__gte=desde)
+        if hasta_str:
+            hasta = parse_date_param(hasta_str, 'hasta')
+            agendas = agendas.filter(fechaagenda__lte=hasta)
+
+        agendas = agendas.order_by('fechaagenda', 'horainicioagenda')
+
+        data = [
+            {
+                "id": ag.id,
+                "box_id": ag.idbox_id,
+                "medico": ag.idmedico.nombre if ag.idmedico else "No asignado",
+                "fecha": ag.fechaagenda.strftime("%Y-%m-%d"),
+                "hora_inicio": ag.horainicioagenda.strftime("%H:%M") if ag.horainicioagenda else None,
+                "hora_fin": ag.horafinagenda.strftime("%H:%M") if ag.horafinagenda else None,
+                "tipo": "Médica" if ag.esMedica else "No Médica",
+                "observaciones": ag.observaciones or ""
+            } for ag in agendas
+        ]
+
+        if export == "csv" and data:
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="agendas_medico.csv"'
+            writer = csv.DictWriter(response, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+            return response
+
+        return Response(data)
+
+
+class SugerenciasMedicoView(APIView):
+    def get(self, request):
+        nombre = request.query_params.get("nombre", "").strip()
+        if not nombre:
+            return Response([])
+
+        medicos = Medico.objects.filter(nombre__icontains=nombre)[:10]
+        data = [{"idMedico": m.idmedico, "nombre": m.nombre} for m in medicos]
+        return Response(data)
+    
 class DatosModificadosAPIView(APIView):
     def get(self, request, fecha_hora_str):
         try:
@@ -444,8 +602,6 @@ class BoxesRecomendadosView(APIView):
                 'hora_fin': hora_fin_str,
                 'disponible': True
             })
-
-
         return Response(boxes_data)
     
 
@@ -525,6 +681,18 @@ class LiberarReservaView(APIView):
         except Agendabox.DoesNotExist:
             return Response({'error': 'Reserva no encontrada'}, status=404)
 
+class UpdateReservaView(APIView):
+    def put(self, request, reserva_id):
+        try:
+            reserva = Agendabox.objects.get(id=reserva_id)
+        except Agendabox.DoesNotExist:
+            return Response({'error': 'Reserva no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AgendaboxSerializer(reserva, data=request.data, partial=True) 
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'mensaje': 'Reserva actualizada', 'reserva': serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 from django.db.models import Q, Count, Avg, ExpressionWrapper, DurationField, F, Sum
 from django.db.models.functions import ExtractWeekDay

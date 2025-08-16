@@ -21,7 +21,8 @@ from django.urls import path
 from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
                                 VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
                                 BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
-                                CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView
+                                CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
+                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView
 
 
 def home(request):
@@ -35,6 +36,9 @@ urlpatterns = [
     path('api/estado_box/', EstadoBoxView.as_view(), name='estado_box'),
     path('api/info_box/', InfoBoxView.as_view(), name='info_box'),
     path('api/box/<int:id>/', AgendaBox.as_view(), name='agenda_box'),
+    path('api/pasillo/', AgendasPorPasilloView.as_view(), name='agendas-por-pasillo'),
+    path('api/medico/', AgendasPorMedicoView.as_view(), name='agendas-por-medico'),
+    path('api/medico/sugerencias/', SugerenciasMedicoView.as_view(), name='sugerencias-medico'),
     path('api/modificados-desde/<str:fecha_hora_str>/', DatosModificadosAPIView.as_view(), name='datos_modificados'),
     path('api/verificar_actualizacion/', VistaActualizableDispView.as_view(), name='vista_flag'),
     path('api/agendas-no-medicas/<int:id>/', AgendasNoMedicasView.as_view()),
@@ -45,7 +49,9 @@ urlpatterns = [
     path('api/mis-reservas-medicas/', MisReservasMedicasView.as_view(), name='mis-reservas-medicas'),
     path('api/mis-reservas-no-medicas/', MisReservasNoMedicasView.as_view(), name='mis-reservas-no-medicas'),
     path('api/reservas/<int:reserva_id>/liberar/', LiberarReservaView.as_view(), name='liberar-reserva'),
+    path('api/reservas/<int:reserva_id>/modificar/', UpdateReservaView.as_view(), name='modificar-reserva'),
     path('api/dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
+    path('api/check_disponibilidad/', CheckDisponibilidadView.as_view(), name='check-disponibilidad'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),

@@ -41,7 +41,7 @@ const Homepage = () => {
     {
       title: "Visualizar Boxes",
       desc: "Consulta la disponibilidad y estado en tiempo real de boxes, visualiza topes de horario y toma decisiones al momento.",
-      link: "/DashboardBoxes",
+      link: "/boxes",
       image: "/box.png"
     },
     {
