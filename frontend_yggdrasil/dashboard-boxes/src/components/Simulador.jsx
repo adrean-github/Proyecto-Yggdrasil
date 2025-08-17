@@ -170,7 +170,7 @@ const renderTableWithPagination = (data) => {
 };
 
   return (
-  <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
+  <div className="min-h-screen relative pb-20 px-4 md:px-8">
     {/* Botón de volver */}
     <div className="flex justify-center mt-6 mb-3">
         <h1 className="center text-3xl font-semibold mb-3 text-[#5FB799]">Simulador de Agendas</h1>

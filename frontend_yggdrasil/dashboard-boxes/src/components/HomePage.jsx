@@ -182,26 +182,6 @@ const Homepage = () => {
           </div>
         </div>
       </section>
-
-
-
-      {/*footer */}
-      <footer className="bg-[#005C48] text-white pt-12 pb-20 mt-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center text-sm">
-            <p>© {new Date().getFullYear()} Yggdrasil - Hospital Padre Hurtado</p>
-            <div className="mt-4 sm:mt-0 space-x-4">
-              <a href="/login" className="hover:text-white">
-                Login
-              </a>
-            </div>
-          </div>
-
-          <div className="mt-8 text-center text-xs text-gray-200">
-            Desarrollado con ❤️ por Elytra
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

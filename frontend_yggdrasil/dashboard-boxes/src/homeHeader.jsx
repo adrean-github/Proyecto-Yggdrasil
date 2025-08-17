@@ -5,57 +5,46 @@ export default function HomeHeader() {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   return (
-    <header
-      className="bg-white shadow-md px-6 py-4 sticky top-0 z-50"
-      style={{ boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.08)" }}
-    >
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/*Logo*/}
-        <div className="flex items-center gap-2">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <img
             src="/Logo_HospitalPadreHurtado.png"
-            alt="Hospital Logo"
+            alt="Hospital Padre Hurtado"
             className="h-10"
           />
-
         </div>
 
-        {/*Menú hamburguesa móvil*/}
         <button
-          className="md:hidden text-gray-700"
+          className="md:hidden text-gray-600 hover:text-gray-900 transition"
           onClick={() => setMenuAbierto(!menuAbierto)}
         >
           {menuAbierto ? <X size={28} /> : <Menu size={28} />}
         </button>
 
-        {/*Nav desktop*/}
         <nav className="hidden md:flex items-center gap-4">
-            <a
-                href="/login"
-                className="text-sm font-semibold text-white bg-[#005C48] hover:bg-[#00403A] px-4 py-2 rounded-full transition"
-            >
-                Iniciar sesión
-            </a>
+          <a
+            href="/login"
+            className="text-sm font-semibold text-white bg-[#005C48] hover:bg-[#00403A] px-5 py-2 rounded-full transition shadow-sm"
+          >
+            Iniciar sesión
+          </a>
         </nav>
-
       </div>
 
-      {/* Navegación móvil */}
+      {/* Nav móvil */}
       {menuAbierto && (
-        <div className="md:hidden mt-4">
-            <nav className="flex flex-col gap-2 text-sm">
+        <div className="md:hidden border-t border-gray-100 bg-white shadow-sm">
+          <nav className="flex flex-col p-4 gap-3">
             <a
-                href="/login"
-                className="font-semibold text-white bg-green-500 hover:bg-[#005C48] px-4 py-2 rounded-full transition text-center"
+              href="/login"
+              className="font-semibold text-white bg-[#005C48] hover:bg-[#00403A] px-5 py-2 rounded-full transition text-center shadow-sm"
             >
-                Iniciar sesión
+              Iniciar sesión
             </a>
-            </nav>
+          </nav>
         </div>
       )}
     </header>
   );
 }
-
-
-  

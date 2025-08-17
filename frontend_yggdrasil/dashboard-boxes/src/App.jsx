@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Header from "./header";
+import Footer from "./footer";
 import Boxes from "./components/Boxes";
 import MedicosOnline from "./components/MedicosOnline";
 import BoxDetalle from "./components/BoxDetalle";
@@ -20,6 +21,8 @@ function LayoutWithHeader({ children }) {
   const hideHeaderPaths = ["/login"];
   
   const isLandingPage = location.pathname === "/";
+  const isBoxesPage = location.pathname === "/boxes";
+
   const shouldHideHeader = hideHeaderPaths.includes(location.pathname);
 
   return (
@@ -28,6 +31,7 @@ function LayoutWithHeader({ children }) {
         isLandingPage ? <HomeHeader /> : <Header />
       )}
       {children}
+      {!(shouldHideHeader || isBoxesPage) && <Footer />}
     </>
   );
 }
