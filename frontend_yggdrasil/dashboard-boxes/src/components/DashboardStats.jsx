@@ -248,7 +248,7 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress sx={{ color: '#5FB799' }} />
+        <CircularProgress sx={{ color: '#005C48' }} />
       </Box>
     );
   }
@@ -260,7 +260,7 @@ const DashboardPage = () => {
         <Button 
           variant="contained" 
           onClick={() => window.location.reload()}
-          sx={{ backgroundColor: '#5FB799', '&:hover': { backgroundColor: '#4a9d7a' } }}
+          sx={{ backgroundColor: '#005C48', '&:hover': { backgroundColor: '#4a9d7a' } }}
         >
           Reintentar
         </Button>
@@ -276,37 +276,52 @@ const DashboardPage = () => {
     );
   }
 
-  const COLORS = ['#5FB799', '#FFBB28', '#FF8042', '#0088FE', '#00C49F'];
+  const COLORS = ['#005C48', '#DB9500', '#FF8042', '#0088FE', '#00C49F'];
 
   return (
-    <Box sx={{ p: 3, backgroundColor: 'white', minHeight: '100vh' }}>
+    <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      {/* Header Section */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        mb: 3,
+        mb: 4,
         flexWrap: 'wrap',
         gap: 2
       }}>
-        <Button
-          onClick={() => navigate("/boxes")}
-          startIcon={<ArrowLeft size={20} />}
-          sx={{ color: '#5FB799', fontWeight: 'bold' }}
-        >
-          Volver al Dashboard
-        </Button>
-
-        <Typography variant="h4" sx={{ color: '#5FB799', fontWeight: 'bold', mx: 'auto' }}>
+        <Typography variant="h4" sx={{ 
+          color: '#1e293b', 
+          fontWeight: 'bold', 
+          fontSize: '1.8rem',
+          letterSpacing: '-0.5px'
+        }}>
           Dashboard de Gestión
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', ml: 'auto' }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          gap: 2, 
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <FormControl size="small" sx={{ 
+            minWidth: 180,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '8px',
+              borderColor: '#e2e8f0'
+            }
+          }}>
             <Select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              startAdornment={<Filter size={18} style={{ marginRight: 8 }} />}
-              sx={{ color: '#5FB799' }}
+              startAdornment={<Filter size={18} style={{ marginRight: 8, color: '#64748b' }} />}
+              sx={{ 
+                color: '#1e293b',
+                fontWeight: 500,
+                '& .MuiSelect-icon': {
+                  color: '#64748b'
+                }
+              }}
             >
               <MenuItem value="day">Día actual</MenuItem>
               <MenuItem value="week">Semana actual</MenuItem>
@@ -315,22 +330,45 @@ const DashboardPage = () => {
             </Select>
           </FormControl>
 
-          <Button
-            variant="contained"
-            startIcon={<Download size={18} />}
-            onClick={() => handleDownloadReport("PDF")}
-            sx={{ backgroundColor: '#5FB799', '&:hover': { backgroundColor: '#4a9d7a' } }}
-          >
-            PDF
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Download size={18} />}
-            onClick={() => handleDownloadReport("Excel")}
-            sx={{ backgroundColor: '#5FB799', '&:hover': { backgroundColor: '#4a9d7a' } }}
-          >
-            Excel
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              startIcon={<Download size={18} />}
+              onClick={() => handleDownloadReport("PDF")}
+              sx={{ 
+                backgroundColor: '#005C48', 
+                '&:hover': { backgroundColor: '#4a9d7a' },
+                borderRadius: '8px',
+                px: 3,
+                py: 1,
+                textTransform: 'none',
+                fontWeight: 500,
+                boxShadow: '0 2px 4px rgba(95, 183, 153, 0.2)'
+              }}
+            >
+              Exportar PDF
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Download size={18} />}
+              onClick={() => handleDownloadReport("Excel")}
+              sx={{ 
+                borderColor: '#005C48',
+                color: '#005C48',
+                '&:hover': { 
+                  backgroundColor: 'rgba(95, 183, 153, 0.08)',
+                  borderColor: '#4a9d7a'
+                },
+                borderRadius: '8px',
+                px: 3,
+                py: 1,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Exportar Excel
+            </Button>
+          </Box>
         </Box>
       </Box>
 
@@ -358,7 +396,7 @@ const DashboardPage = () => {
           title="Ocupación total"
           value={`${stats.porcentaje_ocupacion}%`}
           description="Porcentaje de tiempo utilizado"
-          color="#5FB799"
+          color="#005C48"
           sx={{ 
             gridColumn: { xs: '1', sm: '1', md: '1' },
             gridRow: { xs: '1', sm: '1', md: '1' } ,
@@ -371,7 +409,7 @@ const DashboardPage = () => {
           title="Horas muertas"
           value={`${stats.horas_muertas}`}
           description="Tiempo entre reservas no utilizado"
-          color="#FFBB28"
+          color="#DB9500"
           sx={{
             gridColumn: { xs: '1', sm: '2', md: '2' },
             gridRow: { xs: '2', sm: '1', md: '1' } ,
@@ -426,9 +464,9 @@ const DashboardPage = () => {
                   labelFormatter={(label) => `Día: ${label}`}
                 />
                 <Legend />
-                <Bar dataKey="value" name="Reservas" fill="#5FB799" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="value" name="Reservas" fill="#005C48" radius={[4, 4, 0, 0]}>
                   {stats.evolucion_semana.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.value > (stats.total_reservas/7) ? '#5FB799' : '#FFBB28'} />
+                    <Cell key={`cell-${index}`} fill={entry.value > (stats.total_reservas/7) ? '#005C48' : '#DB9500'} />
                   ))}
                 </Bar>
                 <Line 
@@ -452,11 +490,11 @@ const DashboardPage = () => {
             </ResponsiveContainer>
             <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 1, pt: 1, borderTop: '1px solid #eee' }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box sx={{ width: 12, height: 12, bgcolor: '#5FB799', mr: 1, borderRadius: '2px' }} />
+                <Box sx={{ width: 12, height: 12, bgcolor: '#005C48', mr: 1, borderRadius: '2px' }} />
                 <Typography variant="caption">Día sobre promedio</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box sx={{ width: 12, height: 12, bgcolor: '#FFBB28', mr: 1, borderRadius: '2px' }} />
+                <Box sx={{ width: 12, height: 12, bgcolor: '#DB9500', mr: 1, borderRadius: '2px' }} />
                 <Typography variant="caption">Día bajo promedio</Typography>
               </Box>
             </Box>
@@ -477,7 +515,7 @@ const DashboardPage = () => {
                 <Select
                   value={especialidadFilter}
                   onChange={(e) => setEspecialidadFilter(e.target.value)}
-                  sx={{ color: '#5FB799' }}
+                  sx={{ color: '#005C48' }}
                 >
                   <MenuItem value="top10">Top 10 Especialidades</MenuItem>
                   <MenuItem value="bottom10">Últimas 10 Especialidades</MenuItem>
@@ -487,11 +525,11 @@ const DashboardPage = () => {
               
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 12, height: 12, bgcolor: '#5FB799', mr: 1, borderRadius: '2px' }} />
+                  <Box sx={{ width: 12, height: 12, bgcolor: '#005C48', mr: 1, borderRadius: '2px' }} />
                   <Typography variant="caption">Principal</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 12, height: 12, bgcolor: '#FFBB28', mr: 1, borderRadius: '2px' }} />
+                  <Box sx={{ width: 12, height: 12, bgcolor: '#DB9500', mr: 1, borderRadius: '2px' }} />
                   <Typography variant="caption">Secundaria</Typography>
                 </Box>
               </Box>
@@ -520,7 +558,7 @@ const DashboardPage = () => {
                           display: 'inline-block',
                           width: 12, 
                           height: 12, 
-                          bgcolor: especialidad.es_principal ? '#5FB799' : '#FFBB28',
+                          bgcolor: especialidad.es_principal ? '#005C48' : '#DB9500',
                           borderRadius: '2px'
                         }} />
                       </TableCell>
@@ -602,7 +640,7 @@ const DashboardPage = () => {
           title="Tiempo Médico Promedio"
           value={`${stats.tiempo_medico?.toFixed(1) || '0'} min`}
           description="Por atención médica"
-          color="#5FB799"
+          color="#005C48"
           sx={{ 
             gridColumn: { xs: '1', sm: '1', md: '2' },
             gridRow: { xs: '8', sm: '8', md: '4' }
@@ -613,7 +651,7 @@ const DashboardPage = () => {
           title="Tiempo No Médico Promedio"
           value={`${stats.tiempo_no_medico?.toFixed(1) || '0'} min`}
           description="Por atención no médica"
-          color="#FFBB28"
+          color="#DB9500"
           sx={{ 
             gridColumn: { xs: '1', sm: '2', md: '2' },
             gridRow: { xs: '9', sm: '8', md: '5' }
@@ -667,7 +705,7 @@ const MetricCard = ({ title, value, description, color, sx }) => (
 const ChartCard = ({ title, children }) => (
   <Card elevation={2} sx={{ height: '100%' }}>
     <CardContent>
-      <Typography variant="subtitle1" sx={{ color: '#5FB799', fontWeight: 'bold', mb: 2 }}>
+      <Typography variant="subtitle1" sx={{ color: '#005C48', fontWeight: 'bold', mb: 2 }}>
         {title}
       </Typography>
       {children}

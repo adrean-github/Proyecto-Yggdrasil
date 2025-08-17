@@ -22,7 +22,8 @@ from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBo
                                 VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
                                 BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
                                 CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
-                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView
+                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView , \
+                                ResolverTopeView, AplicarSolucionView, BoxesInhabilitadosView, AgendasConTopeView, TodasAgendasView\
 
 
 def home(request):
@@ -53,6 +54,11 @@ urlpatterns = [
     path('api/reservas/<int:reserva_id>/modificar/', UpdateReservaView.as_view(), name='modificar-reserva'),
     path('api/dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
     path('api/check_disponibilidad/', CheckDisponibilidadView.as_view(), name='check-disponibilidad'),
+    path("api/resolver-tope/", ResolverTopeView.as_view(), name="resolver-topes"),
+    path("api/aplicar-solucion/", AplicarSolucionView.as_view(), name="aplicar-solucion"),
+    path('api/boxes-inhabilitados/', BoxesInhabilitadosView.as_view(), name='boxes-inhabilitados'), 
+    path('api/agendas-con-tope/', AgendasConTopeView.as_view(), name='agendas-con-tope'),
+    path('api/todas-las-agendas/', TodasAgendasView.as_view(), name='todas-las-agendas'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),

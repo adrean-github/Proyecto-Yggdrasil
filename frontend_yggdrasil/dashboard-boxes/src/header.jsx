@@ -1,28 +1,48 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X , ChevronRight, Home} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import useAuth from "./hooks/useAuth";
+
 
 function Breadcrumbs() {
   const location = useLocation();
   const pathnames = location.pathname.split("/").filter(Boolean);
 
   return (
-    <nav className="text-sm text-gray-500 mt-2" aria-label="Breadcrumb">
-      <ol className="list-reset flex flex-wrap">
-        <li>
-          <Link to="/" className="text-[#005C48] hover:underline">Home</Link>
+    <nav
+      className="mt-3 px-4 py-1 bg-gray-50 rounded-xl shadow-sm"
+      aria-label="Breadcrumb"
+    >
+      <ol className="flex flex-wrap items-center text-sm text-gray-600 gap-1">
+        {/* Home */}
+        <li className="flex items-center">
+          <Link
+            to="/"
+            className="flex items-center gap-1 text-[#005C48] hover:text-[#009B77] transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
         </li>
+
         {pathnames.map((value, index) => {
           const to = `/${pathnames.slice(0, index + 1).join("/")}`;
           const isLast = index === pathnames.length - 1;
+
           return (
             <li key={to} className="flex items-center">
-              <span className="mx-2">/</span>
+              {/* Separador */}
+              <ChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+
               {isLast ? (
-                <span className="text-gray-700">{decodeURIComponent(value)}</span>
+                <span className="px-2 py-1 rounded-md bg-[#005C48]/10 text-[#005C48] font-medium">
+                  {decodeURIComponent(value)}
+                </span>
               ) : (
-                <Link to={to} className="text-[#005C48] hover:underline">
+                <Link
+                  to={to}
+                  className="px-2 py-1 rounded-md hover:bg-gray-200 transition-colors"
+                >
                   {decodeURIComponent(value)}
                 </Link>
               )}
@@ -33,6 +53,7 @@ function Breadcrumbs() {
     </nav>
   );
 }
+
 
 export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);

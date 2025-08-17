@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import {
@@ -9,10 +10,10 @@ import {
   Download,
   Trash2,
   Edit2,
-  RefreshCw
+  AlertTriangle,
+  Check,   
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
-
 
 export default function Agenda() {
   const pasillos = [
@@ -48,10 +49,30 @@ export default function Agenda() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
   const [errorSugerencias, setErrorSugerencias] = useState(null);
+  const [boxesInhabilitados, setBoxesInhabilitados] = useState([]);
+  const [filtroTopes, setFiltroTopes] = useState(false);
+  const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
   const gestionRef = useRef(null);
   const navigate = useNavigate();
 
-  //Autocomplete médico
+  // Cargar boxes inhabilitados al iniciar
+  useEffect(() => {
+    const fetchBoxesInhabilitados = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/boxes-inhabilitados/');
+        if (res.ok) {
+          const data = await res.json();
+          setBoxesInhabilitados(data.map(box => box.idbox));
+        }
+      } catch (err) {
+        console.error("Error fetching boxes inhabilitados:", err);
+      }
+    };
+    
+    fetchBoxesInhabilitados();
+  }, []);
+
+  // Autocomplete médico
   useEffect(() => {
     if (!filtroNombre.trim()) {
       setSugerencias([]);
@@ -89,7 +110,7 @@ export default function Agenda() {
     return () => clearTimeout(timeout);
   }, [filtroNombre, vista]);
 
-  //autocomplete para el modal de modificación
+  // Autocomplete para el modal de modificación
   useEffect(() => {
     if (!modal.data?.responsable || modal.data.responsable.length < 2) {
       setSugerenciasMedico([]);
@@ -135,49 +156,56 @@ export default function Agenda() {
     });
   };
 
-  //para marcar topes
-  const marcarTopes = async (agendasFiltradas) => {
+  // Obtener todos los topes en el rango de fechas
+  const fetchTopes = async () => {
     try {
-      const boxesUnicos = [...new Set(agendasFiltradas.map(a => a.box_id))];
-      
-      let todasAgendas = [];
-      for (const boxId of boxesUnicos) {
-        const res = await fetch(
-          `http://localhost:8000/api/box/${boxId}/?desde=${desde}&hasta=${hasta}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          todasAgendas = [...todasAgendas, ...data.map(a => ({
-            id: a.id,
-            box_id: boxId,
-            fecha: a.start?.split("T")[0],
-            hora_inicio: a.start?.split("T")[1]?.slice(0, 5),
-            hora_fin: a.end?.split("T")[1]?.slice(0, 5)
-          }))];
-        }
-      }
-
-      const todas = [...todasAgendas, ...agendasFiltradas];
-      
-      return agendasFiltradas.map(a => {
-        const conflicto = todas.find(otra => 
-          otra.id !== a.id && 
-          otra.box_id === a.box_id &&
-          otra.fecha === a.fecha &&
-          tieneConflicto(a, todas)
-        );
-        
-        return {
-          ...a,
-          tope: conflicto ? conflicto.id : false
-        };
-      });
-      
+      const res = await fetch(
+        `http://localhost:8000/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      return data;
     } catch (err) {
-      console.error("Error marcando topes:", err);
-      return agendasFiltradas;
+      console.error("Error obteniendo topes:", err);
+      return [];
     }
   };
+
+
+// Para marcar topes y boxes inhabilitados
+const marcarTopesYInhabilitados = async (agendasFiltradas) => {
+  try {
+    // Obtener todos los topes en el rango de fechas
+    const resTopes = await fetch(
+      `http://localhost:8000/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`
+    );
+    if (!resTopes.ok) throw new Error(await resTopes.text());
+    const topes = await resTopes.json();
+
+    // Crear un mapa de topes para búsqueda rápida
+    const mapaTopes = {};
+    topes.forEach(tope => {
+      mapaTopes[tope.id] = tope.tope_con;
+    });
+
+    // Marcar las agendas con topes y boxes inhabilitados
+    return agendasFiltradas.map(a => {
+      const topeCon = mapaTopes[a.id] || false;
+      const boxInhabilitado = boxesInhabilitados.includes(parseInt(a.box_id));
+      
+      return {
+        ...a,
+        tope: topeCon,
+        boxInhabilitado
+      };
+    });
+    
+  } catch (err) {
+    console.error("Error marcando topes y boxes inhabilitados:", err);
+    return agendasFiltradas;
+  }
+};
+
 
   const validarModificacion = async (nuevaAgenda, agendas) => {
     if (!nuevaAgenda.hora_inicio || !nuevaAgenda.hora_fin) {
@@ -191,7 +219,7 @@ export default function Agenda() {
       return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
     }
     
-    //verificar que el horario seleccionado esté dentro de los bloques libres
+    // Verificar que el horario seleccionado esté dentro de los bloques libres
     const bloquesLibres = await generarHorasLibres(
       nuevaAgenda.fecha, 
       nuevaAgenda.box_id
@@ -213,7 +241,7 @@ export default function Agenda() {
     return { valido: true };
   };
   
-  //para obtener bloques libres completos
+  // Para obtener bloques libres completos
   const generarHorasLibres = async (fecha, box_id) => {
     try {
       const res = await fetch(
@@ -228,7 +256,6 @@ export default function Agenda() {
     }
   };
 
-
   const generarHorasDisponibles = async (fecha, box_id, horaInicioSeleccionada = null) => {
     try {
       const res = await fetch(
@@ -241,7 +268,6 @@ export default function Agenda() {
       const bloquesLibres = data.bloques_libres || [];
       
       if (!horaInicioSeleccionada) {
-        // Generar horas de inicio disponibles (todas las horas posibles)
         const horasDisponibles = [];
         
         bloquesLibres.forEach(bloque => {
@@ -365,23 +391,29 @@ export default function Agenda() {
       cargarHoras();
     }
   }, [modal.data?.fecha, modal.data?.box_id, modal.data?.hora_inicio]);
-  const fetchAgendas = async () => {
+
+  const fetchAgendas = async (manual = false) => {
     if (!desde || !hasta) {
-      return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un rango de fechas" });
+      if (manual) {
+        setModal({ tipo: "alerta", mensaje: "Debes seleccionar un rango de fechas" });
+      }
+      return;
     }
   
     try {
       setLoading(true);
       let url = "";
-  
-      if (vista === "box") {
-        if (!filtroId) return setModal({ tipo: "alerta", mensaje: "Debes ingresar un ID de box" });
+
+      if (vista === "todas") {
+        url = `http://localhost:8000/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`;
+      } else if (vista === "box") {
+        if (!filtroId && manual) return setModal({ tipo: "alerta", mensaje: "Debes ingresar un ID de box" });
         url = `http://localhost:8000/api/box/${filtroId}/?desde=${desde}&hasta=${hasta}`;
       } else if (vista === "medico") {
-        if (!filtroNombre) return setModal({ tipo: "alerta", mensaje: "Debes ingresar el nombre del médico" });
+        if (!filtroNombre && manual) return setModal({ tipo: "alerta", mensaje: "Debes ingresar el nombre del médico" });
         url = `http://localhost:8000/api/medico/?medico=${encodeURIComponent(filtroNombre)}&desde=${desde}&hasta=${hasta}`;
       } else if (vista === "pasillo") {
-        if (!pasilloSeleccionado) return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un pasillo" });
+        if (!pasilloSeleccionado && manual) return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un pasillo" });
         url = `http://localhost:8000/api/pasillo/?pasillo=${encodeURIComponent(pasilloSeleccionado)}&desde=${desde}&hasta=${hasta}`;
       }
   
@@ -394,7 +426,18 @@ export default function Agenda() {
       };
 
       const agendasProcesadas = fetchedData.map(a => {
-        if (vista === "box") {
+        if (vista === "todas") {
+          return {
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id || filtroId),
+            fecha: limpiarDato(a.fecha),
+            hora_inicio: limpiarDato(a.hora_inicio?.slice(0, 5)),
+            hora_fin: limpiarDato(a.hora_fin?.slice(0, 5)),
+            tipo: limpiarDato(a.tipo),
+            responsable: limpiarDato(a.responsable),
+            observaciones: limpiarDato(a.observaciones)
+        };
+        }else if (vista === "box") {
           return {
             id: limpiarDato(a.id),
             box_id: limpiarDato(a.box_id || filtroId),
@@ -430,12 +473,25 @@ export default function Agenda() {
         }
       });
 
-      const agendasConTopes = await marcarTopes(agendasProcesadas);
-      setAgendas(agendasConTopes);
+      const agendasConTopes = await marcarTopesYInhabilitados(agendasProcesadas);
+      
+      let agendasFiltradas = agendasConTopes;
+      
+      if (filtroTopes) {
+        agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
+      }
+      
+      if (filtroInhabilitados) {
+        agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
+      }
+      
+      setAgendas(agendasFiltradas);
     } catch (err) {
       console.error(err);
       setAgendas([]);
+      if (manual) {
       setModal({ tipo: "alerta", mensaje: err.message });
+    }    
     } finally {
       setLoading(false);
     }
@@ -463,6 +519,7 @@ export default function Agenda() {
       setModal({ tipo: "alerta", mensaje: "Error eliminando: " + err.message });
     }
   };
+
   const handleHoraInicioChange = async (e) => {
     const nuevaHoraInicio = e.target.value;
     const newData = { 
@@ -540,453 +597,622 @@ export default function Agenda() {
       });
     }
   };
+
+  const aplicarFiltros = () => {
+    let agendasFiltradas = agendas;
   
+    if (filtroTopes) {
+      agendasFiltradas = agendasFiltradas.filter((a) => a.tope !== false);
+    }
+  
+    if (filtroInhabilitados) {
+      agendasFiltradas = agendasFiltradas.filter((a) => a.boxInhabilitado);
+    }
+  
+    setAgendas(agendasFiltradas);
+  };
 
   return (
-  <>
-    <div className="p-8 space-y-6">
-      {/* ===== Agendamiento ===== */}
-      <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento</h1>
-      <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear</p>
+    <>
+      <div className="p-8 space-y-6">
+        {/* ===== Agendamiento ===== */}
+        <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento</h1>
+        <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear</p>
 
-      <div 
-        className="flex flex-col md:flex-row gap-6 "
-        onMouseLeave={() => setTipoAgendamiento(null)} 
-      >
-        {/* Opción Médica */}
-        <div
-          onClick={() => navigate('/agendas/agendar-medica')}
-          onMouseEnter={() => setTipoAgendamiento("medica")}
-          className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
-          style={{
-            backgroundImage: "url('/medica.jpg')",
-            backgroundBlendMode: "overlay",
-            backgroundColor:
-              tipoAgendamiento === "medica"
-                ? "rgba(95,183,153,0.85)"
-                : "rgba(0,0,0,0.65)",
-          }}
+        <div 
+          className="flex flex-col md:flex-row gap-6 "
+          onMouseLeave={() => setTipoAgendamiento(null)} 
         >
-          <div className={`text-center ${tipoAgendamiento === "medica" ? "text-black" : "text-white"}`}>
-            <Stethoscope className="w-10 h-10 mx-auto mb-3" />
-            <h2 className="text-xl font-semibold">Agendar Médica</h2>
-            <p className="text-base">Consultas y procedimientos médicos</p>
+          {/* Opción Médica */}
+          <div
+            onClick={() => navigate('/agendas/agendar-medica')}
+            onMouseEnter={() => setTipoAgendamiento("medica")}
+            className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
+            style={{
+              backgroundImage: "url('/medica.jpg')",
+              backgroundBlendMode: "overlay",
+              backgroundColor:
+                tipoAgendamiento === "medica"
+                  ? "rgba(95,183,153,0.85)"
+                  : "rgba(0,0,0,0.65)",
+            }}
+          >
+            <div className={`text-center ${tipoAgendamiento === "medica" ? "text-black" : "text-white"}`}>
+              <Stethoscope className="w-10 h-10 mx-auto mb-3" />
+              <h2 className="text-xl font-semibold">Crear agenda médica</h2>
+              <p className="text-base">Consultas y procedimientos médicos</p>
+            </div>
+          </div>
+
+          {/* Opción No Médica */}
+          <div
+            onClick={() => navigate('/agendas/agendar-no-medica')}
+            onMouseEnter={() => setTipoAgendamiento("no_medica")}
+            className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
+            style={{
+              backgroundImage: "url('/no_medica.jpg')",
+              backgroundBlendMode: "overlay",
+              backgroundColor:
+                tipoAgendamiento === "no_medica"
+                  ? "rgba(95,183,153,0.85)"
+                  : "rgba(0,0,0,0.65)",
+            }}
+          >
+            <div className={`text-center ${tipoAgendamiento === "no_medica" ? "text-black" : "text-white"}`}>
+              <Puzzle className="w-10 h-10 mx-auto mb-3" />
+              <h2 className="text-xl font-semibold">Crear agenda no médica</h2>
+              <p className="text-base">Actividades y servicios no médicos</p>
+            </div>
           </div>
         </div>
 
-        {/* Opción No Médica */}
-        <div
-          onClick={() => navigate('/agendas/agendar-no-medica')}
-          onMouseEnter={() => setTipoAgendamiento("no_medica")}
-          className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
-          style={{
-            backgroundImage: "url('/no_medica.jpg')",
-            backgroundBlendMode: "overlay",
-            backgroundColor:
-              tipoAgendamiento === "no_medica"
-                ? "rgba(95,183,153,0.85)"
-                : "rgba(0,0,0,0.65)",
-          }}
-        >
-          <div className={`text-center ${tipoAgendamiento === "no_medica" ? "text-black" : "text-white"}`}>
-            <Puzzle className="w-10 h-10 mx-auto mb-3" />
-            <h2 className="text-xl font-semibold">Agendar No Médica</h2>
-            <p className="text-base">Actividades y servicios no médicos</p>
+        {/* ===== Gestionar agendas ===== */}
+        <div ref={gestionRef}>
+          <h1 className="text-center text-4xl font-bold mt-12 mb-3">Gestionar agendas actuales</h1>
+          <p className="text-center text-gray-600 text-lg mb-8">
+            Consulta, filtra y exporta las agendas según tus criterios
+          </p>
+        </div>
+
+        <div className="flex justify-center mt-6">
+          <div className="relative flex bg-gray-100 rounded-2xl p-1 shadow-inner">
+            {["todas", "box", "medico", "pasillo"].map((v) => (
+              <button
+                key={v}
+                onClick={() => {
+                  setVista(v);
+                  if (v === "todas") fetchAgendas();
+                }}
+                className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
+                  vista === v ? "text-white" : "text-gray-600"
+                } lg:px-16 lg:py-2 lg:w-auto`}
+              >
+                {v.charAt(0).toUpperCase() + v.slice(1)}
+                {vista === v && (
+                  <motion.div
+                    layoutId="selector"
+                    className="absolute inset-0 bg-[#005C48] rounded-xl z-[-1]"
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  />
+                )}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+          <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
-      {/* ===== Gestionar agendas ===== */}
-      <div ref={gestionRef}>
-        <h1 className="text-center text-4xl font-bold mt-12 mb-3">Gestionar agendas actuales</h1>
-        <p className="text-center text-gray-600 text-lg mb-8">
-          Consulta, filtra y exporta las agendas según tus criterios
-        </p>
-      </div>
 
-      {/* Selector y filtros */}
-      <div className="flex justify-center gap-2 mt-4 flex-wrap">
-        {["box", "medico", "pasillo"].map((v) => (
-          <button key={v} onClick={() => setVista(v)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    vista === v ? "bg-[#5FB799] text-white" : "bg-gray-200 hover:bg-gray-300"}`}>
-            <Search className="w-4 h-4" /> {v.charAt(0).toUpperCase() + v.slice(1)}
-          </button>
-        ))}
-      </div>
+            {/* Filtros adicionales */}
+            <div className="flex items-center gap-6 flex-wrap mt-4">
+              {/* Mostrar solo topes */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                    filtroTopes
+                      ? "bg-[#005C48] border-[#005C48]"
+                      : "border-gray-400 bg-white"
+                  }`}
+                >
+                  {filtroTopes && <Check className="w-4 h-4 text-white" />}
+                </div>
+                <input
+                  type="checkbox"
+                  checked={filtroTopes}
+                  onChange={() => {
+                    setFiltroTopes(!filtroTopes);
+                    aplicarFiltros();
+                  }}
+                  className="hidden"
+                />
+                <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
+              </label>
 
-      <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
-        {vista === "box" && <input type="number" placeholder="ID de box" value={filtroId} onChange={(e)=>setFiltroId(e.target.value)}
-                                   className="border rounded px-3 py-2 w-full sm:w-auto" />}
-        {vista === "medico" && (
-          <div className="relative w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder="Nombre de médico (mínimo 2 caracteres)"
-              value={filtroNombre}
-              onChange={(e) => {
-                setFiltroNombre(e.target.value);
-                setActiveIndex(-1);
-                if (e.target.value.length < 2) setSugerencias([]);
-              }}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setTimeout(() => {
-                if (!document.activeElement?.closest('.sugerencias-container')) {
-                  setInputFocused(false);
-                }
-              }, 200)}
-              onKeyDown={(e) => {
-                if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-                  e.preventDefault();
-                  if (e.key === 'ArrowDown') {
-                    setActiveIndex((prev) => (prev + 1) % sugerencias.length);
-                  } else if (e.key === 'ArrowUp') {
-                    setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
-                  } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
-                    setFiltroNombre(sugerencias[activeIndex].nombre);
-                    setSugerencias([]);
+              {/* Mostrar solo inhabilitados */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <div
+                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                    filtroInhabilitados
+                      ? "bg-orange-500 border-orange-500"
+                      : "border-gray-400 bg-white"
+                  }`}
+                >
+                  {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
+                </div>
+                <input
+                  type="checkbox"
+                  checked={filtroInhabilitados}
+                  onChange={() => {
+                    setFiltroInhabilitados(!filtroInhabilitados);
+                    aplicarFiltros();
+                  }}
+                  className="hidden"
+                />
+                <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
+              </label>
+            </div>
+
+
+            {vista === "box" && (
+              <>
+                <input 
+            type="number" 
+            placeholder="ID de box" 
+            value={filtroId} 
+            onChange={(e) => setFiltroId(e.target.value)}
+            className="border rounded px-3 py-2 w-full sm:w-auto" 
+                />
+                
+              </>
+            )}
+            
+            {vista === "medico" && (
+              <div className="relative w-full sm:w-auto">
+                <input
+            type="text"
+            placeholder="Nombre de médico (mínimo 2 caracteres)"
+            value={filtroNombre}
+            onChange={(e) => {
+                  setFiltroNombre(e.target.value);
+                  setActiveIndex(-1);
+                  if (e.target.value.length < 2) setSugerencias([]);
+                }}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setTimeout(() => {
+                  if (!document.activeElement?.closest('.sugerencias-container')) {
                     setInputFocused(false);
                   }
-                }
-              }}
-              className="border rounded px-3 py-2 w-full"
-            />
-            
-            {cargandoSugerencias && (
-              <div className="absolute right-3 top-2.5">
-                <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </div>
-            )}
-            
-            {(inputFocused && sugerencias.length > 0) && (
-              <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                {sugerencias.map((medico, index) => (
-                  <li
-                    key={medico.id}
-                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                      index === activeIndex ? 'bg-blue-50' : ''
-                    }`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setFiltroNombre(medico.nombre);
+                }, 200)}
+                onKeyDown={(e) => {
+                  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                    e.preventDefault();
+                    if (e.key === 'ArrowDown') {
+                      setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                    } else if (e.key === 'ArrowUp') {
+                      setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                    } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                      setFiltroNombre(sugerencias[activeIndex].nombre);
                       setSugerencias([]);
                       setInputFocused(false);
-                    }}
-                    onMouseEnter={() => setActiveIndex(index)}
-                  >
-                    {medico.nombre}
-                  </li>
-                ))}
-              </ul>
-            )}
-            
-            {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
-              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
-                {errorSugerencias || "No se encontraron médicos"}
-              </div>
-            )}
-          </div>
-        )}
-        {vista==="pasillo" &&
-          <select value={pasilloSeleccionado} onChange={e=>setPasilloSeleccionado(e.target.value)}
-                  className="border rounded px-3 py-2 w-full sm:w-auto">
-            <option value="">Selecciona un pasillo</option>
-            {pasillos.map((p,i)=><option key={i} value={p}>{p}</option>)}
-          </select>
-        }
+                    }
+                  }
+                }}
+                className="border rounded px-3 py-2 w-full"
+              />
+              
+              {cargandoSugerencias && (
+                <div className="absolute right-3 top-2.5">
+                  <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+              
+              {(inputFocused && sugerencias.length > 0) && (
+                <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {sugerencias.map((medico, index) => (
+                    <li
+                      key={medico.id}
+                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                        index === activeIndex ? 'bg-blue-50' : ''
+                      }`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setFiltroNombre(medico.nombre);
+                        setSugerencias([]);
+                        setInputFocused(false);
+                      }}
+                      onMouseEnter={() => setActiveIndex(index)}
+                    >
+                      {medico.nombre}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              
+              {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
+                  {errorSugerencias || "No se encontraron médicos"}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {vista === "pasillo" && (
+            <select 
+              value={pasilloSeleccionado} 
+              onChange={(e) => setPasilloSeleccionado(e.target.value)}
+              className="border rounded px-3 py-2 w-full sm:w-auto"
+            >
+              <option value="">Selecciona un pasillo</option>
+              {pasillos.map((p, i) => (
+                <option key={i} value={p}>{p}</option>
+              ))}
+            </select>
+          )}
 
-        <input type="date" value={desde} onChange={e=>setDesde(e.target.value)} className="border rounded px-3 py-2 w-full sm:w-auto"/>
-        <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)} min={desde} className="border rounded px-3 py-2 w-full sm:w-auto"/>
+          <input 
+            type="date" 
+            value={desde} 
+            onChange={(e) => setDesde(e.target.value)} 
+            className="border rounded px-3 py-2 w-full sm:w-auto"
+          />
+          
+          <input 
+            type="date" 
+            value={hasta} 
+            onChange={(e) => setHasta(e.target.value)} 
+            min={desde} 
+            className="border rounded px-3 py-2 w-full sm:w-auto"
+          />
 
-        <button onClick={fetchAgendas} disabled={loading}
-                className="flex items-center gap-2 bg-[#5FB799] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto">
-          <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
-        </button>
-
-        {agendas.length>0 &&
-          <button onClick={exportExcel} className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto">
-            <Download className="w-4 h-4"/> Exportar a Excel
+          <button 
+            onClick={() => fetchAgendas(true)}
+            disabled={loading}
+            className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
+          >
+            <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
           </button>
-        }
-      </div>
 
-      {/* Tabla agendas */}
-      {agendas.length>0 ? (
-        <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+          {agendas.length > 0 && (
+            <button 
+              onClick={exportExcel} 
+              className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
+            >
+              <Download className="w-4 h-4"/> Exportar a Excel
+            </button>
+          )}
+        </div>
+
+        {/* Tabla agendas */}
+        {agendas.length > 0 ? (
+          <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
             <p className="text-sm text-gray-500 text-center py-2 md:hidden">
               Desliza horizontalmente para ver más columnas
             </p>
-          <table className="min-w-full border border-gray-200 rounded-lg">
-            <thead className="bg-gray-100">
-              <tr>
-                {["Agenda ID","Box","Fecha","Hora Inicio","Hora Fin","Tipo","Responsable","Observaciones","Acciones"].map(h=>
-                  <th key={h} className="px-4 py-2 border text-center">{h}</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {agendas.map((a,i)=>(
-                  <tr key={i} className={`hover:bg-gray-100 ${ a.tope ? "bg-red-200" : i % 2 === 0 ? "bg-gray-50" : "bg-white" }`}>
-                  <td className="px-4 py-2 border">{a.id}</td>
-                  <td className="px-4 py-2 border">{a.box_id}</td>
-                  <td className="px-4 py-2 border">{a.fecha}</td>
-                  <td className="px-4 py-2 border">{a.hora_inicio}</td>
-                  <td className="px-4 py-2 border">{a.hora_fin}</td>
-                  <td className="px-4 py-2 border">{a.tipo}</td>
-                  <td className="px-4 py-2 border">{a.responsable}</td>
-                  <td className="px-4 py-2 border">{a.tope ? `Tope con agenda #${a.tope}` : a.observaciones}</td>
-                  <td className="px-4 py-2 border text-center">
-                    <button className="text-yellow-500 hover:text-yellow-600 mr-3" onClick={()=>setModal({tipo:"editar",data:a})}>
-                      <Edit2 className="w-5 h-5"/>
-                    </button>
-                    <button className="text-red-500 hover:text-red-600" onClick={()=>setModal({tipo:"eliminar",data:a})}>
-                      <Trash2 className="w-5 h-5"/>
-                    </button>
+            <table className="min-w-full border border-gray-200 rounded-lg">
+              <thead className="bg-gray-100">
+                <tr>
+                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                    <th key={h} className="px-4 py-2 border text-center">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {agendas.map((a, i) => {
+                  let rowClass = "hover:bg-gray-100 ";
+                  
+                  if (a.tope) {
+                    rowClass += "bg-red-200 ";
+                  } else if (a.boxInhabilitado) {
+                    rowClass += "bg-orange-200 ";
+                  } else if (i % 2 === 0) {
+                    rowClass += "bg-gray-50 ";
+                  } else {
+                    rowClass += "bg-white ";
+                  }
+                  
+                  return (
+                    <tr key={i} className={rowClass}>
+                      <td className="px-4 py-2 border">{a.id}</td>
+                      <td className="px-4 py-2 border">
+                        <div className="flex items-center justify-center gap-1">
+                          {a.box_id}
+                          {a.boxInhabilitado && (
+                            <span className="text-xs text-orange-600 flex items-center">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Inhabilitado
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 border">{a.fecha}</td>
+                      <td className="px-4 py-2 border">{a.hora_inicio}</td>
+                      <td className="px-4 py-2 border">{a.hora_fin}</td>
+                      <td className="px-4 py-2 border">{a.tipo}</td>
+                      <td className="px-4 py-2 border">{a.responsable}</td>
+                      <td className="px-4 py-2 border">
+                        {a.tope ? `Tope con agenda #${a.tope}` : 
+                         a.boxInhabilitado ? "Box inhabilitado" : 
+                         a.observaciones}
+                      </td>
+                      <td className="px-4 py-2 border text-center">
+                        <button 
+                          className="text-yellow-500 hover:text-yellow-600 mr-3" 
+                          onClick={() => setModal({ tipo: "editar", data: a })}
+                        >
+                          <Edit2 className="w-5 h-5"/>
+                        </button>
+                        <button 
+                          className="text-red-500 hover:text-red-600" 
+                          onClick={() => setModal({ tipo: "eliminar", data: a })}
+                        >
+                          <Trash2 className="w-5 h-5"/>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
+            <table className="min-w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                    <th key={h} className="px-4 py-3 border text-center">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan="9" className="px-4 py-32 text-center bg-white">
+                    <div className="flex flex-col items-center justify-center">
+                      <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-500 mb-1">
+                        No hay agendas buscadas
+                      </h3>
+                      <p className="text-gray-400">
+                        Haz uso de los filtros superiores para buscar agendas
+                      </p>
+                    </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-          ) : (
-            <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
-              <table className="min-w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    {["Agenda ID","Box","Fecha","Hora Inicio","Hora Fin","Tipo","Responsable","Observaciones","Acciones"].map(h =>
-                      <th key={h} className="px-4 py-3 border text-center">{h}</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colSpan="9" className="px-4 py-32 text-center bg-white">
-                      <div className="flex flex-col items-center justify-center">
-                        <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
-                        <h3 className="text-lg font-medium text-gray-500 mb-1">
-                          No hay agendas buscadas
-                        </h3>
-                        <p className="text-gray-400">
-                         Haz uso de los filtros superiores para buscar agendas
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-
-      {/* Modal */}
-      {modal.tipo && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
-            {modal.tipo==="alerta" ? (
-              <>
-                <h2 className="text-xl font-bold mb-4">Aviso</h2>
-                <p className="mb-6">{modal.mensaje}</p>
-                <div className="flex justify-end">
-                  <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={()=>setModal({tipo:null,data:null,mensaje:null})}>
-                    Cerrar
-                  </button>
-                </div>
-              </>
-            ) : modal.tipo==="eliminar" ? (
-              <>
-                <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
-                <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
-                <div className="flex justify-end gap-3">
-                  <button className="px-4 py-2 bg-gray-200 rounded" onClick={()=>setModal({tipo:null,data:null})}>Cancelar</button>
-                  <button className="px-4 py-2 bg-red-500 text-white rounded" onClick={()=>eliminarAgenda(modal.data.id)}>Eliminar</button>
-                </div>
-              </>
-            ) : modal.tipo==="editar" ? (
-              <>
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
-                {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
-              </div>
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const validacion = await validarModificacion(modal.data, agendas);
-                if (validacion.valido) {
-                  modificarAgenda(e);
-                } else {
-                  setModal({...modal, mensaje: validacion.mensaje});
-                }
-              }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Box</label>
-                  <input
-                    type="number"
-                    value={modal.data.box_id}
-                    onChange={async (e) => {
-                      const newData = { ...modal.data, box_id: e.target.value };
-                      const validacion = await validarModificacion(newData, agendas);
-                      setModal({ 
-                        ...modal, 
-                        data: newData,
-                        mensaje: validacion.valido ? null : validacion.mensaje
-                      });
-                      const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                      setHorasDisponibles({
-                        inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                        fin: []
-                      });
-                    }}
-                    className="border rounded px-3 py-2 w-full"
-                    required
-                  />
-                </div>
-
-                {/* Campo Fecha */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Fecha</label>
-                  <input
-                    type="date"
-                    value={modal.data.fecha}
-                    onChange={async (e) => {
-                      const newData = { ...modal.data, fecha: e.target.value };
-                      const validacion = await validarModificacion(newData, agendas);
-                      setModal({ 
-                        ...modal, 
-                        data: newData,
-                        mensaje: validacion.valido ? null : validacion.mensaje
-                      });
-                      const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                      setHorasDisponibles({
-                        inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                        fin: []
-                      });
-                    }}
-                    className="border rounded px-3 py-2 w-full"
-                    required
-                  />
-                </div>
-
-                {/* Campo Hora Inicio */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Hora inicio</label>
-                  <select
-                    value={modal.data.hora_inicio}
-                    onChange={handleHoraInicioChange}
-                    className="border rounded px-3 py-2 w-full"
-                    required
-                  >
-                    <option value="">Seleccione hora</option>
-                    {horasDisponibles.inicio.map((hora, i) => (
-                      <option key={i} value={hora}>{hora}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Campo Hora Fin */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Hora fin</label>
-                  <select
-                    value={modal.data.hora_fin}
-                    onChange={(e) => {
-                      const newData = { ...modal.data, hora_fin: e.target.value };
-                      setModal({ ...modal, data: newData });
-                    }}
-                    className="border rounded px-3 py-2 w-full"
-                    disabled={!modal.data.hora_inicio || horasDisponibles.fin.length === 0}
-                    required
-                  >
-                    <option value="">Seleccione hora</option>
-                    {horasDisponibles.fin.map((hora, i) => (
-                      <option key={i} value={hora}>{hora}</option>
-                    ))}
-                  </select>
-                  {modal.data.hora_inicio && horasDisponibles.fin.length === 0 && (
-                    <p className="text-red-500 text-sm">
-                      No hay horarios disponibles para la hora de inicio seleccionada.
-                      Pruebe con otra hora o verifique la disponibilidad del box.
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2 md:col-span-2 relative">
-                  <label className="block text-sm font-medium">Médico/Responsable <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={modal.data.responsable}
-                      onChange={(e) => {
-                        setModal({ 
-                          ...modal, 
-                          data: { ...modal.data, responsable: e.target.value } 
-                        });
-                        setMostrarSugerencias(true);
-                      }}
-                      onFocus={() => setMostrarSugerencias(true)}
-                      onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
-                      className="border rounded px-3 py-2 w-full"
-                      required
-                    />
-                    {mostrarSugerencias && sugerenciasMedico.length > 0 && (
-                      <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {sugerenciasMedico.map((medico) => (
-                          <li
-                            key={medico.id}
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setModal({
-                                ...modal,
-                                data: { ...modal.data, responsable: medico.nombre }
-                              });
-                              setMostrarSugerencias(false);
-                            }}
-                          >
-                            {medico.nombre}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-sm font-medium">Observaciones</label>
-                  <textarea
-                    value={modal.data.observaciones}
-                    onChange={(e) =>
-                      setModal({ ...modal, data: { ...modal.data, observaciones: e.target.value } })
-                    }
-                    className="border rounded px-3 py-2 w-full"
-                    rows="3"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 md:col-span-2 pt-4">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-                    onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-                    disabled={!modal.data.hora_inicio || !modal.data.hora_fin || !modal.data.responsable || modal.mensaje}
-                  >
-                    Guardar cambios
-                  </button>
-                </div>
-              </form>
-              </>
-            ) : null}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+        )}
 
-    </div>
-      {/*Footer*/}
+        {/* Modal */}
+        {modal.tipo && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
+              {modal.tipo === "alerta" ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4">Aviso</h2>
+                  <p className="mb-6">{modal.mensaje}</p>
+                  <div className="flex justify-end">
+                    <button 
+                      className="px-4 py-2 bg-blue-500 text-white rounded" 
+                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </>
+              ) : modal.tipo === "eliminar" ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
+                  <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
+                  <div className="flex justify-end gap-3">
+                    <button 
+                      className="px-4 py-2 bg-gray-200 rounded" 
+                      onClick={() => setModal({ tipo: null, data: null })}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      className="px-4 py-2 bg-red-500 text-white rounded" 
+                      onClick={() => eliminarAgenda(modal.data.id)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </>
+              ) : modal.tipo === "editar" ? (
+                <>
+                  <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
+                    {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
+                  </div>
+                  
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const validacion = await validarModificacion(modal.data, agendas);
+                      if (validacion.valido) {
+                        modificarAgenda(e);
+                      } else {
+                        setModal({...modal, mensaje: validacion.mensaje});
+                      }
+                    }} 
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
+                      <input
+                        type="number"
+                        value={modal.data.box_id}
+                        onChange={async (e) => {
+                          const newData = { ...modal.data, box_id: e.target.value };
+                          const validacion = await validarModificacion(newData, agendas);
+                          setModal({ 
+                            ...modal, 
+                            data: newData,
+                            mensaje: validacion.valido ? null : validacion.mensaje
+                          });
+                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                          setHorasDisponibles({
+                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                            fin: []
+                          });
+                        }}
+                        className={`border rounded px-3 py-2 w-full ${
+                          boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
+                            ? 'border-orange-500 bg-orange-50' 
+                            : 'border-gray-300'
+                        }`}
+                        required
+                      />
+                      {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
+                        <p className="text-orange-600 text-sm flex items-center">
+                          <AlertTriangle className="w-4 h-4 mr-1" />
+                          Este box está actualmente inhabilitado
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Campo Fecha */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        value={modal.data.fecha}
+                        onChange={async (e) => {
+                          const newData = { ...modal.data, fecha: e.target.value };
+                          const validacion = await validarModificacion(newData, agendas);
+                          setModal({ 
+                            ...modal, 
+                            data: newData,
+                            mensaje: validacion.valido ? null : validacion.mensaje
+                          });
+                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                          setHorasDisponibles({
+                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                            fin: []
+                          });
+                        }}
+                        className="border rounded px-3 py-2 w-full"
+                        required
+                      />
+                    </div>
+
+                    {/* Campo Hora Inicio */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
+                      <select
+                        value={modal.data.hora_inicio}
+                        onChange={handleHoraInicioChange}
+                        className="border rounded px-3 py-2 w-full"
+                        required
+                      >
+                        <option value="">Seleccione hora</option>
+                        {horasDisponibles.inicio.map((hora, i) => (
+                          <option key={i} value={hora}>{hora}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Campo Hora Fin */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
+                      <select
+                        value={modal.data.hora_fin}
+                        onChange={(e) => {
+                          const newData = { ...modal.data, hora_fin: e.target.value };
+                          setModal({ ...modal, data: newData });
+                        }}
+                        className="border rounded px-3 py-2 w-full"
+                        disabled={!modal.data.hora_inicio || horasDisponibles.fin.length === 0}
+                        required
+                      >
+                        <option value="">Seleccione hora</option>
+                        {horasDisponibles.fin.map((hora, i) => (
+                          <option key={i} value={hora}>{hora}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2 relative">
+                      <label className="block text-sm font-medium">Médico/Responsable <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={modal.data.responsable}
+                          onChange={(e) => {
+                            setModal({ 
+                              ...modal, 
+                              data: { ...modal.data, responsable: e.target.value } 
+                            });
+                            setMostrarSugerencias(true);
+                          }}
+                          onFocus={() => setMostrarSugerencias(true)}
+                          onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
+                          className="border rounded px-3 py-2 w-full"
+                          required
+                        />
+                        {mostrarSugerencias && sugerenciasMedico.length > 0 && (
+                          <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            {sugerenciasMedico.map((medico) => (
+                              <li
+                                key={medico.id}
+                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setModal({
+                                    ...modal,
+                                    data: { ...modal.data, responsable: medico.nombre }
+                                  });
+                                  setMostrarSugerencias(false);
+                                }}
+                              >
+                                {medico.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="block text-sm font-medium">Observaciones</label>
+                      <textarea
+                        value={modal.data.observaciones}
+                        onChange={(e) =>
+                          setModal({ ...modal, data: { ...modal.data, observaciones: e.target.value } })
+                        }
+                        className="border rounded px-3 py-2 w-full"
+                        rows="3"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 md:col-span-2 pt-4">
+                      <button
+                        type="button"
+                        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+                        onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition"
+                        disabled={!modal.data.hora_inicio || !modal.data.hora_fin || !modal.data.responsable || modal.mensaje}
+                      >
+                        Guardar cambios
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Footer */}
       <footer className="bg-[#005C48] text-white pt-12 pb-20 mt-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center text-sm">

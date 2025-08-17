@@ -65,16 +65,8 @@ export default function BoxDetalle() {
   }
 
   return (
-    <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
-      <div className="mt-6 mb-4">
-        <button
-          onClick={() => navigate("/boxes")}
-          className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
-        >
-          <ArrowLeft size={20} />
-          Volver al Dashboard
-        </button>
-      </div>
+    <div className="min-h-screen relative pb-20 px-4 md:px-8">
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div

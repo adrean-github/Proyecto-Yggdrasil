@@ -49,20 +49,10 @@ export default function MedicosOnline() {
   });
 
   return (
-    <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
-      {/*botón de volver*/}
-      <div className="mt-6 mb-4">
-        <button
-          onClick={() => navigate("/boxes")}
-          className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
-        >
-          <ArrowLeft size={20} />
-          Volver al Dashboard
-        </button>
-      </div>
+    <div className="min-h-screen relative pb-20 px-4 md:px-8">
 
       {/*Título*/}
-      <h1 className="text-3xl font-bold text-center mb-6 text-[#5FB799]">
+      <h1 className="text-4xl font-bold text-center mb-6 text-black">
         Médicos en Línea
       </h1>
 

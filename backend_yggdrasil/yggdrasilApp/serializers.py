@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Box, Agendabox, Atenamb , Tipobox, BoxTipoBox
+from .models import Box, Agendabox, Atenamb , Tipobox, BoxTipoBox, Medico
 from django.db.models import Prefetch
 
 
@@ -31,3 +31,8 @@ class BoxSerializer(serializers.ModelSerializer):
         relacion = BoxTipoBox.objects.filter(idbox=obj, tipoprincipal=True).first()
         return relacion.idtipobox.tipo if relacion else None
 
+
+class MedicoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medico
+        fields = ['idmedico', 'nombre', 'apellido']  
