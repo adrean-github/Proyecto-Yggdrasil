@@ -666,7 +666,7 @@ class CrearReservaMedicaView(APIView):
                 horafinagenda=hora_fin,
                 idbox_id=box_id,
                 habilitada=0,
-                esMedica=1,  # acá se diferencia de la no médica
+                esMedica=1,  #acá se diferencia de la no médica
                 idmedico=id_medico,
                 nombre_responsable=nombre,
                 observaciones=observaciones

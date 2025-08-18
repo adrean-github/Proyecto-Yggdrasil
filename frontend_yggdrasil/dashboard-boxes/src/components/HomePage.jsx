@@ -139,7 +139,7 @@ const Homepage = () => {
                 </div>
                 <a
                   href={card.link}
-                  className="inline-block mt-2 px-5 py-2 bg-white/90 text-gray-900 font-semibold rounded-lg text-sm hover:bg-white transition self-start"
+                  className="inline-block mt-2 px-14 py-2 bg-white/90 text-gray-900 font-semibold rounded-lg text-sm hover:bg-white transition self-start"
                 >
                   Acceder
                 </a>

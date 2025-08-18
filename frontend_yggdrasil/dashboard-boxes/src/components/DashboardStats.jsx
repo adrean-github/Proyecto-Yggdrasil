@@ -128,6 +128,14 @@ const DashboardPage = () => {
     }
   }, [stats?.uso_especialidades, especialidadFilter]);
   
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-[#005C48]">
+        Cargando información del dashboard...
+      </div>
+    );
+  }
+
   //descargar reporte en diferentes formatos
   const handleDownloadReport = async (format) => {
     if (!stats) return;
@@ -636,98 +644,190 @@ const DashboardPage = () => {
       </Box>
 
       {/*grid principal del dashboard*/}
-      <Box sx={{ 
-        display: 'grid',
-        gridTemplateColumns: { 
-            xs: '1fr', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
-        },
-        gridTemplateRows: {
-            xs: 'repeat(8, auto)',
-            sm: 'repeat(8, minmax(100px, auto))', 
-            md: 'repeat(5, auto)'
-        },
-        gap: 3,
-        '& > div': { 
-            minWidth: 0,
-            minHeight: { xs: 'auto', sm: '150px' }
-        }
-      }}>
-        {/*Cards de métricas*/}
-        <MetricCard 
-          title="Ocupación total"
-          value={`${stats.porcentaje_ocupacion}%`}
-          description="Porcentaje de tiempo utilizado"
-          color="#005C48"
-          sx={{ 
-            gridColumn: { xs: '1', sm: '1', md: '1' },
-            gridRow: { xs: '1', sm: '1', md: '1' },
-            height: { xs: '100%', sm: '100%', md: '100%' },
-            '& .MuiCardContent-root': { py: 1 },
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 10px 20px rgba(0, 92, 72, 0.1)'
+        <Box sx={{ 
+          display: 'grid',
+          gridTemplateColumns: { 
+          xs: '1fr', 
+          sm: 'repeat(2, 1fr)', 
+          md: 'repeat(4, 1fr)' 
+          },
+          gridTemplateRows: {
+          xs: 'repeat(8, auto)',
+          sm: 'repeat(8, minmax(100px, auto))', 
+          md: 'repeat(5, auto)'
+          },
+          gap: 3,
+          '& > div': { 
+          minWidth: 0,
+          minHeight: { xs: 'auto', sm: '150px' }
+          }
+        }}>
+          {/*Cards de métricas*/}
+          <MetricCard 
+            title={
+          <>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#005C48',
+            }}>OCUPACIÓN TOTAL</span>
+          </>
             }
-          }}
-        />
-
-        <MetricCard 
-          title="Horas muertas"
-          value={`${stats.horas_muertas}`}
-          description="Tiempo entre reservas no utilizado"
-          color="#DB9500"
-          sx={{
-            gridColumn: { xs: '1', sm: '2', md: '2' },
-            gridRow: { xs: '2', sm: '1', md: '1' },
-            height: { xs: '100%', sm: '100%', md: '100%' },
-            '& .MuiCardContent-root': { py: 1 },
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 10px 20px rgba(219, 149, 0, 0.1)'
+            value={
+          <span style={{
+            fontWeight: 900,
+            fontSize: '2.3rem',
+            color: '#005C48',
+            letterSpacing: '-1px',
+            textShadow: '0 2px 8px #e6f4ef'
+          }}>{stats.porcentaje_ocupacion}%</span>
             }
-          }}
-        />
-
-        <MetricCard 
-          title="Box más usado"
-          value={stats.box_mas_usado.id}
-          description={`${stats.box_mas_usado.reservas} reservas`}
-          color="#FF8042"
-          sx={{ 
-            gridColumn: { xs: '1', sm: '1', md: '3' },
-            gridRow: { xs: '3', sm: '2', md: '1' },
-            height: { xs: '100%', sm: '100%', md: '100%' },
-            '& .MuiCardContent-root': { py: 1 },
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 10px 20px rgba(255, 128, 66, 0.1)'
+            description={
+          <span style={{
+            fontWeight: 500,
+            color: 'black',
+            fontSize: '0.95rem'
+          }}>Porcentaje de tiempo utilizado</span>
             }
-           }}
-        />
+            color="#005C48"
+            sx={{ 
+          gridColumn: { xs: '1', sm: '1', md: '1' },
+          gridRow: { xs: '1', sm: '1', md: '1' },
+          height: { xs: '100%', sm: '100%', md: '100%' },
+          background: 'linear-gradient(90deg, #e6f4ef 0%, #f8fafc 100%)',
+          '& .MuiCardContent-root': { py: 1 },
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 10px 20px rgba(0, 92, 72, 0.13)'
+          }
+            }}
+          />
 
-        <MetricCard 
-          title="Box menos usado"
-          value={stats.box_menos_usado.id}
-          description={`${stats.box_menos_usado.reservas} reservas`}
-          color="#0088FE"
-          sx={{ 
-            gridColumn: { xs: '1', sm: '2', md: '4' },
-            gridRow: { xs: '4', sm: '2', md: '1' },
-            height: { xs: '100%', sm: '100%', md: '100%' },
-            '& .MuiCardContent-root': { py: 1 },
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 10px 20px rgba(0, 136, 254, 0.1)'
+          <MetricCard 
+            title={
+          <>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#DB9500',
+            }}>HORAS MUERTAS</span>
+          </>
             }
-           }}
-        />
+            value={
+          <span style={{
+            fontWeight: 900,
+            fontSize: '2.3rem',
+            color: '#DB9500',
+            letterSpacing: '-1px',
+            textShadow: '0 2px 8px #fff8e1'
+          }}>{stats.horas_muertas}</span>
+            }
+            description={
+          <span style={{
+            fontWeight: 500,
+            color: 'black',
+            fontSize: '0.95rem'
+          }}>Tiempo entre reservas no utilizado</span>
+            }
+            color="#DB9500"
+            sx={{
+          gridColumn: { xs: '1', sm: '2', md: '2' },
+          gridRow: { xs: '2', sm: '1', md: '1' },
+          height: { xs: '100%', sm: '100%', md: '100%' },
+          background: 'linear-gradient(90deg, #fff8e1 0%, #f8fafc 100%)',
+          '& .MuiCardContent-root': { py: 1 },
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 10px 20px rgba(219, 149, 0, 0.13)'
+          }
+            }}
+          />
 
-        {/*gráfico de evolución semanal */}
+          <MetricCard 
+            title={
+          <>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#FF8042',
+            }}>BOX MÁS USADO</span>
+          </>
+            }
+            value={
+          <span style={{
+            fontWeight: 900,
+            fontSize: '2.3rem',
+            color: '#FF8042',
+            letterSpacing: '-1px',
+            textShadow: '0 2px 8px #fff3e6'
+          }}>{stats.box_mas_usado.id}</span>
+            }
+            description={
+          <span style={{
+            fontWeight: 500,
+            color: 'black',
+            fontSize: '0.95rem'
+          }}>{stats.box_mas_usado.reservas} reservas</span>
+            }
+            color="#FF8042"
+            sx={{ 
+          gridColumn: { xs: '1', sm: '1', md: '3' },
+          gridRow: { xs: '3', sm: '2', md: '1' },
+          height: { xs: '100%', sm: '100%', md: '100%' },
+          background: 'linear-gradient(90deg, #fff3e6 0%, #f8fafc 100%)',
+          '& .MuiCardContent-root': { py: 1 },
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 10px 20px rgba(255, 128, 66, 0.13)'
+          }
+             }}
+          />
+
+          <MetricCard 
+            title={
+          <>
+            <span style={{
+              fontWeight: 800,
+              fontSize: '1.1rem',
+              color: '#0088FE',
+            }}>BOX MENOS USADO</span>
+          </>
+            }
+            value={
+          <span style={{
+            fontWeight: 900,
+            fontSize: '2.3rem',
+            color: '#0088FE',
+            letterSpacing: '-1px',
+            textShadow: '0 2px 8px #e6f4ff'
+          }}>{stats.box_menos_usado.id}</span>
+            }
+            description={
+          <span style={{
+            fontWeight: 500,
+            color: 'black',
+            fontSize: '0.95rem'
+          }}>{stats.box_menos_usado.reservas} reservas</span>
+            }
+            color="#0088FE"
+            sx={{ 
+          gridColumn: { xs: '1', sm: '2', md: '4' },
+          gridRow: { xs: '4', sm: '2', md: '1' },
+          height: { xs: '100%', sm: '100%', md: '100%' },
+          background: 'linear-gradient(90deg, #e6f4ff 0%, #f8fafc 100%)',
+          '& .MuiCardContent-root': { py: 1 },
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: '0 10px 20px rgba(0, 136, 254, 0.13)'
+          }
+             }}
+          />
+
+          {/*gráfico de evolución semanal */}
         <Box id="chart-evolucion-semanal" sx={{ 
           gridColumn: { xs: '1', sm: '1 / 3', md: '1 / 3' },
           gridRow: { xs: '5', sm: '3 / span 2', md: '2 / 4' },
@@ -792,10 +892,10 @@ const DashboardPage = () => {
                 <Line 
                   type="monotone" 
                   dataKey="value" 
-                  stroke="#00d8ff" 
+                  stroke="#00a6ffff" 
                   strokeWidth={2}
                   name="Tendencia"
-                  dot={{ fill: '#00aeff', strokeWidth: 2, r: 4 }}
+                  dot={{ fill: '#00d8ff', strokeWidth: 2, r: 4 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -1009,8 +1109,7 @@ const DashboardPage = () => {
                     dataKey="value"
                     label={({ value }) => `${value}`}  
                     labelLine={false}
-                  >
-                    {stats.tipo_reservas.map((entry, index) => (
+                  > #                   {stats.tipo_reservas.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={COLORS[index % COLORS.length]}
