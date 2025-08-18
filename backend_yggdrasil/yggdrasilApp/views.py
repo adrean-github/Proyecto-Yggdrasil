@@ -672,8 +672,8 @@ class CrearReservaMedicaView(APIView):
                 horafinagenda=hora_fin,
                 idbox_id=box_id,
                 habilitada=0,
-                esMedica=1,  # acá se diferencia de la no médica
-                idmedico=id_medico,
+                esMedica=1,  #acá se diferencia de la no médica
+                idmedico_id=id_medico,
                 nombre_responsable=nombre,
                 observaciones=observaciones
             )
@@ -690,6 +690,34 @@ class CrearReservaMedicaView(APIView):
 
         except Exception as e:
             return Response({'error': f'Error al crear la reserva: {str(e)}'}, status=500)
+        
+class MedicosDisponiblesView(APIView):
+    def get(self, request):
+        fecha_str = request.query_params.get('fecha')
+        hora_inicio_str = request.query_params.get('hora_inicio')
+        hora_fin_str = request.query_params.get('hora_fin')
+
+        if not all([fecha_str, hora_inicio_str, hora_fin_str]):
+            return Response({'error': 'Fecha, hora_inicio y hora_fin son requeridos'}, status=400)
+
+        try:
+            fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+            hora_inicio = datetime.strptime(hora_inicio_str, "%H:%M").time()
+            hora_fin = datetime.strptime(hora_fin_str, "%H:%M").time()
+        except ValueError:
+            return Response({'error': 'Formato de fecha u hora inválido'}, status=400)
+
+        medicos_ocupados = Agendabox.objects.filter(
+            esMedica=1,
+            fechaagenda=fecha,
+            horainicioagenda__lt=hora_fin,
+            horafinagenda__gt=hora_inicio
+        ).values_list('idmedico', flat=True) 
+
+        medicos_disponibles = Medico.objects.exclude(idmedico__in=medicos_ocupados)
+
+        medicos_data = [{'idMedico': m.idmedico, 'nombre': m.nombre} for m in medicos_disponibles]
+        return Response(medicos_data)
 
 class BoxesRecomendadosView(APIView):
     def get(self, request):
@@ -752,6 +780,7 @@ class MisReservasMedicasView(APIView):
                 "hora_inicio": r.horainicioagenda.strftime("%H:%M"),
                 "hora_fin": r.horafinagenda.strftime("%H:%M"),
                 "responsable": r.nombre_responsable,
+                "medico": r.idmedico.nombre if r.idmedico else None,
                 "habilitada": r.habilitada,
                 "puede_liberar": r.habilitada == 0
             }

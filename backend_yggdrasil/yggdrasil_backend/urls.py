@@ -23,7 +23,8 @@ from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBo
                                 BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
                                 CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
                                 AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView , \
-                                ResolverTopeView, AplicarSolucionView, BoxesInhabilitadosView, AgendasConTopeView, TodasAgendasView, BoxToggleEstadoView\
+                                ResolverTopeView, AplicarSolucionView, BoxesInhabilitadosView, AgendasConTopeView, TodasAgendasView, BoxToggleEstadoView, \
+                                MedicosDisponiblesView
 
 
 def home(request):
@@ -59,6 +60,7 @@ urlpatterns = [
     path('api/boxes-inhabilitados/', BoxesInhabilitadosView.as_view(), name='boxes-inhabilitados'), 
     path('api/agendas-con-tope/', AgendasConTopeView.as_view(), name='agendas-con-tope'),
     path('api/todas-las-agendas/', TodasAgendasView.as_view(), name='todas-las-agendas'),
+    path('api/medicos-disponibles/', MedicosDisponiblesView.as_view(), name='medicos-disponibles'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),
     path('api/user/', user_info, name='user_info'),
