@@ -45,7 +45,7 @@ export default function AgendarNoMedica() {
     }
 
     if (horaInicio >= horaFin) {
-      setMensaje({ texto: "La hora de fin debe ser mayor a la hora de inicio", tipo: "error" });
+      setMensaje({ texto: `La hora de fin ${horaFin} debe ser mayor a la hora de inicio ${horaInicio}`, tipo: "error" });
       return false;
     }
 
@@ -109,12 +109,12 @@ export default function AgendarNoMedica() {
       });
       const data = await response.json();
       if (response.ok) {
-        setMensaje({ texto: "Reserva realizada con éxito", tipo: "success" });
+        setMensaje({ texto: "Agenda creada con éxito", tipo: "success" });
         fetchReservasUsuario();
         resetearEstado();
         setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
       } else {
-        throw new Error(data.error || "Error al realizar reserva");
+        throw new Error(data.error || "Error al realizar agenda");
       }
     } catch (error) {
       setMensaje({ texto: error.message, tipo: "error" });
@@ -270,10 +270,16 @@ export default function AgendarNoMedica() {
                   <label className="block text-sm font-medium mb-1 text-gray-700">Hora Inicio *</label>
                   <select
                     value={horaInicio}
-                    onChange={(e) => setHoraInicio(e.target.value)}
+                    onChange={(e) => {
+                      setHoraInicio(e.target.value);
+                      // Reset horaFin cuando cambia horaInicio
+                      const [h, m] = e.target.value.split(':').map(Number);
+                      const nextValidTime = `${h.toString().padStart(2,'0')}:30`;
+                      setHoraFin(nextValidTime);
+                    }}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
                   >
-                    {Array.from({ length: 13 }, (_, i) => {
+                    {Array.from({ length: 12 }, (_, i) => {
                       const hour = 8 + i;
                       return <option key={hour} value={`${hour.toString().padStart(2,'0')}:00`}>{`${hour}:00`}</option>;
                     })}
@@ -287,22 +293,21 @@ export default function AgendarNoMedica() {
                     onChange={(e) => setHoraFin(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
                   >
-                    {Array.from({ length: 13 }, (_, i) => {
+                    {Array.from({ length: 12 }, (_, i) => {
                       const hour = 8 + i;
                       const optionHora = `${hour.toString().padStart(2,'0')}:30`;
-
+                      
+                      // Verificar si la opción es válida comparando con horaInicio
                       const [hInicio, mInicio] = horaInicio.split(':').map(Number);
                       const [hOpcion, mOpcion] = optionHora.split(':').map(Number);
                       const minutosInicio = hInicio * 60 + mInicio;
                       const minutosOpcion = hOpcion * 60 + mOpcion;
 
-                      if (minutosOpcion <= minutosInicio) return null;
-
-                      return (
+                      return minutosOpcion > minutosInicio ? (
                         <option key={optionHora} value={optionHora}>
                           {optionHora}
                         </option>
-                      );
+                      ) : null;
                     })}
                   </select>
                 </div>
@@ -367,7 +372,7 @@ export default function AgendarNoMedica() {
                     type="text"
                     value={pasilloFiltro}
                     onChange={(e) => setPasilloFiltro(e.target.value)}
-                    placeholder="Ingresa número de pasillo"
+                    placeholder="Ingresa nombre de pasillo"
                     className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
                   />
                 </div>
@@ -408,7 +413,7 @@ export default function AgendarNoMedica() {
                   ) : (
                     <>
                       <p className="text-gray-500 font-medium">No hay boxes en el pasillo {pasilloFiltro}</p>
-                      <p className="text-sm text-gray-400 mt-1">Intenta con otro número de pasillo</p>
+                      <p className="text-sm text-gray-400 mt-1">Intenta con otro pasillo</p>
                     </>
                   )}
                 </div>
@@ -426,7 +431,7 @@ export default function AgendarNoMedica() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-[#005C48] flex items-center gap-2">
-                  <ClipboardList size={20} /> Paso 3: Resumen de tu reserva
+                  <ClipboardList size={20} /> Paso 3: Resumen de tu agenda
                 </h2>
                 <button
                   onClick={() => setPasoActual(2)}
@@ -437,8 +442,8 @@ export default function AgendarNoMedica() {
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-gray-700 mb-3">Detalles de la reserva</h3>
-                
+                <h3 className="font-medium text-gray-700 mb-3">Detalles de la agenda</h3>
+
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Box seleccionado:</span>
@@ -465,7 +470,7 @@ export default function AgendarNoMedica() {
                   }}
                   className={`w-full border ${observacionesError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50`}
                   rows="3"
-                  placeholder="Detalles adicionales sobre la reserva (ej: Reunión de equipo, Capacitación, etc.)"
+                  placeholder="Detalles adicionales sobre la agenda (ej: Reunión de equipo, Capacitación, etc.)"
                 />
                 {observacionesError && (
                   <p className="mt-1 text-sm text-red-600">{observacionesError}</p>
@@ -499,7 +504,7 @@ export default function AgendarNoMedica() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-[#005C48] flex items-center gap-2">
-                  <CheckCircle size={20} /> Paso 4: Confirmar reserva
+                  <CheckCircle size={20} /> Paso 4: Confirmar agenda
                 </h2>
                 <button
                   onClick={() => setPasoActual(3)}
@@ -543,7 +548,7 @@ export default function AgendarNoMedica() {
                   onClick={realizarReserva}
                   className="flex-1 py-3 px-4 rounded-lg bg-[#005C48] text-white font-medium hover:bg-[#4fa986] shadow-md hover:shadow-lg transition-all"
                 >
-                  Confirmar Reserva
+                  Confirmar agenda
                 </button>
               </div>
             </motion.div>
@@ -564,7 +569,7 @@ export default function AgendarNoMedica() {
               onClick={() => setShowReservas(!showReservas)}
             >
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <User size={18} /> Mis reservas
+                <User size={18} /> Mis agendas no médicas
               </h2>
               <ChevronRight 
                 size={18} 
@@ -636,7 +641,7 @@ export default function AgendarNoMedica() {
               exit={{ scale: 0.9, y: 20 }}
             >
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Confirmar liberación</h3>
-              <p className="text-gray-600 mb-6">¿Estás seguro de que deseas liberar esta reserva?</p>
+              <p className="text-gray-600 mb-6">¿Estás seguro de que deseas liberar esta agenda?</p>
               
               <div className="flex justify-end gap-3">
                 <button

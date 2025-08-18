@@ -28,6 +28,10 @@ export default function Footer() {
           Desarrollado con <Heart size={14} className="text-red-400" /> por{" "}
           <span className="font-semibold">Elytra</span>
         </div>
+
+        <div className="mt-6 text-center text-xs text-gray-200 flex justify-center items-center gap-1">
+          Adrean Torres Fonseca - Ariel Van Kilsdonk
+        </div>
       </div>
     </footer>
   );

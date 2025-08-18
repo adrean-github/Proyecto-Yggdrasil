@@ -617,7 +617,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
       <div className="p-8 space-y-6">
         {/* ===== Agendamiento ===== */}
         <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento</h1>
-        <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear, sin topes de horario</p>
+        <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear, sin topes de horarios</p>
 
         <div 
           className="flex flex-col md:flex-row gap-6 "
