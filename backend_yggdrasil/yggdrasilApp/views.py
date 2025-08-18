@@ -458,25 +458,31 @@ class DatosModificadosAPIView(APIView):
         except ValueError:
             return Response({"error": "Formato de fecha/hora inválido. Usa YYYY-MM-DDTHH:MM:SS"}, status=status.HTTP_400_BAD_REQUEST)
 
-        #obtener IDs de registros modificados desde la fecha indicada
+        # Obtener todos los logs modificados desde la fecha indicada
         logs = LogAtenamb.objects.using('simulador')\
             .filter(fecha_hora__gt=fecha_hora)\
-            .values_list('atenamb_id', flat=True)\
-            .distinct()
-        
+            .order_by('-fecha_hora', '-id')
+
+        # Deduplicar por atenamb_id, quedándonos con el log más reciente de cada uno
+        vistos = set()
+        ids_unicos = []
+        for log in logs:
+            if log.atenamb_id not in vistos:
+                vistos.add(log.atenamb_id)
+                ids_unicos.append(log.atenamb_id)
+
         log_subquery = LogAtenamb.objects.using('simulador')\
             .filter(atenamb_id=OuterRef('pk'), fecha_hora__gt=fecha_hora)\
             .order_by('-fecha_hora')\
-            .values('accion')[:1] 
+            .values('accion')[:1]
 
-        # Obtener los datos de Atenamb con el tipo de acción incluido
+        # Obtener los datos de Atenamb con el tipo de acción incluido, solo para ids únicos
         datos = list(
             Atenamb.objects.using('simulador')
-            .filter(id__in=logs)
+            .filter(id__in=ids_unicos)
             .annotate(accion=Subquery(log_subquery))
             .values()
         )
-
 
         return Response(datos, status=status.HTTP_200_OK)
 
@@ -1372,3 +1378,19 @@ def confirmar_guardado_agendas(request):
         return JsonResponse({"mensaje": "Agendas confirmadas y guardadas exitosamente"}, status=status.HTTP_200_OK)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+class BoxToggleEstadoView(APIView):
+    def patch(self, request, pk):
+        try:
+            box = Box.objects.get(pk=pk)
+        except Box.DoesNotExist:
+            return Response({'error': 'Box no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+        nuevo_estado = request.data.get('estadobox')
+        if nuevo_estado not in ['Habilitado', 'Inhabilitado']:
+            return Response({'error': 'Estado inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        box.estadobox = nuevo_estado
+        box.save()
+        return Response({'idbox': box.idbox, 'estadobox': box.estadobox}, status=status.HTTP_200_OK)

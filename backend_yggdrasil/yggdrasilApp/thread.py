@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from .modulos.conexion_BDD import ConexionBDD
 from .modulos.agenda_adapter import AgendaAdapter
 from .modulos.actualizador_datos import ActualizadorDatos
-from .modulos.event_listener import VistaActualizableDisp
+ 
 
 hilo_actualizacion = None
 
@@ -15,12 +15,10 @@ def iniciar_flujo_actualizacion():
         return
     
     def run():
-        vista = VistaActualizableDisp()
         actualizador = ActualizadorDatos()
-        actualizador.agregar_observador(vista)
         adapter = AgendaAdapter()
         conexion = ConexionBDD()
-        dt = datetime.now().strftime('%Y-%m-%dT%H:%M:00')
+        dt = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         while True:
             print("Ejecutando flujo de actualización...", dt)
             try:
@@ -32,7 +30,7 @@ def iniciar_flujo_actualizacion():
                 dt = dt1.strftime('%Y-%m-%dT%H:%M:%S')
             except Exception as e:
                 print("Error durante la ejecución:", e)
-            time.sleep(300) 
+            time.sleep(3) 
 
     hilo_actualizacion  = threading.Thread(target=run, daemon=True)
     hilo_actualizacion.start()

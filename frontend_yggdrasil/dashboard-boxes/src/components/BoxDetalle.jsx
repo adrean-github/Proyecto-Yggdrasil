@@ -19,6 +19,7 @@ export default function BoxDetalle() {
   const [agendaboxData, setagendaBoxData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("");
+  const [cambiandoEstado, setCambiandoEstado] = useState(false);
 
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
@@ -65,8 +66,16 @@ export default function BoxDetalle() {
   }
 
   return (
-    <div className="min-h-screen relative pb-20 px-4 md:px-8">
-
+    <div className="min-h-screen bg-white relative pb-20 px-4 md:px-8">
+      <div className="mt-6 mb-4">
+        <button
+          onClick={() => navigate("/boxes")}
+          className="flex items-center gap-2 text-[#5FB799] font-semibold hover:underline"
+        >
+          <ArrowLeft size={20} />
+          Volver al Dashboard
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
@@ -76,6 +85,46 @@ export default function BoxDetalle() {
         >
           <h2 className="text-xl font-semibold text-[#5FB799] mb-4">Información General Box #{id}</h2>
           <p><strong>Estado actual:</strong> {boxData.estadobox}</p>
+          <button
+            className={`mt-2 px-4 py-2 rounded text-white font-semibold transition-colors duration-200 ${boxData.estadobox === "Habilitado" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}`}
+            disabled={cambiandoEstado}
+            onClick={async () => {
+              let razon = null;
+              const nuevoEstado = boxData.estadobox === "Habilitado" ? "Inhabilitado" : "Habilitado";
+              if (boxData.estadobox === "Habilitado") {
+                razon = window.prompt("¿Por qué desea deshabilitar este box? Indique la razón:");
+                if (!razon || razon.trim() === "") {
+                  alert("Debe ingresar una razón para deshabilitar el box.");
+                  return;
+                }
+              }
+              setCambiandoEstado(true);
+              try {
+                const response = await fetch(`http://localhost:8000/api/boxes/${id}/toggle-estado/`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ estadobox: nuevoEstado })
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  setBoxData(prev => ({ ...prev, estadobox: data.estadobox }));
+                  
+                } else {
+                  alert("Error al cambiar el estado del box");
+                }
+              } catch (e) {
+                alert("Error de red al cambiar el estado");
+              } finally {
+                setCambiandoEstado(false);
+              }
+            }}
+          >
+            {cambiandoEstado
+              ? "Cambiando..."
+              : boxData.estadobox === "Habilitado"
+                ? "Deshabilitar Box"
+                : "Habilitar Box"}
+          </button>
           <p><strong>Pasillo:</strong> {boxData.pasillobox}</p>
           <p><strong>Especialidad:</strong> {boxData.especialidad_principal || 'No definida'}</p>
           <p><strong>También puede usarse para:</strong> {boxData.especialidades.join(", ") || 'Ninguna'}</p>

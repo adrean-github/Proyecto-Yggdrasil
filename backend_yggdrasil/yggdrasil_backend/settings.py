@@ -3,6 +3,12 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
+    }
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -17,6 +23,8 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '10.135.45.43']
 
 ALLOWED_HOSTS = ['*']
 # Application definition
+
+ASGI_APPLICATION = 'yggdrasil_backend.asgi.application'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -78,8 +86,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        # 'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -87,8 +95,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        # 'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     }

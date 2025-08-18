@@ -55,6 +55,38 @@ const agruparEnDúos = (arr) => {
 
 
 export default function Boxes() {
+  // WebSocket para actualización en tiempo real
+  useEffect(() => {
+    // Forzar conexión a localhost para pruebas
+    const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws_url = `${ws_scheme}://localhost:8000/ws/agendas/`;
+    const socket = new window.WebSocket(ws_url);
+
+    socket.onopen = () => {
+      console.log("WebSocket conectado (Boxes)");
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.message === "actualizacion_agenda") {
+          // Refresca los boxes automáticamente
+          fetchBoxes();
+        }
+      } catch (e) {
+        console.error("Error procesando mensaje WebSocket (Boxes):", e);
+      }
+    };
+
+    socket.onerror = (err) => {
+      console.error("WebSocket error (Boxes):", err);
+    };
+
+    return () => {
+      socket.close();
+    };
+    // eslint-disable-next-line
+  }, []);
   const [filtroPasillo, setFiltroPasillo] = useState("Todos");
   const [filtroEstado, setFiltroEstado] = useState("Todos");
   const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().split("T")[0]);
@@ -85,43 +117,7 @@ export default function Boxes() {
   }, []);
 
 
-  const fetchActualizacion = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/verificar_actualizacion", {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.actualizado;
-    } catch (error) {
-      console.error("Error al verificar actualizaciones:", error);
-      return false;
-    }
-  };
 
-  useEffect(() => {
-    if (!enVivo) return;
-    const intervalId = setInterval(async () => {
-      const hayActualizacion = await fetchActualizacion();
-      const ahora = new Date();
-      setFiltroFecha(ahora.toLocaleDateString('sv-SE'));
-      setFiltroHora(ahora.toTimeString().slice(0, 5));
-      if (hayActualizacion) {
-        console.log("Hay actualizaciones, actualizando boxes...");
-        const nuevosBoxes = await handleFechaHoraChange(filtroFecha, filtroHora);
-        if (nuevosBoxes) {
-          setBoxes(nuevosBoxes);
-        }
-      } else {
-        console.log("No hay actualizaciones.");
-      }
-    }, 3000); // Cada 3 segundos
-
-    return () => clearInterval(intervalId);
-  }, [filtroFecha, filtroHora, enVivo]);
 
   const fetchBoxStateInhabilitado = async (boxId, fecha, hora) => {
     try {
