@@ -1,3 +1,10 @@
 /backend_yggdrasil/venv/
-node_modules/
+.vite/
+# Node.js
+/backend_yggdrasil/node_modules/
+**/node_modules/
+frontend_yggdrasil/**/node_modules/
+
+# Frontend build
+frontend_yggdrasil/**/dist/
 .vite/
