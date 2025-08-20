@@ -373,9 +373,9 @@ export default function AgendarNoMedica() {
                 </h2>
                 <button
                   onClick={() => setPasoActual(1)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
               
@@ -456,9 +456,9 @@ export default function AgendarNoMedica() {
                 </h2>
                 <button
                   onClick={() => setPasoActual(2)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 
@@ -529,9 +529,9 @@ export default function AgendarNoMedica() {
                 </h2>
                 <button
                   onClick={() => setPasoActual(3)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 

@@ -428,9 +428,9 @@ const getSuggestions = (value) => {
                 </h2>
                 <button
                   onClick={() => setPasoActual(1)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
               
@@ -506,9 +506,9 @@ const getSuggestions = (value) => {
                 </h2>
                 <button
                   onClick={() => setPasoActual(2)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 
@@ -580,7 +580,7 @@ const getSuggestions = (value) => {
             </motion.div>
           )}
 
-          {/* Paso 4: Confirmación final */}
+          {/*Paso 4: Confirmación final */}
           {pasoActual === 4 && (
             <motion.div
               className="bg-white border border-[#005C48] rounded-lg p-6 shadow-lg"
@@ -594,9 +594,9 @@ const getSuggestions = (value) => {
                 </h2>
                 <button
                   onClick={() => setPasoActual(3)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center"
+                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
                 >
-                  <ChevronLeft size={16} className="mr-1" /> Volver
+                  <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 

@@ -1423,3 +1423,4 @@ class BoxToggleEstadoView(APIView):
         box.estadobox = nuevo_estado
         box.save()
         return Response({'idbox': box.idbox, 'estadobox': box.estadobox}, status=status.HTTP_200_OK)
+
