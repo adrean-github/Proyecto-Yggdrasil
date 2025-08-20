@@ -9,7 +9,7 @@ import { format, parseISO, isBefore } from 'date-fns';
 export default function AgendarNoMedica() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState("");
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] = useState(null);
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [horaFin, setHoraFin] = useState("08:30");
   const [observaciones, setObservaciones] = useState("");
@@ -27,6 +27,22 @@ export default function AgendarNoMedica() {
   const [showConfirmacion, setShowConfirmacion] = useState(false);
   const [reservaALiberar, setReservaALiberar] = useState(null);
 
+
+  // Función para obtener la fecha actual sin problemas de zona horaria
+  const getCurrentDateWithoutTime = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  };
+
+  // Función para formatear fecha en formato YYYY-MM-DD sin problemas de zona horaria
+  const formatDateToYYYYMMDD = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const validarFechaHora = () => {
     setFechaError("");
     
@@ -36,10 +52,10 @@ export default function AgendarNoMedica() {
     }
 
     const fechaSeleccionada = new Date(fecha);
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = getCurrentDateWithoutTime();
 
-    if (isBefore(fechaSeleccionada, hoy)) {
+    // Comparar solo la parte de la fecha (sin hora)
+    if (fechaSeleccionada < hoy) {
       setFechaError("No puedes seleccionar una fecha pasada");
       return false;
     }
@@ -52,13 +68,16 @@ export default function AgendarNoMedica() {
     return true;
   };
 
+
   const buscarBoxesRecomendados = async () => {
     if (!validarFechaHora()) return;
 
     setLoading(true);
     try {
+      const fechaFormateada = formatDateToYYYYMMDD(fecha);    
+
       const response = await fetch(
-        `http://localhost:8000/api/boxes-recomendados/?fecha=${fecha}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        `http://localhost:8000/api/boxes-recomendados/?fecha=${fechaFormateada}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
       );
       if (!response.ok) throw new Error("Error al buscar recomendaciones");
       const data = await response.json();
@@ -95,12 +114,14 @@ export default function AgendarNoMedica() {
 
   const realizarReserva = async () => {
     try {
+      const fechaFormateada = formatDateToYYYYMMDD(fecha);
+      
       const response = await fetch('http://localhost:8000/api/reservar-no-medica/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           box_id: selectedBox,
-          fecha: fecha, 
+          fecha: fechaFormateada, 
           horaInicioReserva: horaInicio,  
           horaFinReserva: horaFin,        
           nombreResponsable: "Nombre del responsable",
@@ -250,9 +271,9 @@ export default function AgendarNoMedica() {
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">Fecha *</label>
                   <DatePicker
-                    selected={fecha ? new Date(fecha) : null}
+                    selected={fecha}
                     onChange={(date) => {
-                      setFecha(date.toISOString().split('T')[0]);
+                      setFecha(date);
                       setFechaError("");
                     }}
                     className={`w-full border ${fechaError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50`}
@@ -260,6 +281,8 @@ export default function AgendarNoMedica() {
                     placeholderText="Seleccione fecha"
                     minDate={new Date()}
                     isClearable
+                    adjustDateOnChange
+                    showPopperArrow={false}
                   />
                   {fechaError && (
                     <p className="mt-1 text-sm text-red-600">{fechaError}</p>
@@ -297,7 +320,6 @@ export default function AgendarNoMedica() {
                       const hour = 8 + i;
                       const optionHora = `${hour.toString().padStart(2,'0')}:30`;
                       
-                      // Verificar si la opción es válida comparando con horaInicio
                       const [hInicio, mInicio] = horaInicio.split(':').map(Number);
                       const [hOpcion, mOpcion] = optionHora.split(':').map(Number);
                       const minutosInicio = hInicio * 60 + mInicio;
@@ -358,8 +380,7 @@ export default function AgendarNoMedica() {
               </div>
               
               <p className="text-gray-600 mb-4">
-                Disponibles para {horaInicio} - {horaFin} el {format(parseISO(fecha), 'dd/MM/yyyy')}
-              </p>
+                Disponibles para {horaInicio} - {horaFin} el {fecha ? format(fecha, 'dd/MM/yyyy') : ''}              </p>
               
               {/* Filtro por pasillo */}
               <div className="mb-4">
@@ -446,12 +467,12 @@ export default function AgendarNoMedica() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Box seleccionado:</span>
-                    <span className="font-medium">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
+                    <span className="text-gray-600 ">Box seleccionado:</span>
+                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Fecha:</span>
-                    <span className="font-medium">{format(parseISO(fecha), 'dd/MM/yyyy')}</span>
+                    <span className="font-medium">{fecha ? format(fecha, 'dd/MM/yyyy') : ''}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Horario:</span>
@@ -520,11 +541,11 @@ export default function AgendarNoMedica() {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Box:</span>
-                    <span className="font-medium">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
+                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Fecha:</span>
-                    <span className="font-medium">{format(parseISO(fecha), 'dd/MM/yyyy')}</span>
+                    <span className="font-medium">{fecha ? format(fecha, 'dd/MM/yyyy') : ''}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Horario:</span>

@@ -9,7 +9,7 @@ import Autosuggest from 'react-autosuggest';
 export default function AgendarMedica() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState("");
-  const [fecha, setFecha] = useState("");
+  const [fecha, setFecha] = useState(null);
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [horaFin, setHoraFin] = useState("08:30");
   const [observaciones, setObservaciones] = useState("");
@@ -29,7 +29,7 @@ export default function AgendarMedica() {
   const [showConfirmacion, setShowConfirmacion] = useState(false);
   const [reservaALiberar, setReservaALiberar] = useState(null);
   const [medicoQuery, setMedicoQuery] = useState("");
-const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
 // Funciones para el autosuggest
 const getSuggestions = (value) => {
@@ -45,6 +45,13 @@ const getSuggestions = (value) => {
       );
 };
 
+  const formatDateToYYYYMMDD = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const validarFechaHora = () => {
     setFechaError("");
@@ -104,7 +111,7 @@ const getSuggestions = (value) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/boxes-recomendados/?fecha=${fecha}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        `http://localhost:8000/api/boxes-recomendados/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
       );
       if (!response.ok) throw new Error("Error al buscar recomendaciones");
       const data = await response.json();
@@ -126,7 +133,7 @@ const getSuggestions = (value) => {
   const buscarMedicosDisponibles = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/medicos-disponibles/?fecha=${fecha}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        `http://localhost:8000/api/medicos-disponibles/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
       );
       if (!response.ok) throw new Error("Error al buscar médicos disponibles");
       const data = await response.json();
@@ -168,7 +175,7 @@ const getSuggestions = (value) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           box_id: selectedBox,
-          fecha: fecha, 
+          fecha: formatDateToYYYYMMDD(fecha), 
           horaInicioReserva: horaInicio,  
           horaFinReserva: horaFin,        
           nombreResponsable: "Nombre del responsable",
@@ -234,16 +241,6 @@ const getSuggestions = (value) => {
     }
   };
 
-  const fetchMedicos = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/medicos/');
-      const data = await response.json();
-      setMedicos(data);
-    } catch (error) {
-      console.error("Error al obtener médicos:", error);
-    }
-  };
-
   const resetearEstado = () => {
     setPasoActual(1);
     setFecha("");
@@ -258,7 +255,6 @@ const getSuggestions = (value) => {
 
   useEffect(() => {
     fetchReservasUsuario();
-    fetchMedicos();
   }, []);
 
   // Filtrar boxes por pasillo (case insensitive)
@@ -331,12 +327,12 @@ const getSuggestions = (value) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700">Fecha *</label>
-                  <DatePicker
-                    selected={fecha ? new Date(fecha) : null}
-                    onChange={(date) => {
-                      setFecha(date.toISOString().split('T')[0]);
-                      setFechaError("");
-                    }}
+                    <DatePicker
+                      selected={fecha}
+                      onChange={(date) => {
+                        setFecha(date);
+                        setFechaError("");
+                      }}
                     className={`w-full border ${fechaError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50`}
                     dateFormat="dd/MM/yyyy"
                     placeholderText="Seleccione fecha"
@@ -439,7 +435,7 @@ const getSuggestions = (value) => {
               </div>
               
               <p className="text-gray-600 mb-4">
-                Disponibles para {horaInicio} - {horaFin} el {format(parseISO(fecha), 'dd/MM/yyyy')}
+                Disponibles para {horaInicio} - {horaFin} el {fecha ? format(fecha, 'dd/MM/yyyy') : ''}
               </p>
               
               {/* Filtro por pasillo */}
@@ -517,7 +513,7 @@ const getSuggestions = (value) => {
               </div>
 
               <p className="text-gray-600 mb-4">
-                Médicos disponibles para {horaInicio} - {horaFin} el {format(parseISO(fecha), 'dd/MM/yyyy')}
+                Médicos disponibles para {horaInicio} - {horaFin} el {fecha ? format(fecha, 'dd/MM/yyyy') : ''}
               </p>
 
               <div className="mb-4">
@@ -610,17 +606,17 @@ const getSuggestions = (value) => {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Box:</span>
-                    <span className="font-medium">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
+                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Médico:</span>
-                    <span className="font-medium">
+                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">
                       {medicosDisponibles.find(m => m.idMedico === parseInt(medicoId))?.nombre}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Fecha:</span>
-                    <span className="font-medium">{format(parseISO(fecha), 'dd/MM/yyyy')}</span>
+                    <span className="font-medium">{fecha ? format(fecha, 'dd/MM/yyyy') : ''}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Horario:</span>
@@ -690,7 +686,7 @@ const getSuggestions = (value) => {
                           <div>
                             <div className="font-medium text-[#005C48]">Box {reserva.box_id}</div>
                             <div className="text-sm text-gray-600">
-                              {format(parseISO(reserva.fecha), 'dd/MM/yyyy')} • {reserva.hora_inicio} - {reserva.hora_fin}
+                              {reserva.fecha ? format(reserva.fecha, 'dd/MM/yyyy') : ''} • {reserva.hora_inicio} - {reserva.hora_fin}
                             </div>
                             <div className="text-sm text-gray-700 mt-1">
                               Dr. {reserva.medico}
