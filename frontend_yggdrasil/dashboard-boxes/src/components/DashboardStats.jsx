@@ -1003,7 +1003,11 @@ const DashboardPage = () => {
                   <Typography variant="caption" sx={{ color: '#64748b' }}>Secundaria</Typography>
                 </Box>
               </Box>
+              <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+                Desliza horizontalmente para ver más columnas
+              </p>
             </Box>
+
 
             <Box sx={{ 
               height: 250, 
@@ -1012,6 +1016,7 @@ const DashboardPage = () => {
               borderRadius: '8px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05) inset'
             }}>
+
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>

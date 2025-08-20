@@ -115,10 +115,10 @@ function UploadForm() {
     const currentData = data.slice(startIdx, endIdx);
 
     return (
-      <div className="space-y-4">
+       <div className="space-y-4">
         <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-[#005C48]">
+            <thead className={headerColor === "red-900" ? "bg-red-900" : "bg-[#005C48]"}>
               <tr>
                 {columnasMostrar.map(({ key, title }) => (
                   <th 
@@ -373,7 +373,7 @@ function UploadForm() {
                   onClick={() => setActiveTab("conflictos")}
                   className={`px-3 py-2 text-sm font-medium rounded-md ${
                     activeTab === "conflictos"
-                      ? "bg-[#005C48] text-white"
+                      ? "bg-red-900 text-white"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -400,23 +400,26 @@ function UploadForm() {
               </div>
             ) : (
               <>
-                {activeTab === "conflictos" ? (
-                  <>
-                    <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                      <AlertTriangle className="text-red-500 mr-2" />
-                      {desaprobados.length} conflictos detectados
-                    </h3>
-                    {renderTableWithPagination(desaprobados)}
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                      <CheckCircle className="text-green-500 mr-2" />
-                      {aprobados.length} agendas válidas
-                    </h3>
-                    {renderTableWithPagination(aprobados)}
-                  </>
-                )}
+                {activeTab === "conflictos"
+                  ? (
+                      <>
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                          <AlertTriangle className="text-red-500 mr-2" />
+                          {desaprobados.length} conflictos detectados
+                        </h3>
+                        {renderTableWithPagination(desaprobados, "red-900")}
+                      </>
+                    )
+                  : (
+                      <>
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                          <CheckCircle className="text-green-500 mr-2" />
+                          {aprobados.length} agendas válidas
+                        </h3>
+                        {renderTableWithPagination(aprobados, "[#005C48]")}
+                      </>
+                    )
+                }
               </>
             )}
           </div>

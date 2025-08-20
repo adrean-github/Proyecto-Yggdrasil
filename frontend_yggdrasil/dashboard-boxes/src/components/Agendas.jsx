@@ -623,11 +623,12 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
           className="flex flex-col md:flex-row gap-6 "
           onMouseLeave={() => setTipoAgendamiento(null)} 
         >
+
           {/* Opción Médica */}
           <div
             onClick={() => navigate('/agendas/agendar-medica')}
             onMouseEnter={() => setTipoAgendamiento("medica")}
-            className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
+            className={`group flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
             style={{
               backgroundImage: "url('/medica.jpg')",
               backgroundBlendMode: "overlay",
@@ -639,8 +640,12 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
           >
             <div className={`text-center ${tipoAgendamiento === "medica" ? "text-black" : "text-white"}`}>
               <Stethoscope className="w-10 h-10 mx-auto mb-3" />
-              <h2 className="text-xl font-semibold">Crear agenda médica</h2>
-              <p className="text-base">Consultas y procedimientos médicos</p>
+              <h2 className="text-xl font-semibold transition-all duration-200 group-hover:text-black group-hover:text-2xl">
+                Crear agenda médica
+              </h2>
+              <p className="text-base transition-all duration-200 group-hover:text-black group-hover:text-lg">
+                Consultas y procedimientos médicos
+              </p>
             </div>
           </div>
 
@@ -648,7 +653,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
           <div
             onClick={() => navigate('/agendas/agendar-no-medica')}
             onMouseEnter={() => setTipoAgendamiento("no_medica")}
-            className={`flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
+            className={`group flex-1 cursor-pointer rounded-xl p-16 shadow-md transition-all bg-cover bg-center hover:scale-105`}
             style={{
               backgroundImage: "url('/no_medica.jpg')",
               backgroundBlendMode: "overlay",
@@ -660,8 +665,12 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
           >
             <div className={`text-center ${tipoAgendamiento === "no_medica" ? "text-black" : "text-white"}`}>
               <Puzzle className="w-10 h-10 mx-auto mb-3" />
-              <h2 className="text-xl font-semibold">Crear agenda no médica</h2>
-              <p className="text-base">Actividades y servicios no médicos</p>
+              <h2 className="text-xl font-semibold transition-all duration-200 group-hover:text-black group-hover:text-2xl">
+                Crear agenda no médica
+              </h2>
+              <p className="text-base transition-all duration-200 group-hover:text-black group-hover:text-lg">
+                Actividades y servicios no médicos
+              </p>
             </div>
           </div>
         </div>
