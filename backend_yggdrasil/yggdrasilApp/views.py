@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Box, Agendabox, Medico, Atenamb, LogAtenamb, BoxTipoBox
-from .serializers import BoxSerializer, AgendaboxSerializer
+from .models import Box, Agendabox, Medico, Atenamb, LogAtenamb, BoxTipoBox, HistorialModificacionesBox
+from .serializers import BoxSerializer, AgendaboxSerializer, HistorialModificacionesBoxSerializer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -1317,6 +1317,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.db import transaction
+
 import json
 
 
@@ -1423,4 +1425,103 @@ class BoxToggleEstadoView(APIView):
         box.estadobox = nuevo_estado
         box.save()
         return Response({'idbox': box.idbox, 'estadobox': box.estadobox}, status=status.HTTP_200_OK)
+    
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def HistorialModificacionesBoxView(request, box_id):
+    """Obtener historial completo de modificaciones de un box"""
+    try:
+        historial = HistorialModificacionesBox.objects.filter(id_box=box_id)
+        serializer = HistorialModificacionesBoxSerializer(historial, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def RegistrarModificacionBoxView(request):
+    """Registrar una modificación en el historial"""
+    try:
+        data = request.data.copy()
+        data['usuario'] = request.user.username
+        data['ip_address'] = get_client_ip(request)
+        
+        serializer = HistorialModificacionesBoxSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+def get_client_ip(request):
+    """Obtener IP del cliente"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def registrar_cambio_box(box_id, usuario, accion, campo=None, valor_anterior=None, valor_nuevo=None, comentario=None, request=None):
+    """Función helper para registrar cambios en el historial"""
+    ip = get_client_ip(request) if request else None
+    
+    HistorialModificacionesBox.objects.create(
+        id_box=box_id,
+        usuario=usuario,
+        accion=accion,
+        campo_modificado=campo,
+        valor_anterior=str(valor_anterior) if valor_anterior else None,
+        valor_nuevo=str(valor_nuevo) if valor_nuevo else None,
+        comentario=comentario,
+        ip_address=ip
+    )
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def toggle_estado_box(request, box_id):
+    """Cambiar estado del box y registrar en historial"""
+    try:
+        box = Box.objects.get(idbox=box_id)
+        estado_anterior = box.estadobox
+        razon = request.data.get('razon', '')
+        
+        # Obtener el nuevo estado del request o calcularlo
+        nuevo_estado = request.data.get('estadobox')
+        if not nuevo_estado:
+            # Si no se envía el estado, hacer toggle automático
+            nuevo_estado = 'Inhabilitado' if box.estadobox == 'Habilitado' else 'Habilitado'
+        
+        # Validar que el estado sea correcto
+        if nuevo_estado not in ['Habilitado', 'Inhabilitado']:
+            return Response({'error': 'Estado inválido'}, status=400)
+        
+        box.estadobox = nuevo_estado
+        box.comentario = razon
+        box.save()
+        
+        registrar_cambio_box(
+            box_id=box_id,
+            usuario=request.user.username,  # Usar el usuario autenticado
+            accion='INHABILITACION' if nuevo_estado == 'Inhabilitado' else 'HABILITACION',
+            campo_modificado='estado',
+            valor_anterior=estado_anterior,
+            valor_nuevo=nuevo_estado,
+            comentario=razon,
+            request=request
+        )
+        
+        return Response({
+            'estadobox': box.estadobox,
+            'comentario': box.comentario,
+            'mensaje': f'Box {nuevo_estado.lower()} correctamente'
+        })
+        
+    except Box.DoesNotExist:
+        return Response({'error': 'Box no encontrado'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)

@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 
 
 class Agendabox(models.Model):
@@ -215,3 +217,30 @@ class LogAtenamb(models.Model):
     class Meta:
         db_table = 'log_atenamb'
         managed = False 
+        
+
+class HistorialModificacionesBox(models.Model):
+    TIPO_ACCION = [
+        ('CREACION', 'Creación'),
+        ('MODIFICACION', 'Modificación'),
+        ('INHABILITACION', 'Inhabilitación'),
+        ('HABILITACION', 'Habilitación'),
+        ('ELIMINACION', 'Eliminación'),
+    ]
+    
+    id_box = models.IntegerField(db_column='id_box')
+    usuario = models.CharField(max_length=100)
+    accion = models.CharField(max_length=50, choices=TIPO_ACCION)
+    fecha = models.DateTimeField(default=timezone.now)
+    campo_modificado = models.CharField(max_length=100, null=True, blank=True)
+    valor_anterior = models.TextField(null=True, blank=True)
+    valor_nuevo = models.TextField(null=True, blank=True)
+    comentario = models.TextField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'historial_box'
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.accion} - Box {self.id_box} - {self.usuario}"

@@ -24,7 +24,7 @@ from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBo
                                 CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
                                 AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView , \
                                 ResolverTopeView, AplicarSolucionView, BoxesInhabilitadosView, AgendasConTopeView, TodasAgendasView, BoxToggleEstadoView, \
-                                MedicosDisponiblesView
+                                MedicosDisponiblesView, HistorialModificacionesBoxView, RegistrarModificacionBoxView
 
 
 def home(request):
@@ -67,4 +67,6 @@ urlpatterns = [
     path('api/upload/', upload_file),
     path('api/confirmar-agendas/', confirmar_guardado_agendas, name='confirmar-agendas'),
     path('api/boxes/<int:pk>/toggle-estado/', BoxToggleEstadoView.as_view(), name='box-toggle-estado'),
+    path('api/boxes/<int:box_id>/historial-modificaciones/', HistorialModificacionesBoxView, name='historial-modificaciones-box'),
+    path('api/registrar-modificacion-box/', RegistrarModificacionBoxView, name='registrar-modificacion-box'),
 ]

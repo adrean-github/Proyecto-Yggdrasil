@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Box, Agendabox, Atenamb , Tipobox, BoxTipoBox, Medico
+from .models import Box, Agendabox, Atenamb , Tipobox, BoxTipoBox, Medico, HistorialModificacionesBox
 from django.db.models import Prefetch
 
 
@@ -36,3 +36,14 @@ class MedicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medico
         fields = ['idmedico', 'nombre', 'apellido']  
+        
+
+class HistorialModificacionesBoxSerializer(serializers.ModelSerializer):
+    fecha_formateada = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HistorialModificacionesBox
+        fields = '__all__'
+    
+    def get_fecha_formateada(self, obj):
+        return obj.fecha.strftime('%d/%m/%Y %H:%M')
