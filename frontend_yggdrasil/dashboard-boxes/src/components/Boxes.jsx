@@ -130,7 +130,7 @@ export default function Boxes() {
 
   const handleFechaHoraChange = async (fecha, hora) => {
     const CHUNK_SIZE = 35; // Procesar de 15 en 15
-    const DELAY = 10; // 50ms de espera entre lotes
+    const DELAY = 20; // 50ms de espera entre lotes
 
     const newBoxesStates = {};
 
