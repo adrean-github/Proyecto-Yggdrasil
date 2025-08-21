@@ -54,6 +54,11 @@ from yggdrasilApp.views import (
     upload_file, confirmar_guardado_agendas
 )
 
+# MongoDB views
+from yggdrasilApp.views.mongo_views import (
+    InventarioBoxView, AgendaExtendidaView, DashboardOptimizadoView, CacheStatusView
+)
+
 
 def home(request):
     return HttpResponse("API de Yggdrasil funcionando")
@@ -97,4 +102,12 @@ urlpatterns = [
     path('api/boxes/<int:box_id>/toggle-estado/', ToggleEstadoBoxView.as_view(), name='box-toggle-estado'),
     path('api/boxes/<int:box_id>/historial-modificaciones/', HistorialModificacionesBoxView, name='historial-modificaciones-box'),
     path('api/registrar-modificacion-box/', RegistrarModificacionBoxView, name='registrar-modificacion-box'),
+    
+    # MongoDB URLs
+    path('api/inventario/', InventarioBoxView.as_view(), name='inventario-todos'),
+    path('api/inventario/<int:box_id>/', InventarioBoxView.as_view(), name='inventario-box'),
+    path('api/agendas-extendidas/', AgendaExtendidaView.as_view(), name='agendas-extendidas-todas'),
+    path('api/agendas-extendidas/<int:agenda_id>/', AgendaExtendidaView.as_view(), name='agenda-extendida'),
+    path('api/dashboard-optimizado/', DashboardOptimizadoView.as_view(), name='dashboard-optimizado'),
+    path('api/cache-status/', CacheStatusView.as_view(), name='cache-status'),
 ]

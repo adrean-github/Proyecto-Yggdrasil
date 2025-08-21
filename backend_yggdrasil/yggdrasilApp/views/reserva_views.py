@@ -119,6 +119,10 @@ class CrearReservaNoMedicaView(APIView):
                 observaciones=observaciones  
             )
 
+            # ⭐ NUEVO: Invalidar cache automáticamente
+            from ..modulos.cache_manager import CacheSignals
+            CacheSignals.agenda_creada(nueva_agenda, fuente='reserva_no_medica')
+
             return Response({
                 'mensaje': 'Reserva creada exitosamente',
                 'id': nueva_agenda.id,
@@ -177,6 +181,10 @@ class CrearReservaMedicaView(APIView):
                 nombre_responsable=nombre,
                 observaciones=observaciones
             )
+
+            # ⭐ NUEVO: Invalidar cache automáticamente
+            from ..modulos.cache_manager import CacheSignals
+            CacheSignals.agenda_creada(nueva_agenda, fuente='reserva_medica')
 
             return Response({
                 'mensaje': 'Reserva médica creada exitosamente',

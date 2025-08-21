@@ -116,8 +116,28 @@ DATABASES = {
         # 'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
+    },
+    'mongodb': {
+        'ENGINE': 'djongo',
+        'NAME': 'yggdrasil_mongo',
+        'CLIENT': {
+            'host': 'mongodb://localhost:27017',
+            'username': '',
+            'password': '',
+            'authSource': 'admin',
+            'authMechanism': 'SCRAM-SHA-1',
+        }
     }
 }
+
+# Configuración de MongoDB con MongoEngine
+import mongoengine
+mongoengine.connect(
+    db='yggdrasil_mongo',
+    host='localhost',
+    port=27017,
+    alias='default'
+)
 
 
 # Password validation
