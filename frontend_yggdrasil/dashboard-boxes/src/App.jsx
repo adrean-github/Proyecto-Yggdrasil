@@ -14,6 +14,7 @@ import Home from "./components/HomePage";
 import HomeHeader from "./homeHeader";   
 import Agendas from "./components/Agendas"; 
 import AgendarMedica from "./components/AgendarMedica";
+import HistorialBox from "./components/HistorialBox";
 import { Box } from "lucide-react";
 
 function LayoutWithHeader({ children }) {
@@ -107,6 +108,15 @@ export default function App() {
             element={
               <PrivateRoute>
                 <AgendarMedica />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/boxes/:id/historial"
+            element={
+              <PrivateRoute>
+                <HistorialBox />
               </PrivateRoute>
             }
           />

@@ -152,7 +152,8 @@ export default function BoxDetalle() {
       medico: info.event.extendedProps.medico || 'No asignado',
       start: info.event.start,
       end: info.event.end,
-      extendedProps: info.event.extendedProps || {}
+      extendedProps: info.event.extendedProps || {},
+      observaciones: info.event.extendedProps.observaciones || 'Sin observaciones', 
     });
     setShowEventDetails(true);
     console.log("Evento seleccionado:", info.event);
@@ -210,7 +211,7 @@ export default function BoxDetalle() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
@@ -218,7 +219,7 @@ export default function BoxDetalle() {
           className="flex items-center gap-2 text-[#1B5D52] font-medium hover:text-[#14463d] transition-colors"
         >
           <ArrowLeft size={20} />
-          Volver al listado de Boxes
+          Volver
         </button>
         
         <div className="text-sm text-gray-500 flex items-center gap-2">
@@ -236,7 +237,7 @@ export default function BoxDetalle() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="flex items-start justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-800">Box #{id}</h2>
+              <h1 className="text-3xl font-bold text-gray-800">Detalle de Box #{id}</h1>
               <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 boxData.estadobox === "Habilitado" 
                   ? "bg-green-100 text-green-800" 
@@ -255,13 +256,6 @@ export default function BoxDetalle() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <User className="text-gray-500" size={18} />
-                <div>
-                  <p className="text-sm text-gray-600">Médico asignado</p>
-                  <p className="font-medium">{boxData.med || "No asignado"}</p>
-                </div>
-              </div>
 
               <div className="flex items-center gap-3">
                 <Clock className="text-gray-500" size={18} />
@@ -288,7 +282,7 @@ export default function BoxDetalle() {
                     </div>
                     <button
                       onClick={navigateToHistorialCompleto}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                      className="flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 transition-colors"
                     >
                       <ExternalLink size={12} />
                       Ver historial
@@ -308,7 +302,7 @@ export default function BoxDetalle() {
               disabled={cambiandoEstado}
               className={`w-full mt-6 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
                 boxData.estadobox === "Habilitado" 
-                  ? "bg-red-100 text-red-700 hover:bg-red-200" 
+                  ? "bg-orange-200 text-orange-700 hover:bg-yellow-200" 
                   : "bg-green-100 text-green-700 hover:bg-green-200"
               }`}
             >
@@ -381,7 +375,7 @@ export default function BoxDetalle() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <History className="text-blue-500" size={20} />
+                <History className="text-blue-900" size={20} />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">Historial Completo</h3>
                   <p className="text-sm text-gray-600">Ver todas las modificaciones del box</p>
@@ -392,8 +386,8 @@ export default function BoxDetalle() {
             
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-blue-700 font-medium">Total de registros</span>
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
+                <span className="text-blue-900 font-medium">Total de registros</span>
+                <span className="bg-blue-100 text-blue-900 px-2 py-1 rounded-full text-xs font-semibold">
                   {historialModificaciones.length}
                 </span>
               </div>
@@ -447,7 +441,7 @@ export default function BoxDetalle() {
               }}
               events={agendaboxData.map(event => ({
                 id: event.id,
-                title: event.title || (event.esMedica === 0 ? 'No médica' : 'Médica'),
+                title: "",
                 medico: event.medico || 'No asignado',
                 start: event.start || `${event.fecha}T${event.hora_inicio}`,
                 end: event.end || `${event.fecha}T${event.hora_fin}`,
@@ -457,7 +451,7 @@ export default function BoxDetalle() {
                 extendedProps: {
                   esMedica: event.esMedica,
                   tipo: isTope(event) ? 'Tope' : (event.esMedica === 0 ? 'No médica' : 'Médica'),
-                  observaciones: event.observaciones || 'Sin observaciones'
+                  observaciones: event.extendedProps.observaciones || 'Sin observaciones'
                 }
               }))}
               locale={esLocale}
@@ -637,7 +631,7 @@ export default function BoxDetalle() {
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-600">Responsable</p>
+                  <p className="text-sm text-gray-600">Médico / Responsable</p>
                   <p className="font-medium flex items-center gap-2">
                     <UserCheck size={16} />
                     {selectedEvent.medico}
@@ -647,7 +641,7 @@ export default function BoxDetalle() {
                 <div>
                   <p className="text-sm text-gray-600">Observaciones</p>
                   <p className="font-medium bg-gray-50 p-3 rounded-lg">
-                    {selectedEvent.extendedProps.observaciones}
+                    {selectedEvent.observaciones}
                   </p>
                 </div>
               </div>
