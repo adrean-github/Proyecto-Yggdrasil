@@ -16,7 +16,8 @@ import {
   UserCheck,
   CalendarDays,
   X,
-  ExternalLink
+  ExternalLink,
+  Package
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import FullCalendar from '@fullcalendar/react';
@@ -24,6 +25,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
+import InventarioModal from './InventarioModal';
 
 export default function BoxDetalle() {
   const { id } = useParams();
@@ -38,6 +40,7 @@ export default function BoxDetalle() {
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [razonInhabilitacion, setRazonInhabilitacion] = useState("");
+  const [showInventarioModal, setShowInventarioModal] = useState(false);
 
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
@@ -302,6 +305,15 @@ export default function BoxDetalle() {
                 </div>
               )}
             </div>
+
+            {/* Botón de Inventario */}
+            <button
+              onClick={() => setShowInventarioModal(true)}
+              className="w-full mt-4 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200"
+            >
+              <Package size={16} />
+              Ver Inventario
+            </button>
 
             <button
               onClick={handleEstadoChange}
@@ -662,6 +674,13 @@ export default function BoxDetalle() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Inventario */}
+      <InventarioModal
+        boxId={id}
+        isOpen={showInventarioModal}
+        onClose={() => setShowInventarioModal(false)}
+      />
     </div>
   );
 }
