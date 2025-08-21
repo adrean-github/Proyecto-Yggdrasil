@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import { buildApiUrl } from "../config/api";
 import {
   CalendarDays,
   Puzzle,
@@ -59,7 +60,7 @@ export default function Agenda() {
   useEffect(() => {
     const fetchBoxesInhabilitados = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/boxes-inhabilitados/');
+        const res = await fetch(buildApiUrl('/api/boxes-inhabilitados/'));
         if (res.ok) {
           const data = await res.json();
           setBoxesInhabilitados(data.map(box => box.idbox));
@@ -88,9 +89,9 @@ export default function Agenda() {
       
       try {
         const res = await fetch(
-          `http://localhost:8000/api/medico/sugerencias/?nombre=${encodeURIComponent(
+          buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(
             filtroNombre
-          )}`
+          )}`)
         );
         
         if (!res.ok) throw new Error(res.statusText);
@@ -120,9 +121,9 @@ export default function Agenda() {
     const fetchSugerenciasModal = async () => {
       try {
         const res = await fetch(
-          `http://localhost:8000/api/medico/sugerencias/?nombre=${encodeURIComponent(
+          buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(
             modal.data.responsable
-          )}`
+          )}`)
         );
         
         if (!res.ok) throw new Error(res.statusText);
@@ -160,7 +161,7 @@ export default function Agenda() {
   const fetchTopes = async () => {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`
+        buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`)
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -177,7 +178,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
   try {
     // Obtener todos los topes en el rango de fechas
     const resTopes = await fetch(
-      `http://localhost:8000/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`
+      buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`)
     );
     if (!resTopes.ok) throw new Error(await resTopes.text());
     const topes = await resTopes.json();
@@ -245,7 +246,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
   const generarHorasLibres = async (fecha, box_id) => {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/${box_id}/bloques-libres/?fecha=${fecha}`
+        buildApiUrl(`/api/${box_id}/bloques-libres/?fecha=${fecha}`)
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -259,7 +260,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
   const generarHorasDisponibles = async (fecha, box_id, horaInicioSeleccionada = null) => {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/${box_id}/bloques-libres/?fecha=${fecha}`
+        buildApiUrl(`/api/${box_id}/bloques-libres/?fecha=${fecha}`)
       );
       
       if (!res.ok) throw new Error("Error al obtener bloques libres");
@@ -405,16 +406,16 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
       let url = "";
 
       if (vista === "todas") {
-        url = `http://localhost:8000/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`;
+        url = buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`);
       } else if (vista === "box") {
         if (!filtroId && manual) return setModal({ tipo: "alerta", mensaje: "Debes ingresar un ID de box" });
-        url = `http://localhost:8000/api/box/${filtroId}/?desde=${desde}&hasta=${hasta}`;
+        url = buildApiUrl(`/api/box/${filtroId}/?desde=${desde}&hasta=${hasta}`);
       } else if (vista === "medico") {
         if (!filtroNombre && manual) return setModal({ tipo: "alerta", mensaje: "Debes ingresar el nombre del médico" });
-        url = `http://localhost:8000/api/medico/?medico=${encodeURIComponent(filtroNombre)}&desde=${desde}&hasta=${hasta}`;
+        url = buildApiUrl(`/api/medico/?medico=${encodeURIComponent(filtroNombre)}&desde=${desde}&hasta=${hasta}`);
       } else if (vista === "pasillo") {
         if (!pasilloSeleccionado && manual) return setModal({ tipo: "alerta", mensaje: "Debes seleccionar un pasillo" });
-        url = `http://localhost:8000/api/pasillo/?pasillo=${encodeURIComponent(pasilloSeleccionado)}&desde=${desde}&hasta=${hasta}`;
+        url = buildApiUrl(`/api/pasillo/?pasillo=${encodeURIComponent(pasilloSeleccionado)}&desde=${desde}&hasta=${hasta}`);
       }
   
       const res = await fetch(url);
@@ -511,7 +512,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
 
   const eliminarAgenda = async (id) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/reservas/${id}/liberar/`, { method: "DELETE" });
+      const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { method: "DELETE" });
       if (!res.ok) throw new Error(await res.text());
       setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
       fetchAgendas();
@@ -569,7 +570,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
   
     try {
       const res = await fetch(
-        `http://localhost:8000/api/reservas/${modal.data.id}/modificar/`,
+        buildApiUrl(`/api/reservas/${modal.data.id}/modificar/`),
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

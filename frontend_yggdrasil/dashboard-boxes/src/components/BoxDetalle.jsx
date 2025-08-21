@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import { buildApiUrl } from "../config/api";
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import InventarioModal from './InventarioModal';
@@ -50,13 +51,13 @@ export default function BoxDetalle() {
   const fetchBoxData = async () => {
     try {
       const [boxResponse, agendaResponse, historialResponse] = await Promise.all([
-        fetch(`http://localhost:8000/api/boxes/${id}/`, {
+        fetch(buildApiUrl(`/api/boxes/${id}/`), {
           credentials: 'include'
         }),
-        fetch(`http://localhost:8000/api/box/${id}/`, {
+        fetch(buildApiUrl(`/api/box/${id}/`), {
           credentials: 'include'
         }),
-        fetch(`http://localhost:8000/api/boxes/${id}/historial-modificaciones/`, {
+        fetch(buildApiUrl(`/api/boxes/${id}/historial-modificaciones/`), {
           credentials: 'include'
         })
       ]);
@@ -99,7 +100,7 @@ export default function BoxDetalle() {
   
       const nuevoEstado = boxData.estadobox === "Habilitado" ? "Inhabilitado" : "Habilitado"; // Define el nuevo estado
   
-      const response = await fetch(`http://localhost:8000/api/boxes/${id}/toggle-estado/`, {
+      const response = await fetch(buildApiUrl(`/api/boxes/${id}/toggle-estado/`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +126,7 @@ export default function BoxDetalle() {
         setRazonInhabilitacion("");
   
         const historialResponse = await fetch(
-          `http://localhost:8000/api/boxes/${id}/historial-modificaciones/`,
+          buildApiUrl(`/api/boxes/${id}/historial-modificaciones/`),
           {
             credentials: "include",
           }

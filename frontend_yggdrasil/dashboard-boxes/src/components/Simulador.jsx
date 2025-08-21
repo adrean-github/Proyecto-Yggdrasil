@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Upload, Save, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { buildApiUrl } from "../config/api";
 
 function UploadForm() {
   const [file, setFile] = useState(null);
@@ -27,7 +28,7 @@ function UploadForm() {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/confirmar-agendas/', {
+      const response = await fetch(buildApiUrl('/api/confirmar-agendas/'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ function UploadForm() {
     formData.append('archivo', file);
 
     try {
-      const response = await fetch('http://localhost:8000/api/upload/', {
+      const response = await fetch(buildApiUrl('/api/upload/'), {
         method: 'POST',
         body: formData,
         credentials: 'include',

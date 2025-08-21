@@ -19,8 +19,6 @@ SECRET_KEY = 'django-insecure-yogo%x7blcgv(75kk)xs@qkqqer%v%kz#=hh=!n&@f-i26uswn
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '10.135.45.43']
-
 ALLOWED_HOSTS = ['*']
 # Application definition
 
@@ -51,12 +49,24 @@ MIDDLEWARE = [
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Configuración adicional para Cloudflare
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-
+    # URLs de Cloudflare Tunnel
+    "https://approach-gst-monaco-desired.trycloudflare.com",  # Frontend
+    "https://ui-epic-charts-adopt.trycloudflare.com",         # Backend
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -65,7 +75,11 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'authorization',
     'x-csrftoken',
-    'x-debug',  # 
+    'x-debug',
+    'access-control-allow-origin',
+    'accept',
+    'accept-encoding',
+    'cache-control',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -73,6 +87,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    # URLs de Cloudflare Tunnel
+    "https://approach-gst-monaco-desired.trycloudflare.com",  # Frontend
+    "https://ui-epic-charts-adopt.trycloudflare.com",         # Backend
 ]
 
 ROOT_URLCONF = 'yggdrasil_backend.urls'
@@ -103,8 +120,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-         'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        #  'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -112,8 +129,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-         'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        #  'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -166,6 +183,16 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
+# Session and Cookie settings for Cloudflare (configuración permisiva para demo)
+SESSION_COOKIE_SECURE = False  # False para desarrollo/demo
+SESSION_COOKIE_HTTPONLY = False  # False para permitir acceso desde JS
+SESSION_COOKIE_SAMESITE = None  # Permite cookies cross-site
+CSRF_COOKIE_SECURE = False  # False para desarrollo/demo
+CSRF_COOKIE_SAMESITE = None  # Permite cookies cross-site
+# SESSION_COOKIE_DOMAIN = '.trycloudflare.com'  # Comentado para demo
+# CSRF_COOKIE_DOMAIN = '.trycloudflare.com'  # Comentado para demo
+
+# Trust proxy headers from Cloudflare
 USE_TZ = False
 
 

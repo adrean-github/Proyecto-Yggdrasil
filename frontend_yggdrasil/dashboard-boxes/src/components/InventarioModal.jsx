@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Package, Wrench, CheckCircle, AlertTriangle, Calendar, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { buildApiUrl } from "../config/api";
 
 export default function InventarioModal({ boxId, isOpen, onClose }) {
   const [inventario, setInventario] = useState(null);
@@ -18,7 +19,7 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
     setError(null);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/inventario/${boxId}/`, {
+      const response = await fetch(buildApiUrl(`/api/inventario/${boxId}/`), {
         credentials: 'include'
       });
       

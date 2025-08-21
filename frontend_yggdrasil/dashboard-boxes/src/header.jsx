@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Menu, X , ChevronRight, Home} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import useAuth from "./hooks/useAuth";
+import { buildApiUrl } from "./config/api";
 
 
 function Breadcrumbs() {
@@ -61,7 +62,7 @@ export default function Header() {
   const { user, checking } = useAuth();
 
   const handleLogout = async () => {
-    await fetch("http://localhost:8000/api/logout/", {
+    await fetch(buildApiUrl("/api/logout/"), {
       method: "POST",
       credentials: "include",
     });

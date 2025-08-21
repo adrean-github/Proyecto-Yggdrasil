@@ -18,6 +18,7 @@ import {
   FileStack
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { buildApiUrl } from "../config/api";
 
 export default function HistorialBox() {
   const { id } = useParams();
@@ -45,7 +46,7 @@ export default function HistorialBox() {
   const fetchHistorial = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/boxes/${id}/historial-modificaciones/`, {
+      const response = await fetch(buildApiUrl(`/api/boxes/${id}/historial-modificaciones/`), {
         credentials: 'include'
       });
       

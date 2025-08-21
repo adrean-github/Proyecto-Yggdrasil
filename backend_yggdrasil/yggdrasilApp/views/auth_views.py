@@ -35,10 +35,20 @@ def logout_view(request):
     return JsonResponse({'message': 'Sesión cerrada correctamente'})
 
 
-@login_required
+# @login_required  # Comentado temporalmente para demo
 def user_info(request):
-    roles = list(request.user.groups.values_list('name', flat=True))
-    return JsonResponse({
-        'username': request.user.username,
-        'roles': roles
-    })
+    # Para demo: retorna datos si hay usuario, sino permite acceso limitado
+    if request.user.is_authenticated:
+        roles = list(request.user.groups.values_list('name', flat=True))
+        return JsonResponse({
+            'username': request.user.username,
+            'roles': roles,
+            'authenticated': True
+        })
+    else:
+        # Para demo: retorna usuario demo en lugar de vacío
+        return JsonResponse({
+            'username': 'demo_user',
+            'roles': ['demo'],
+            'authenticated': False
+        })

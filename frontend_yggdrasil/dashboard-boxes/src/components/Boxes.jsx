@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { buildApiUrl, buildWsUrl } from "../config/api";
 
 const pasillos = ["Traumatología - Gimnasio y curaciones", "Medicina", "Pedriatría", "Salud mental",
   "Broncopulmonar - Cardiología", "Otorrinolaringología",
@@ -68,7 +69,7 @@ export default function Boxes() {
   // WebSocket para actualización en tiempo real
   useEffect(() => {
     const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
-    const ws_url = `${ws_scheme}://localhost:8000/ws/agendas/`;
+    const ws_url = buildWsUrl("/ws/agendas/");
     const socket = new window.WebSocket(ws_url);
 
     socket.onopen = () => {
@@ -97,7 +98,7 @@ export default function Boxes() {
 
   const fetchBoxes = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/boxes/");  
+      const response = await fetch(buildApiUrl("/api/boxes/"));  
       const data = await response.json();
       setBoxes(data);
       setBoxesraw(data);
@@ -113,39 +114,54 @@ export default function Boxes() {
 
   const fetchBoxState = async (boxId, fecha, hora) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`);
-      const data = await response.json();
-      setBoxes((prevBoxes) =>
-        prevBoxes.map((box) =>
-          box.idbox === boxId ? { ...box, estadobox: data.estado } : box
-        )
-      );
-    } catch (error) {
-      console.error("Error al obtener el estado del box:", error);
-    }
-  }; 
-
-
-  const fetchBoxStateInhabilitado = async (boxId, fecha, hora) => {
-    try {
-      setBoxes((prevBoxes) =>
-        prevBoxes.map((box) =>
-          box.idbox === boxId ? { ...box, estadobox: "Inhabilitado" } : box
-        )
-      );
-    } catch (error) {
-      console.error("Error al obtener el estado del box inhabilitado:", error);
-    }
-  }; 
-
-  const handleFechaHoraChange = (fecha, hora) => {
-    boxes.forEach((box) => {
-      if (box.estadobox === "Inhabilitado") {
-        fetchBoxStateInhabilitado(box.idbox, fecha, hora);
-      } else {
-        fetchBoxState(box.idbox, fecha, hora);
+      const response = await fetch(buildApiUrl(`/api/estado_box/?idbox=${boxId}&fecha=${fecha}&hora=${hora}`));
+      if (!response.ok) {
+        // Si la respuesta no es OK, lanza un error para ser capturado por el catch
+        throw new Error(`Error en la petición para el box ${boxId}: ${response.statusText}`);
       }
-    });
+      const data = await response.json();
+      return { boxId, estado: data.estado };
+    } catch (error) {
+      console.error(`Error al obtener el estado del box ${boxId}:`, error);
+      // Retorna null o un objeto de error para que el lote pueda continuar
+      return { boxId, estado: 'Error' }; 
+    }
+  };
+
+  const handleFechaHoraChange = async (fecha, hora) => {
+    const CHUNK_SIZE = 35; // Procesar de 15 en 15
+    const DELAY = 10; // 50ms de espera entre lotes
+
+    const newBoxesStates = {};
+
+    for (let i = 0; i < boxes.length; i += CHUNK_SIZE) {
+      const chunk = boxes.slice(i, i + CHUNK_SIZE);
+      
+      const promises = chunk.map(box => {
+        if (box.estadobox === "Inhabilitado") {
+          // Los inhabilitados no necesitan fetch, se resuelven localmente
+          return Promise.resolve({ boxId: box.idbox, estado: "Inhabilitado" });
+        }
+        return fetchBoxState(box.idbox, fecha, hora);
+      });
+
+      const results = await Promise.all(promises);
+
+      results.forEach(result => {
+        if (result) {
+          newBoxesStates[result.boxId] = result.estado;
+        }
+      });
+      
+      // Actualizar el estado de forma parcial para ver el progreso
+      setBoxes(prevBoxes =>
+        prevBoxes.map(box => 
+          newBoxesStates[box.idbox] ? { ...box, estadobox: newBoxesStates[box.idbox] } : box
+        )
+      );
+
+      await new Promise(resolve => setTimeout(resolve, DELAY));
+    }
   };
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO, isBefore } from 'date-fns';
+import { buildApiUrl } from "../config/api";
 
 export default function AgendarNoMedica() {
   const navigate = useNavigate();
@@ -77,7 +78,7 @@ export default function AgendarNoMedica() {
       const fechaFormateada = formatDateToYYYYMMDD(fecha);    
 
       const response = await fetch(
-        `http://localhost:8000/api/boxes-recomendados/?fecha=${fechaFormateada}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        buildApiUrl(`/api/boxes-recomendados/?fecha=${fechaFormateada}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`)
       );
       if (!response.ok) throw new Error("Error al buscar recomendaciones");
       const data = await response.json();
@@ -116,7 +117,7 @@ export default function AgendarNoMedica() {
     try {
       const fechaFormateada = formatDateToYYYYMMDD(fecha);
       
-      const response = await fetch('http://localhost:8000/api/reservar-no-medica/', {
+      const response = await fetch(buildApiUrl('/api/reservar-no-medica/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,7 +153,7 @@ export default function AgendarNoMedica() {
     if (!reservaALiberar) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaALiberar}/liberar/`, {
+      const response = await fetch(buildApiUrl(`/api/reservas/${reservaALiberar}/liberar/`), {
         method: 'DELETE', 
         headers: { 'Content-Type': 'application/json' }
       });
@@ -176,7 +177,7 @@ export default function AgendarNoMedica() {
 
   const fetchReservasUsuario = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/mis-reservas-no-medicas/');
+      const response = await fetch(buildApiUrl('/api/mis-reservas-no-medicas/'));
       const data = await response.json();
       setReservasUsuario(data);
     } catch (error) {

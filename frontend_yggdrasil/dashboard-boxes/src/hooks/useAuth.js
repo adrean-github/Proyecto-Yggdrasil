@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildApiUrl } from "../config/api";
 
 export default function useAuth() {
   const [user, setUser] = useState(null);
@@ -7,7 +8,7 @@ export default function useAuth() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/user/", {
+        const res = await fetch(buildApiUrl("/api/user/"), {
           credentials: "include",
         });
         if (res.ok) {

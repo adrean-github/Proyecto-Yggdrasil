@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO, isBefore } from 'date-fns';
 import Autosuggest from 'react-autosuggest';
+import { buildApiUrl } from "../config/api";
 export default function AgendarMedica() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState("");
@@ -111,7 +112,7 @@ const getSuggestions = (value) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8000/api/boxes-recomendados/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        buildApiUrl(`/api/boxes-recomendados/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`)
       );
       if (!response.ok) throw new Error("Error al buscar recomendaciones");
       const data = await response.json();
@@ -133,7 +134,7 @@ const getSuggestions = (value) => {
   const buscarMedicosDisponibles = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/medicos-disponibles/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`
+        buildApiUrl(`/api/medicos-disponibles/?fecha=${formatDateToYYYYMMDD(fecha)}&hora_inicio=${horaInicio}&hora_fin=${horaFin}`)
       );
       if (!response.ok) throw new Error("Error al buscar médicos disponibles");
       const data = await response.json();
@@ -170,7 +171,7 @@ const getSuggestions = (value) => {
   const realizarReserva = async () => {
     try {
     
-      const response = await fetch('http://localhost:8000/api/reservar-medica/', {
+      const response = await fetch(buildApiUrl('/api/reservar-medica/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -209,7 +210,7 @@ const getSuggestions = (value) => {
     if (!reservaALiberar) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaALiberar}/liberar/`, {
+      const response = await fetch(buildApiUrl(`/api/reservas/${reservaALiberar}/liberar/`), {
         method: 'DELETE', 
         headers: { 'Content-Type': 'application/json' }
       });
@@ -233,7 +234,7 @@ const getSuggestions = (value) => {
 
   const fetchReservasUsuario = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/mis-reservas-medicas/');
+      const response = await fetch(buildApiUrl('/api/mis-reservas-medicas/'));
       const data = await response.json();
       setReservasUsuario(data);
     } catch (error) {

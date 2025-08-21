@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    port: 5173, // puedes cambiar el puerto si ya está ocupado
+    port: 5173,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'approach-gst-monaco-desired.trycloudflare.com', // Tu host específico de Cloudflare
+      '.trycloudflare.com', // Todos los subdominios de trycloudflare.com
+      '.ngrok.io',          // Por si también usas ngrok
+    ],
   },
 });
