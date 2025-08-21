@@ -18,13 +18,41 @@ Including another URLconf
 from django.http import HttpResponse
 from django.contrib import admin
 from django.urls import path
-from yggdrasilApp.views import BoxListView, EstadoBoxView, InfoBoxView, AgendaBox, DatosModificadosAPIView, \
-                                VistaActualizableDispView, login_view, logout_view, user_info, AgendasNoMedicasView, upload_file, confirmar_guardado_agendas, \
-                                BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView, BoxesRecomendadosView, DashboardStatsView, \
-                                CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView, LiberarReservaView, AgendasPorMedicoView, \
-                                AgendasPorPasilloView, SugerenciasMedicoView, UpdateReservaView, CheckDisponibilidadView, BloquesLibresView , \
-                                ResolverTopeView, AplicarSolucionView, BoxesInhabilitadosView, AgendasConTopeView, TodasAgendasView, \
-                                MedicosDisponiblesView, HistorialModificacionesBoxView, RegistrarModificacionBoxView, ToggleEstadoBoxView
+
+# Importaciones organizadas por módulos
+from yggdrasilApp.views import (
+    # Box views
+    BoxListView, EstadoBoxView, InfoBoxView, BoxesRecomendadosView, 
+    BoxesInhabilitadosView, ToggleEstadoBoxView,
+    
+    # Agenda views
+    AgendaBox, DatosModificadosAPIView, VistaActualizableDispView,
+    AgendasConTopeView, TodasAgendasView, CheckDisponibilidadView,
+    AgendasPorMedicoView, AgendasPorPasilloView,
+    
+    # Médico views
+    SugerenciasMedicoView, MedicosDisponiblesView,
+    
+    # Reserva views
+    AgendasNoMedicasView, BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView,
+    CrearReservaMedicaView, MisReservasMedicasView, MisReservasNoMedicasView,
+    LiberarReservaView, UpdateReservaView, BloquesLibresView,
+    
+    # Dashboard views
+    DashboardStatsView,
+    
+    # Auth views
+    login_view, logout_view, user_info,
+    
+    # Historial views
+    HistorialModificacionesBoxView, RegistrarModificacionBoxView,
+    
+    # Mimir views
+    ResolverTopeView, AplicarSolucionView,
+    
+    # Simulador views
+    upload_file, confirmar_guardado_agendas
+)
 
 
 def home(request):
