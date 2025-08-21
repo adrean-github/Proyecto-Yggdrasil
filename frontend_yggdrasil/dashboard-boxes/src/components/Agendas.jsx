@@ -33,7 +33,7 @@ export default function Agenda() {
   ];
 
   const [tipoAgendamiento, setTipoAgendamiento] = useState(null);
-  const [vista, setVista] = useState("box");
+  const [vista, setVista] = useState("todas"); 
   const [desde, setDesde] = useState(format(new Date(), "yyyy-MM-dd"));
   const [hasta, setHasta] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filtroId, setFiltroId] = useState("");
@@ -53,6 +53,7 @@ export default function Agenda() {
   const [boxesInhabilitados, setBoxesInhabilitados] = useState([]);
   const [filtroTopes, setFiltroTopes] = useState(false);
   const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
+  const [todosLosTopes, setTodosLosTopes] = useState({});
   const gestionRef = useRef(null);
   const navigate = useNavigate();
 
@@ -142,71 +143,72 @@ export default function Agenda() {
 
   const parseDateTime = (fecha, hora) => new Date(`${fecha}T${hora}:00`);
 
-  const tieneConflicto = (agenda, todasLasAgendas) => {
-    return todasLasAgendas.some(a => {
-      if (a.id === agenda.id || a.box_id !== agenda.box_id || a.fecha !== agenda.fecha) {
-        return false;
-      }
-      
-      const startA = parseDateTime(agenda.fecha, agenda.hora_inicio);
-      const endA = parseDateTime(agenda.fecha, agenda.hora_fin);
-      const startB = parseDateTime(a.fecha, a.hora_inicio);
-      const endB = parseDateTime(a.fecha, a.hora_fin);
-      
-      return startA < endB && startB < endA;
-    });
-  };
-
-  // Obtener todos los topes en el rango de fechas
-  const fetchTopes = async () => {
+  const fetchTodosLosTopes = async () => {
     try {
       const res = await fetch(
         buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`)
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      return data;
+  
+      const mapaTopes = {};
+      if (Array.isArray(data)) {
+        data.forEach(tope => {
+          if (!mapaTopes[tope.idbox]) {
+            mapaTopes[tope.idbox] = [];
+          }
+          mapaTopes[tope.idbox].push(tope);
+        });
+      }
+  
+      setTodosLosTopes(mapaTopes);
+      return mapaTopes;
     } catch (err) {
       console.error("Error obteniendo topes:", err);
-      return [];
+      return {};
     }
   };
 
+  const marcarTopesYInhabilitados = async (agendasFiltradas) => {
+    try {
+      const mapaTopes = await fetchTodosLosTopes();
+  
+      const agendasProcesadas = await Promise.all(
+        agendasFiltradas.map(async agenda => {
+          const topesEnBox = mapaTopes[agenda.box_id] || [];
+          const topeCon = topesEnBox.find(
+            tope =>
+              tope.fechaagenda === agenda.fecha &&
+              tope.horainicioagenda < agenda.hora_fin &&
+              tope.horafinagenda > agenda.hora_inicio &&
+              tope.id !== agenda.id 
+          );
 
-// Para marcar topes y boxes inhabilitados
-const marcarTopesYInhabilitados = async (agendasFiltradas) => {
-  try {
-    // Obtener todos los topes en el rango de fechas
-    const resTopes = await fetch(
-      buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`)
-    );
-    if (!resTopes.ok) throw new Error(await resTopes.text());
-    const topes = await resTopes.json();
-
-    // Crear un mapa de topes para búsqueda rápida
-    const mapaTopes = {};
-    topes.forEach(tope => {
-      mapaTopes[tope.id] = tope.tope_con;
-    });
-
-    // Marcar las agendas con topes y boxes inhabilitados
-    return agendasFiltradas.map(a => {
-      const topeCon = mapaTopes[a.id] || false;
-      const boxInhabilitado = boxesInhabilitados.includes(parseInt(a.box_id));
-      
-      return {
-        ...a,
-        tope: topeCon,
-        boxInhabilitado
-      };
-    });
-    
-  } catch (err) {
-    console.error("Error marcando topes y boxes inhabilitados:", err);
-    return agendasFiltradas;
-  }
-};
-
+          const boxInhabilitado = boxesInhabilitados.includes(parseInt(agenda.box_id));
+          let motivoInhabilitacion = null;
+          if (boxInhabilitado) {
+            motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
+          }
+          
+          return {
+            ...agenda,
+            tope: topeCon ? topeCon.id : false,
+            boxInhabilitado,
+            motivoInhabilitacion: boxInhabilitado ? motivoInhabilitacion : null,
+          };
+        })
+      );
+  
+      return agendasProcesadas;
+    } catch (err) {
+      console.error("Error marcando topes y boxes inhabilitados:", err);
+      return agendasFiltradas.map(agenda => ({
+        ...agenda,
+        tope: false,
+        boxInhabilitado: boxesInhabilitados.includes(parseInt(agenda.box_id)),
+      }));
+    }
+  };
 
   const validarModificacion = async (nuevaAgenda, agendas) => {
     if (!nuevaAgenda.hora_inicio || !nuevaAgenda.hora_fin) {
@@ -220,7 +222,6 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
       return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
     }
     
-    // Verificar que el horario seleccionado esté dentro de los bloques libres
     const bloquesLibres = await generarHorasLibres(
       nuevaAgenda.fecha, 
       nuevaAgenda.box_id
@@ -419,7 +420,10 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
       }
   
       const res = await fetch(url);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
       const fetchedData = await res.json();
 
       const limpiarDato = (valor, defecto = "-") => {
@@ -473,9 +477,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
           };
         }
       });
-
       const agendasConTopes = await marcarTopesYInhabilitados(agendasProcesadas);
-      
       let agendasFiltradas = agendasConTopes;
       
       if (filtroTopes) {
@@ -487,12 +489,13 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
       }
       
       setAgendas(agendasFiltradas);
+
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching agendas:", err);
       setAgendas([]);
       if (manual) {
-      setModal({ tipo: "alerta", mensaje: err.message });
-    }    
+        setModal({ tipo: "alerta", mensaje: "Error al cargar las agendas. Verifica los filtros." });
+      }    
     } finally {
       setLoading(false);
     }
@@ -546,6 +549,46 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
     }
   };
   
+  const obtenerMotivoInhabilitacion = async (boxId) => {
+    try {
+      const response = await fetch(buildApiUrl(`/api/boxes/${boxId}/`), {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error("Error al obtener datos del box");
+      
+      const boxData = await response.json();
+      
+      if (boxData.estadobox === 'Inhabilitado') {
+        const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
+          credentials: 'include'
+        });
+        
+        if (historialResponse.ok) {
+          const historialData = await historialResponse.json();
+          const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+          
+          const inhabilitaciones = historialModificaciones
+            .filter(item => item.accion === 'INHABILITACION' && item.comentario)
+            .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          
+          if (inhabilitaciones.length > 0) {
+            return inhabilitaciones[0].comentario;
+          }
+          
+          return boxData.comentario || "Sin especificar";
+        }
+        
+        return boxData.comentario || "Sin especificar";
+      }
+      
+      return null; 
+    } catch (error) {
+      console.error("Error obteniendo motivo de inhabilitación:", error);
+      return "Error al obtener motivo";
+    }
+  };
+
   const modificarAgenda = async (e) => {
     e.preventDefault();
     
@@ -600,18 +643,15 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
   };
 
   const aplicarFiltros = () => {
-    let agendasFiltradas = agendas;
-  
-    if (filtroTopes) {
-      agendasFiltradas = agendasFiltradas.filter((a) => a.tope !== false);
-    }
-  
-    if (filtroInhabilitados) {
-      agendasFiltradas = agendasFiltradas.filter((a) => a.boxInhabilitado);
-    }
-  
-    setAgendas(agendasFiltradas);
+    fetchAgendas(true);
   };
+
+  // Cargar agendas automáticamente al cambiar a vista "todas"
+  useEffect(() => {
+    if (vista === "todas") {
+      fetchAgendas();
+    }
+  }, [vista]);
 
   return (
     <>
@@ -909,56 +949,73 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
                 </tr>
               </thead>
               <tbody>
-                {agendas.map((a, i) => {
-                  let rowClass = "hover:bg-gray-100 ";
-                  
-                  if (a.tope) {
-                    rowClass += "bg-red-200 ";
-                  } else if (a.boxInhabilitado) {
-                    rowClass += "bg-orange-200 ";
-                  } else if (i % 2 === 0) {
-                    rowClass += "bg-gray-50 ";
-                  } else {
-                    rowClass += "bg-white ";
-                  }
-                  
+              {agendas.map((a, i) => {
+                console.log("Agenda:", a.id, "Tope:", a.tope, "BoxInhabilitado:", a.boxInhabilitado);
+                
+                let rowClass = "hover:bg-gray-100 ";
+                
+                if (a.tope) {
+                  rowClass += "bg-red-200 ";
+                  console.log("AGENDA CON TOPE:", a.id, "Tope con:", a.tope);
+                } else if (a.boxInhabilitado) {
+                  rowClass += "bg-orange-200 ";
+                } else if (i % 2 === 0) {
+                  rowClass += "bg-gray-50 ";
+                } else {
+                  rowClass += "bg-white ";
+                }
+  
                   return (
                     <tr key={i} className={rowClass}>
                       <td className="px-4 py-2 border">{a.id}</td>
-                      <td className="px-4 py-2 border">
-                        <div className="flex items-center justify-center gap-1">
-                          {a.box_id}
-                          {a.boxInhabilitado && (
-                            <span className="text-xs text-orange-600 flex items-center">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Inhabilitado
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                      <td 
+                          className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
+                          onClick={() => navigate(`/agendas/${a.box_id}`)}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            {a.box_id}
+                            {a.boxInhabilitado && (
+                              <span className="text-xs text-orange-600 flex items-center">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                Inhabilitado
+                              </span>
+                            )}
+                          </div>
+                        </td>
                       <td className="px-4 py-2 border">{a.fecha}</td>
                       <td className="px-4 py-2 border">{a.hora_inicio}</td>
                       <td className="px-4 py-2 border">{a.hora_fin}</td>
                       <td className="px-4 py-2 border">{a.tipo}</td>
                       <td className="px-4 py-2 border">{a.responsable}</td>
                       <td className="px-4 py-2 border">
-                        {a.tope ? `Tope con agenda #${a.tope}` : 
-                         a.boxInhabilitado ? "Box inhabilitado" : 
-                         a.observaciones}
+                      {a.tope 
+                        ? `Tope con agenda #${a.tope}` 
+                        : a.boxInhabilitado 
+                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                          : a.observaciones || "-"
+                      }
                       </td>
                       <td className="px-4 py-2 border text-center">
-                        <button 
-                          className="text-yellow-500 hover:text-yellow-600 mr-3" 
-                          onClick={() => setModal({ tipo: "editar", data: a })}
-                        >
-                          <Edit2 className="w-5 h-5"/>
-                        </button>
-                        <button 
-                          className="text-red-500 hover:text-red-600" 
-                          onClick={() => setModal({ tipo: "eliminar", data: a })}
-                        >
-                          <Trash2 className="w-5 h-5"/>
-                        </button>
+                        <div className="flex justify-center space-x-2">
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
+                            onClick={() => setModal({ tipo: "editar", data: a })}
+                            title="Editar agenda"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                            onClick={() => setModal({ tipo: "eliminar", data: a })}
+                            title="Eliminar agenda"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </motion.button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1005,7 +1062,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
                   <p className="mb-6">{modal.mensaje}</p>
                   <div className="flex justify-end">
                     <button 
-                      className="px-4 py-2 bg-blue-500 text-white rounded" 
+                      className="px-4 py-2 bg-[#005C48] text-white rounded" 
                       onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
                     >
                       Cerrar
@@ -1208,7 +1265,7 @@ const marcarTopesYInhabilitados = async (agendasFiltradas) => {
                       </button>
                       <button 
                         type="submit" 
-                        className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition"
+                        className="px-4 py-2 bg-[#005C48] text-white rounded hover:bg-green-700 transition"
                         disabled={!modal.data.hora_inicio || !modal.data.hora_fin || !modal.data.responsable || modal.mensaje}
                       >
                         Guardar cambios

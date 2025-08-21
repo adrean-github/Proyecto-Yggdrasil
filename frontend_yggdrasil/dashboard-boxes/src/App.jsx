@@ -80,6 +80,14 @@ export default function App() {
             }
           />
           <Route
+            path="/agendas/:id"
+            element={
+              <PrivateRoute>
+                <BoxDetalle />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/agendas/agendar-no-medica"
             element={
               <PrivateRoute>

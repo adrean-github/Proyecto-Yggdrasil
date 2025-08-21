@@ -245,13 +245,6 @@ export default function BoxDetalle() {
     <div className="min-h-screen p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate("/boxes")}
-          className="flex items-center gap-2 text-[#1B5D52] font-medium hover:text-[#14463d] transition-colors"
-        >
-          <ArrowLeft size={20} />
-          Volver
-        </button>
         
         <div className="text-sm text-gray-500 flex items-center gap-2">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
@@ -639,9 +632,17 @@ export default function BoxDetalle() {
                   </div>
                 )}
                   
-              <div className="space-y-4">
-                
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">  
+
+                 <div>
+                    <p className="text-sm text-gray-600">ID agenda</p>
+                    <p className="font-medium">
+                      #{selectedEvent.id.toString()}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+
                   <div>
                     <p className="text-sm text-gray-600">Inicio</p>
                     <p className="font-medium">
