@@ -506,7 +506,7 @@ export default function BoxDetalle() {
       <AnimatePresence>
         {showConfirmDialog && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
             onClick={() => {
               setShowConfirmDialog(false);
               setRazonInhabilitacion("");
@@ -579,7 +579,7 @@ export default function BoxDetalle() {
       {/* Modal de detalles del evento */}
       <AnimatePresence>
         {showEventDetails && selectedEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
             <motion.div
               className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
               initial={{ opacity: 0, scale: 0.9 }}
