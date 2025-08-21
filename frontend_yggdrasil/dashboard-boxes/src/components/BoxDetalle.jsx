@@ -155,17 +155,23 @@ export default function BoxDetalle() {
   };
 
   const handleEventClick = (info) => {
+    const event = info.event;
+    const extendedProps = event.extendedProps || {};
+    
+    console.log('Evento clickeado:', event);
+    console.log('¿Es tope?', extendedProps.esTope);
+    
     setSelectedEvent({
-      id: info.event.id,
-      title: info.event.title,
-      medico: info.event.extendedProps.medico || 'No asignado',
-      start: info.event.start,
-      end: info.event.end,
-      extendedProps: info.event.extendedProps || {},
-      observaciones: info.event.extendedProps.observaciones || 'Sin observaciones', 
+      id: event.id,
+      title: event.title,
+      start: event.start,
+      end: event.end,
+      extendedProps: extendedProps,
+      observaciones: extendedProps.observaciones || 'Sin observaciones',
+      medico: extendedProps.medico || 'No asignado',
+      esTope: extendedProps.esTope || false
     });
     setShowEventDetails(true);
-    console.log("Evento seleccionado:", info.event);
   };
 
   const getUltimoMotivo = () => {
@@ -183,8 +189,24 @@ export default function BoxDetalle() {
     return boxData?.comentario || "Sin especificar";
   };
 
-  const isTope = (event) => {
-    return event.title && event.title.toLowerCase().includes('tope');
+  const isTope = (event, allEvents = agendaboxData) => {
+    if (event.tope || event.es_tope || event.title?.toLowerCase().includes('tope')) {
+      return true;
+    }
+  
+    const currentStart = new Date(event.start || `${event.fecha}T${event.hora_inicio}`);
+    const currentEnd = new Date(event.end || `${event.fecha}T${event.hora_fin}`);
+    
+    const conflictos = allEvents.filter(otherEvent => {
+      if (otherEvent.id === event.id) return false;
+      
+      const otherStart = new Date(otherEvent.start || `${otherEvent.fecha}T${otherEvent.hora_inicio}`);
+      const otherEnd = new Date(otherEvent.end || `${otherEvent.fecha}T${otherEvent.hora_fin}`);
+      
+      return currentStart < otherEnd && currentEnd > otherStart;
+    });
+  
+    return conflictos.length > 0;
   };
 
   const navigateToHistorialCompleto = () => {
@@ -238,7 +260,7 @@ export default function BoxDetalle() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Panel de información del box */}
+        {/*Panel de información del box */}
         <div className="lg:col-span-1 space-y-6">
           <motion.div
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
@@ -298,7 +320,7 @@ export default function BoxDetalle() {
                     </button>
                   </div>
                   <div className="bg-red-50 border border-red-100 rounded-lg p-3">
-                    <p className="text-red-700 text-sm font-medium">
+                    <p className="text-red-900 text-sm font-medium">
                       {getUltimoMotivo()}
                     </p>
                   </div>
@@ -449,55 +471,60 @@ export default function BoxDetalle() {
           </div>
 
           <div className="border-t pt-4">
-            <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              headerToolbar={{
-                left: "prev,next today",
-                center: "title",
-                right: "timeGridWeek,dayGridMonth"
-              }}
-              events={agendaboxData.map(event => ({
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "timeGridWeek,dayGridMonth"
+            }}
+            events={agendaboxData.map(event => {
+              const esTope = isTope(event, agendaboxData);
+              
+              return {
                 id: event.id,
                 title: "",
-                medico: event.medico || 'No asignado',
                 start: event.start || `${event.fecha}T${event.hora_inicio}`,
                 end: event.end || `${event.fecha}T${event.hora_fin}`,
-                color: isTope(event) ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
-                textColor: isTope(event) ? '#ffffff' : '#000000',
-                borderColor: 'transparent',
+                color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
+                textColor: esTope ? '#ffffff' : '#000000',
+                borderColor: esTope ? '#dc2626' : 'transparent',
                 extendedProps: {
                   esMedica: event.esMedica,
-                  tipo: isTope(event) ? 'Tope' : (event.esMedica === 0 ? 'No médica' : 'Médica'),
-                  observaciones: event.extendedProps.observaciones || 'Sin observaciones'
+                  tipo: (event.esMedica === 0 ? 'No médica' : 'Médica'),
+                  observaciones: event.observaciones || 'Sin observaciones',
+                  esTope: esTope,
+                  medico: event.medico || 'No asignado'
                 }
-              }))}
-              locale={esLocale}
-              buttonText={{
-                today: 'Hoy',
-                week: 'Semana',
-                month: 'Mes'
-              }}
-              allDaySlot={false}
-              slotMinTime="08:00:00"
-              slotMaxTime="20:00:00" 
-              editable={false}
-              selectable={false}
-              nowIndicator={true}
-              eventClick={handleEventClick}
-              slotLabelFormat={{
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              }}
-              eventTimeFormat={{
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-              }}
-              height="auto"
-              dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-            />
+              }
+            })}
+            locale={esLocale}
+            buttonText={{
+              today: 'Hoy',
+              week: 'Semana',
+              month: 'Mes'
+            }}
+            allDaySlot={false}
+            slotMinTime="08:00:00"
+            slotMaxTime="20:00:00" 
+            editable={false}
+            selectable={false}
+            nowIndicator={true}
+            eventClick={handleEventClick}
+            slotLabelFormat={{
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            }}
+            eventTimeFormat={{
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            }}
+            height="auto"
+            dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
+          />
           </div>
         </motion.div>
       </div>
@@ -565,7 +592,7 @@ export default function BoxDetalle() {
                   className={`flex-1 py-2 px-4 rounded-lg text-white font-semibold transition-colors ${
                     !razonInhabilitacion.trim() 
                       ? "bg-gray-400 cursor-not-allowed" 
-                      : "bg-red-500 hover:bg-red-600"
+                      : "bg-red-700 hover:bg-red-900"
                   }`}
                 >
                   Confirmar
@@ -600,10 +627,19 @@ export default function BoxDetalle() {
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600">Título</p>
-                  <p className="font-medium">{selectedEvent.title}</p>
-                </div>
+                {selectedEvent.esTope && (
+                  <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="text-red-800" size={20} />
+                      <span className="text-red-900 font-semibold">CONFLICTO DE HORARIO</span>
+                    </div>
+                    <p className="text-red-800 text-sm mt-1">
+                      Este evento se superpone con otra agenda en el mismo box.
+                    </p>
+                  </div>
+                )}
+                  
+              <div className="space-y-4">
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -670,6 +706,7 @@ export default function BoxDetalle() {
               >
                 Cerrar
               </button>
+            </div>
             </motion.div>
           </div>
         )}
