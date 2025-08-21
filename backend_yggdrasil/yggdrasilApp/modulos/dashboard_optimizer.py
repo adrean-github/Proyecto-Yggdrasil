@@ -3,8 +3,8 @@ Servicio optimizado para pre-calcular métricas del dashboard
 Reduce las consultas complejas en tiempo real
 """
 from datetime import datetime, timedelta, time
-from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField
-from django.db.models.functions import ExtractWeekDay
+from django.db.models import Count, Sum, Avg, F, ExpressionWrapper, DurationField, IntegerField
+from django.db.models.functions import ExtractWeekDay, ExtractHour, ExtractMinute
 from django.utils import timezone
 from ..models import Box, Agendabox, BoxTipoBox, Medico
 from ..mongo_models import (
@@ -143,10 +143,18 @@ class DashboardOptimizer:
         """Calcula métricas de ocupación de forma optimizada"""
         # Calcular minutos ocupados en una sola consulta
         ocupacion_stats = reservas_query.annotate(
+            hora_fin_minutos=ExpressionWrapper(
+                ExtractHour('horafinagenda') * 60 + ExtractMinute('horafinagenda'),
+                output_field=IntegerField()
+            ),
+            hora_inicio_minutos=ExpressionWrapper(
+                ExtractHour('horainicioagenda') * 60 + ExtractMinute('horainicioagenda'),
+                output_field=IntegerField()
+            )
+        ).annotate(
             duracion_minutos=ExpressionWrapper(
-                (F('horafinagenda').hour * 60 + F('horafinagenda').minute) - 
-                (F('horainicioagenda').hour * 60 + F('horainicioagenda').minute),
-                output_field=F('id')  # Usamos IntegerField como base
+                F('hora_fin_minutos') - F('hora_inicio_minutos'),
+                output_field=IntegerField()
             )
         ).aggregate(
             total_minutos=Sum('duracion_minutos'),
@@ -213,15 +221,23 @@ class DashboardOptimizer:
     @staticmethod
     def _calcular_ranking_boxes(reservas_query):
         """Calcula ranking de boxes por utilización"""
-        boxes_stats = reservas_query.values('idbox_id').annotate(
-            total_reservas=Count('id'),
-            total_minutos=Sum(
-                ExpressionWrapper(
-                    (F('horafinagenda').hour * 60 + F('horafinagenda').minute) - 
-                    (F('horainicioagenda').hour * 60 + F('horainicioagenda').minute),
-                    output_field=F('id')
-                )
+        boxes_stats = reservas_query.annotate(
+            hora_fin_minutos=ExpressionWrapper(
+                ExtractHour('horafinagenda') * 60 + ExtractMinute('horafinagenda'),
+                output_field=IntegerField()
+            ),
+            hora_inicio_minutos=ExpressionWrapper(
+                ExtractHour('horainicioagenda') * 60 + ExtractMinute('horainicioagenda'),
+                output_field=IntegerField()
             )
+        ).annotate(
+            duracion_minutos=ExpressionWrapper(
+                F('hora_fin_minutos') - F('hora_inicio_minutos'),
+                output_field=IntegerField()
+            )
+        ).values('idbox_id').annotate(
+            total_reservas=Count('id'),
+            total_minutos=Sum('duracion_minutos')
         ).order_by('-total_reservas')
         
         ranking = []

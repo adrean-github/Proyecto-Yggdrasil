@@ -121,11 +121,7 @@ DATABASES = {
         'ENGINE': 'djongo',
         'NAME': 'yggdrasil_mongo',
         'CLIENT': {
-            'host': 'mongodb://localhost:27017',
-            'username': '',
-            'password': '',
-            'authSource': 'admin',
-            'authMechanism': 'SCRAM-SHA-1',
+            'host': 'mongodb://admin:admin123@localhost:27017/yggdrasil_mongo',
         }
     }
 }
@@ -134,9 +130,11 @@ DATABASES = {
 import mongoengine
 mongoengine.connect(
     db='yggdrasil_mongo',
+    username='admin',
+    password='admin123',
     host='localhost',
     port=27017,
-    alias='default'
+    authentication_source='admin'
 )
 
 
