@@ -96,35 +96,41 @@ export default function BoxDetalle() {
     setCambiandoEstado(true);
     try {
       const csrfToken = getCsrfToken();
-      
+  
+      const nuevoEstado = boxData.estadobox === "Habilitado" ? "Inhabilitado" : "Habilitado"; // Define el nuevo estado
+  
       const response = await fetch(`http://localhost:8000/api/boxes/${id}/toggle-estado/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken,
         },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          razon: razonInhabilitacion
-        })
+        credentials: "include",
+        body: JSON.stringify({
+          razon: razonInhabilitacion, // Razón de inhabilitación
+          estadobox: nuevoEstado, // Campo requerido por el backend
+        }),
       });
-      
+  
       if (response.ok) {
         const data = await response.json();
-        
-        setBoxData(prev => ({ 
-          ...prev, 
+  
+        setBoxData((prev) => ({
+          ...prev,
           estadobox: data.estadobox,
-          comentario: data.comentario || razonInhabilitacion
+          comentario: data.comentario || razonInhabilitacion,
         }));
-        
+  
         setShowConfirmDialog(false);
         setRazonInhabilitacion("");
-        
-        const historialResponse = await fetch(`http://localhost:8000/api/boxes/${id}/historial-modificaciones/`, {
-          credentials: 'include'
-        });
-        
+  
+        const historialResponse = await fetch(
+          `http://localhost:8000/api/boxes/${id}/historial-modificaciones/`,
+          {
+            credentials: "include",
+          }
+        );
+  
         if (historialResponse.ok) {
           const historialData = await historialResponse.json();
           setHistorialModificaciones(Array.isArray(historialData) ? historialData : []);
@@ -139,7 +145,6 @@ export default function BoxDetalle() {
       setCambiandoEstado(false);
     }
   };
-
   const handleEstadoChange = () => {
     if (boxData.estadobox === "Habilitado") {
       setShowConfirmDialog(true);

@@ -175,8 +175,8 @@ const Homepage = () => {
               Inspirado en <span className="font-semibold text-[#005C48]">Yggdrasil</span>, el legendario árbol de la vida de la mitología nórdica, 
               nuestro sistema es el tronco que une cada box, agenda y profesional en un organismo vivo.  
               <br /><br />
-              Tal como las raíces y ramas sostienen y alimentan el árbol, <span className="italic">Yggdrasil conecta las áreas del hospital</span> 
-               para fortalecer la coordinación, aumentar la eficiencia y garantizar la trazabilidad de cada atención. 
+              Tal como las raíces y ramas sostienen y alimentan el árbol, <span className="italic">Yggdrasil conecta las áreas del hospital</span>, 
+              para fortalecer la coordinación, aumentar la eficiencia y garantizar la trazabilidad de cada atención. 
               Más que un sistema, es un puente entre tecnología y cuidado humano.
               <br /><br />
               Con Yggdrasil, cada box es un <span className="font-bold text-[#005C48]">nodo vital</span> en la red de salud, conectando información y recursos para una atención más integral.
