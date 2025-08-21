@@ -34,7 +34,7 @@ import {
   ResponsiveContainer,
   ComposedChart
 } from 'recharts';
-import { ArrowLeft, Download, Filter } from "lucide-react"; 
+import { ArrowLeft, Download, Filter, RefreshCw} from "lucide-react"; 
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -131,11 +131,15 @@ const DashboardPage = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-[#005C48]">
-        Cargando información del dashboard...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
+          <p className="text-gray-600">Cargando estadisticas del dashboard...</p>
+        </div>
       </div>
     );
   }
+
 
   //descargar reporte en diferentes formatos
   const handleDownloadReport = async (format) => {
