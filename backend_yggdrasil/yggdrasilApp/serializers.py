@@ -22,7 +22,7 @@ class BoxSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Box
-        fields = ['idbox', 'estadobox', 'pasillobox', 'comentario', 'especialidades', 'especialidad_principal']
+        fields = ['idbox', 'estadobox', 'pasillobox', 'comentario', 'especialidades', 'especialidad_principal', 'comentario']
 
     def get_especialidades(self, obj):
         return [relacion.idtipobox.tipo for relacion in BoxTipoBox.objects.filter(idbox=obj)]

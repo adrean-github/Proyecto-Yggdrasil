@@ -110,7 +110,9 @@ const Homepage = () => {
         <h2 className="text-4xl font-bold text-gray-900 mb-12 text-center font-pj max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           Un sitio donde puedes...
         </h2>
-
+        <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+                Pulsa para desplegar opciones
+        </p>
         <div className="accordion-container flex flex-col sm:flex-row w-full max-w-full h-[32rem] overflow-x-auto shadow-xl select-none">
           {cards.map((card, idx) => (
             <div
@@ -144,8 +146,11 @@ const Homepage = () => {
                   Acceder
                 </a>
               </div>
+              
             </div>
+            
           ))}
+
         </div>
       </section>
 

@@ -24,66 +24,87 @@ from django.db import models
 import csv
 from django.http import HttpResponse
 
-class BoxListView(APIView):   
+
+class BoxListView(APIView):
     def get(self, request, *args, **kwargs):
         box_id = kwargs.get('id')
         fecha = datetime.now().date()
         hora = datetime.now().time()
+
+        def formatear_fecha(fechaagenda, horaagenda):
+            """Devuelve la fecha en formato relativo: Hoy, Mañana o dd/mm/YYYY + hora"""
+            if not fechaagenda or not horaagenda:
+                return "N/A"
+            if fechaagenda == fecha:
+                dia = "Hoy"
+            elif fechaagenda == fecha + timedelta(days=1):
+                dia = "Mañana"
+            else:
+                dia = fechaagenda.strftime("%d/%m/%Y")
+            return f"{dia} {horaagenda.strftime('%H:%M')}"
 
         if box_id:
             try:
                 idbox = Box.objects.get(idbox=box_id)
                 serializer = BoxSerializer(idbox)
 
-                # Última atención finalizada
+                # Última atención finalizada (puede ser hoy o días anteriores)
                 ultima_atencion = Agendabox.objects.filter(
-                    idbox=idbox,
-                    fechaagenda=fecha.strftime('%Y-%m-%d'),
-                    horafinagenda__lt=hora.strftime('%H:%M:%S')
-                ).order_by('-horafinagenda').first()
-                
-                hora_fin = ultima_atencion.horafinagenda.strftime('%H:%M') if ultima_atencion else 'N/A'
-                tipo_ultima = 'No Médica' if ultima_atencion and ultima_atencion.esMedica == 0 else 'Médica' if ultima_atencion else 'N/A'
+                    Q(fechaagenda__lt=fecha) | Q(fechaagenda=fecha, horafinagenda__lt=hora),
+                    idbox=idbox
+                ).order_by('-fechaagenda', '-horafinagenda').first()
 
-                # Próxima atención
+                ult_str = (
+                    f"{formatear_fecha(ultima_atencion.fechaagenda, ultima_atencion.horafinagenda)} "
+                    f"({'No Médica' if ultima_atencion.esMedica == 0 else 'Médica'})"
+                    if ultima_atencion else "N/A"
+                )
+
+                # Próxima atención (puede ser hoy o días siguientes)
                 proxima_atencion = Agendabox.objects.filter(
-                    idbox=idbox,
-                    fechaagenda=fecha.strftime('%Y-%m-%d'),
-                    horainicioagenda__gte=hora.strftime('%H:%M:%S')
-                ).order_by('horainicioagenda').first()
-                
-                hora_prox = proxima_atencion.horainicioagenda.strftime('%H:%M') if proxima_atencion else 'N/A'
-                tipo_proxima = 'No Médica' if proxima_atencion and proxima_atencion.esMedica == 0 else 'Médica' if proxima_atencion else 'N/A'
+                    Q(fechaagenda__gt=fecha) | Q(fechaagenda=fecha, horainicioagenda__gte=hora),
+                    idbox=idbox
+                ).order_by('fechaagenda', 'horainicioagenda').first()
 
-                # Médico actual
+                prox_str = (
+                    f"{formatear_fecha(proxima_atencion.fechaagenda, proxima_atencion.horainicioagenda)} "
+                    f"({'No Médica' if proxima_atencion.esMedica == 0 else 'Médica'})"
+                    if proxima_atencion else "N/A"
+                )
+
+                # Atención actual (solo hoy, dentro de rango)
                 atencion_actual = Agendabox.objects.filter(
                     idbox=idbox,
-                    fechaagenda=fecha.strftime('%Y-%m-%d'),
-                    horainicioagenda__lt=hora.strftime('%H:%M:%S'),
-                    horafinagenda__gte=hora.strftime('%H:%M:%S')
+                    fechaagenda=fecha,
+                    horainicioagenda__lt=hora,
+                    horafinagenda__gte=hora
                 ).first()
-                
-                medico = f"Dr. {atencion_actual.idmedico.nombre}" if atencion_actual and atencion_actual.idmedico else 'N/A'
-                tipo_actual = 'No Médica' if atencion_actual and atencion_actual.esMedica == 0 else 'Médica' if atencion_actual else 'N/A'
+
+                med_str = (
+                    f"Dr. {atencion_actual.idmedico.nombre} "
+                    f"({'No Médica' if atencion_actual.esMedica == 0 else 'Médica'})"
+                    if atencion_actual and atencion_actual.idmedico else "N/A"
+                )
 
                 return Response({
-                    "ult": f"{hora_fin} ({tipo_ultima})",
-                    "prox": f"{hora_prox} ({tipo_proxima})",
-                    "med": f"{medico} ({tipo_actual})" if medico != 'N/A' else medico,
+                    "ult": ult_str,
+                    "prox": prox_str,
+                    "med": med_str,
                     "estadobox": serializer.data['estadobox'],
                     "pasillobox": serializer.data['pasillobox'],
                     "especialidades": serializer.data['especialidades'],
                     "especialidad_principal": serializer.data['especialidad_principal'],
+                    "comentario": serializer.data['comentario'],
                 }, status=status.HTTP_200_OK)
 
             except Box.DoesNotExist:
                 return Response({'error': 'Box no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
         else:
             boxes = Box.objects.all()
             serializer = BoxSerializer(boxes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
-
-
+        
 class EstadoBoxView(APIView):
 
     def hay_tope(agendas):
@@ -1410,26 +1431,12 @@ def confirmar_guardado_agendas(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-
-class BoxToggleEstadoView(APIView):
-    def patch(self, request, pk):
-        try:
-            box = Box.objects.get(pk=pk)
-        except Box.DoesNotExist:
-            return Response({'error': 'Box no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-
-        nuevo_estado = request.data.get('estadobox')
-        if nuevo_estado not in ['Habilitado', 'Inhabilitado']:
-            return Response({'error': 'Estado inválido'}, status=status.HTTP_400_BAD_REQUEST)
-
-        box.estadobox = nuevo_estado
-        box.save()
-        return Response({'idbox': box.idbox, 'estadobox': box.estadobox}, status=status.HTTP_200_OK)
-    
+from rest_framework.permissions import AllowAny
 
 
+# Para el historial
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  
 def HistorialModificacionesBoxView(request, box_id):
     """Obtener historial completo de modificaciones de un box"""
     try:
@@ -1437,7 +1444,8 @@ def HistorialModificacionesBoxView(request, box_id):
         serializer = HistorialModificacionesBoxSerializer(historial, many=True)
         return Response(serializer.data)
     except Exception as e:
-        return Response({'error': str(e)}, status=400)
+        return Response([], status=200)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -1480,48 +1488,41 @@ def registrar_cambio_box(box_id, usuario, accion, campo=None, valor_anterior=Non
         ip_address=ip
     )
 
-@api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
-@transaction.atomic
-def toggle_estado_box(request, box_id):
-    """Cambiar estado del box y registrar en historial"""
-    try:
-        box = Box.objects.get(idbox=box_id)
-        estado_anterior = box.estadobox
-        razon = request.data.get('razon', '')
-        
-        # Obtener el nuevo estado del request o calcularlo
-        nuevo_estado = request.data.get('estadobox')
-        if not nuevo_estado:
-            # Si no se envía el estado, hacer toggle automático
-            nuevo_estado = 'Inhabilitado' if box.estadobox == 'Habilitado' else 'Habilitado'
-        
-        # Validar que el estado sea correcto
-        if nuevo_estado not in ['Habilitado', 'Inhabilitado']:
-            return Response({'error': 'Estado inválido'}, status=400)
-        
-        box.estadobox = nuevo_estado
-        box.comentario = razon
-        box.save()
-        
-        registrar_cambio_box(
-            box_id=box_id,
-            usuario=request.user.username,  # Usar el usuario autenticado
-            accion='INHABILITACION' if nuevo_estado == 'Inhabilitado' else 'HABILITACION',
-            campo_modificado='estado',
-            valor_anterior=estado_anterior,
-            valor_nuevo=nuevo_estado,
-            comentario=razon,
-            request=request
-        )
-        
-        return Response({
-            'estadobox': box.estadobox,
-            'comentario': box.comentario,
-            'mensaje': f'Box {nuevo_estado.lower()} correctamente'
-        })
-        
-    except Box.DoesNotExist:
-        return Response({'error': 'Box no encontrado'}, status=404)
-    except Exception as e:
-        return Response({'error': str(e)}, status=400)
+class ToggleEstadoBoxView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request, box_id):
+        try:
+            box = Box.objects.get(idbox=box_id)
+            estado_anterior = box.estadobox
+            razon = request.data.get('razon', '')
+            
+            nuevo_estado = request.data.get('estadobox')
+            if not nuevo_estado:
+                nuevo_estado = 'Inhabilitado' if box.estadobox == 'Habilitado' else 'Habilitado'
+            
+            if nuevo_estado not in ['Habilitado', 'Inhabilitado']:
+                return Response({'error': 'Estado inválido'}, status=400)
+            
+            box.estadobox = nuevo_estado
+            box.comentario = razon
+            box.save()
+            
+            registrar_cambio_box(
+                box_id=box_id,
+                usuario=request.user.username if request.user.is_authenticated else "Sistema",
+                accion='INHABILITACION' if nuevo_estado == 'Inhabilitado' else 'HABILITACION',
+                comentario=razon,
+                request=request
+            )
+            
+            return Response({
+                'estadobox': box.estadobox,
+                'comentario': box.comentario,
+                'mensaje': f'Box {nuevo_estado.lower()} correctamente'
+            })
+            
+        except Box.DoesNotExist:
+            return Response({'error': 'Box no encontrado'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)

@@ -21,33 +21,25 @@ function Login() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include',
+        credentials: 'include', 
       });
-
+  
       if (response.ok) {
-        const userRes = await fetch('http://localhost:8000/api/user/', {
-          credentials: 'include',
-        });
-
-        if (userRes.ok) {
-          const user = await userRes.json();
-          console.log("Usuario obtenido:", user);
-
-          const roles = Array.isArray(user.roles) ? user.roles : [];
-
-          if (roles.includes('gestion')) {
-            navigate('/boxes');
-          } else if (roles.includes('jefe_pasillo')) {
-            navigate('/reserva-no-medica');
-          } else {
-            setError('No tienes permisos para acceder al sistema. Contacta al administrador.');
-          }
+        const data = await response.json();
+        console.log("Login exitoso:", data);
+  
+        const roles = Array.isArray(data.roles) ? data.roles : [];
+  
+        if (roles.includes('gestion')) {
+          navigate('/boxes');
+        } else if (roles.includes('jefe_pasillo')) {
+          navigate('/reserva-no-medica');
         } else {
-          setError('Error al cargar tu información de usuario');
+          setError('No tienes permisos para acceder al sistema. Contacta al administrador.');
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.detail || 'Usuario o contraseña incorrectos');
+        setError(errorData.error || 'Usuario o contraseña incorrectos');
       }
     } catch (err) {
       console.error(err);
