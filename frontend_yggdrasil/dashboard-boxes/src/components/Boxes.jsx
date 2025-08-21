@@ -100,7 +100,33 @@ export default function Boxes() {
     try {
       const response = await fetch(buildApiUrl("/api/boxes/"));  
       const data = await response.json();
-      setBoxes(data);
+      
+      // Si ya tenemos boxes, actualizamos de manera inteligente
+      if (boxes.length > 0) {
+        setBoxes(prevBoxes => {
+          // Crear un mapa de los boxes existentes por ID
+          const existingBoxesMap = new Map(prevBoxes.map(box => [box.idbox, box]));
+          
+          // Actualizar o agregar boxes nuevos
+          return data.map(newBox => {
+            const existingBox = existingBoxesMap.get(newBox.idbox);
+            if (existingBox) {
+              // Mantener el estado actual si es el mismo box, solo actualizar otros campos si han cambiado
+              return {
+                ...existingBox,
+                ...newBox,
+                // Mantener el estado actual para evitar parpadeos
+                estadobox: existingBox.estadobox
+              };
+            }
+            return newBox;
+          });
+        });
+      } else {
+        // Primera carga, establecer directamente
+        setBoxes(data);
+      }
+      
       setBoxesraw(data);
       setLastUpdated(new Date());
     } catch (error) {
@@ -129,8 +155,8 @@ export default function Boxes() {
   };
 
   const handleFechaHoraChange = async (fecha, hora) => {
-    const CHUNK_SIZE = 35; // Procesar de 15 en 15
-    const DELAY = 20; // 50ms de espera entre lotes
+    const CHUNK_SIZE = 35; // Procesar de 35 en 35
+    const DELAY = 20; // 20ms de espera entre lotes
 
     const newBoxesStates = {};
 
@@ -153,14 +179,22 @@ export default function Boxes() {
         }
       });
       
-      // Actualizar el estado de forma parcial para ver el progreso
+      // Actualizar el estado de forma parcial y más suave
       setBoxes(prevBoxes =>
-        prevBoxes.map(box => 
-          newBoxesStates[box.idbox] ? { ...box, estadobox: newBoxesStates[box.idbox] } : box
-        )
+        prevBoxes.map(box => {
+          const newState = newBoxesStates[box.idbox];
+          if (newState && newState !== box.estadobox) {
+            // Solo actualizar si el estado realmente ha cambiado
+            return { ...box, estadobox: newState };
+          }
+          return box; // Mantener el box sin cambios si el estado es el mismo
+        })
       );
 
-      await new Promise(resolve => setTimeout(resolve, DELAY));
+      // Reducir el delay para hacer la actualización más fluida
+      if (i + CHUNK_SIZE < boxes.length) {
+        await new Promise(resolve => setTimeout(resolve, DELAY));
+      }
     }
   };
 
