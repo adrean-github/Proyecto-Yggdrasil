@@ -13,6 +13,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import { buildApiUrl, buildWsUrl } from "../config/api";
+import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
 
 const pasillos = ["Traumatología - Gimnasio y curaciones", "Medicina", "Pedriatría", "Salud mental",
   "Broncopulmonar - Cardiología", "Otorrinolaringología",
@@ -66,9 +67,22 @@ export default function Boxes() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const navigate = useNavigate();
 
+  // Función para manejar cambios de estado de box desde WebSocket
+  const handleBoxStateChange = ({ boxId, nuevoEstado }) => {
+    console.log(`[DEBUG] Actualizando estado del box ${boxId} a ${nuevoEstado}`);
+    setBoxes(prevBoxes => prevBoxes.map(box =>
+      box.idbox === boxId ? { ...box, estadobox: nuevoEstado } : box
+    ));
+    setBoxesraw(prevBoxes => prevBoxes.map(box =>
+      box.idbox === boxId ? { ...box, estadobox: nuevoEstado } : box
+    ));
+  };
+
+  // WebSocket para cambios de estado de boxes
+  useBoxesWebSocket(handleBoxStateChange);
+
   // WebSocket para actualización en tiempo real
   useEffect(() => {
-    const ws_scheme = window.location.protocol === "https:" ? "wss" : "ws";
     const ws_url = buildWsUrl("/ws/agendas/");
     const socket = new window.WebSocket(ws_url);
 
@@ -80,7 +94,13 @@ export default function Boxes() {
       try {
         const data = JSON.parse(event.data);
         if (data.message === "actualizacion_agenda") {
-          fetchBoxes();
+          // Solo actualizar si estamos en modo "en vivo"
+          if (enVivo) {
+            console.log("Actualizando boxes por WebSocket (modo en vivo)");
+            fetchBoxes();
+          } else {
+            console.log("WebSocket: actualización disponible, pero no en modo en vivo");
+          }
         }
       } catch (e) {
         console.error("Error procesando mensaje WebSocket (Boxes):", e);
@@ -94,38 +114,47 @@ export default function Boxes() {
     return () => {
       socket.close();
     };
-  }, []);
+  }, [enVivo]); // Agregar enVivo como dependencia
 
   const fetchBoxes = async () => {
     try {
       const response = await fetch(buildApiUrl("/api/boxes/"));  
       const data = await response.json();
       
-      // Si ya tenemos boxes, actualizamos de manera inteligente
-      if (boxes.length > 0) {
-        setBoxes(prevBoxes => {
-          // Crear un mapa de los boxes existentes por ID
-          const existingBoxesMap = new Map(prevBoxes.map(box => [box.idbox, box]));
-          
-          // Actualizar o agregar boxes nuevos
-          return data.map(newBox => {
-            const existingBox = existingBoxesMap.get(newBox.idbox);
-            if (existingBox) {
-              // Mantener el estado actual si es el mismo box, solo actualizar otros campos si han cambiado
-              return {
-                ...existingBox,
-                ...newBox,
-                // Mantener el estado actual para evitar parpadeos
-                estadobox: existingBox.estadobox
-              };
-            }
-            return newBox;
-          });
+      // Si ya tenemos boxes, actualizamos de manera inteligente para evitar parpadeos
+      setBoxes(prevBoxes => {
+        if (prevBoxes.length === 0) {
+          // Primera carga, establecer directamente
+          return data;
+        }
+        
+        // Crear un mapa de los boxes existentes por ID para acceso rápido
+        const existingBoxesMap = new Map(prevBoxes.map(box => [box.idbox, box]));
+        
+        // Actualizar boxes existentes y agregar nuevos, manteniendo el orden original
+        const updatedBoxes = data.map(newBox => {
+          const existingBox = existingBoxesMap.get(newBox.idbox);
+          if (existingBox) {
+            // Solo actualizar campos que pueden haber cambiado, manteniendo el estado actual
+            return {
+              ...existingBox,
+              // Actualizar solo datos estructurales, NO el estado dinámico
+              pasillobox: newBox.pasillobox,
+              especialidad_principal: newBox.especialidad_principal,
+              especialidades: newBox.especialidades,
+              // Mantener el estadobox actual para evitar parpadeos
+              estadobox: existingBox.estadobox,
+              // Actualizar timestamps si han cambiado
+              ult: newBox.ult,
+              prox: newBox.prox
+            };
+          }
+          // Box nuevo, agregarlo tal como viene
+          return newBox;
         });
-      } else {
-        // Primera carga, establecer directamente
-        setBoxes(data);
-      }
+        
+        return updatedBoxes;
+      });
       
       setBoxesraw(data);
       setLastUpdated(new Date());

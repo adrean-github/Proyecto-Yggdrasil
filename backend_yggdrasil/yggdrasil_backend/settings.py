@@ -10,6 +10,9 @@ CHANNEL_LAYERS = {
     }
 }
 
+# WebSocket configuration for Cloudflare Tunnel
+USE_TLS = True  # Para usar WSS en lugar de WS
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -65,8 +68,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     # URLs de Cloudflare Tunnel
-    "https://approach-gst-monaco-desired.trycloudflare.com",  # Frontend
-    "https://ui-epic-charts-adopt.trycloudflare.com",         # Backend
+    "https://intervals-charged-mozilla-minolta.trycloudflare.com",  # Frontend
+    "https://formats-biotechnology-intention-affordable.trycloudflare.com",         # Backend
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -80,7 +83,15 @@ CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
     'cache-control',
+    'sec-websocket-key',
+    'sec-websocket-protocol',
+    'sec-websocket-version',
+    'upgrade',
+    'connection',
 ]
+
+# WebSocket specific settings
+CORS_ALLOW_WEBSOCKETS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
@@ -88,8 +99,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     # URLs de Cloudflare Tunnel
-    "https://approach-gst-monaco-desired.trycloudflare.com",  # Frontend
-    "https://ui-epic-charts-adopt.trycloudflare.com",         # Backend
+    "https://intervals-charged-mozilla-minolta.trycloudflare.com",  # Frontend
+    "https://formats-biotechnology-intention-affordable.trycloudflare.com",         # Backend
 ]
 
 ROOT_URLCONF = 'yggdrasil_backend.urls'
@@ -120,8 +131,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        # 'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -129,8 +140,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        #'PASSWORD': 'alcoy1136',    
-        'PASSWORD': '123456',  
+        'PASSWORD': 'alcoy1136',    
+        # 'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },

@@ -11,6 +11,14 @@ from django.db.models import Q
 from datetime import datetime, timedelta
 from rest_framework.permissions import AllowAny
 from .utils import get_client_ip
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from datetime import datetime, timedelta
+from rest_framework.permissions import AllowAny
+from .utils import get_client_ip
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 
 
 def registrar_cambio_box(box_id, usuario, accion, campo=None, valor_anterior=None, valor_nuevo=None, comentario=None, request=None):
@@ -245,6 +253,17 @@ class ToggleEstadoBoxView(APIView):
                 accion='INHABILITACION' if nuevo_estado == 'Inhabilitado' else 'HABILITACION',
                 comentario=razon,
                 request=request
+            )
+            
+            # Enviar mensaje WebSocket a todos los clientes conectados
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "boxes",  # Grupo de boxes
+                {
+                    "type": "box_estado_actualizado",
+                    "box_id": box_id,
+                    "nuevo_estado": nuevo_estado,
+                }
             )
             
             return Response({

@@ -9,7 +9,7 @@ export default defineConfig({
     allowedHosts: [
       'localhost',
       '127.0.0.1',
-      'approach-gst-monaco-desired.trycloudflare.com', // Tu host específico de Cloudflare
+      'intervals-charged-mozilla-minolta.trycloudflare.com', // Tu host específico de Cloudflare
       '.trycloudflare.com', // Todos los subdominios de trycloudflare.com
       '.ngrok.io',          // Por si también usas ngrok
     ],
