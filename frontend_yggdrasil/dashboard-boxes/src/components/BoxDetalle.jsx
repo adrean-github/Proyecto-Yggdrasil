@@ -859,9 +859,9 @@ export default function BoxDetalle() {
                     )}
 
 
-                    {selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales && 
-                     Array.isArray(selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales) && 
-                     selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales.length > 1 && (
+                    {selectedEvent.datosExtendidos.datos_mongo.medicos && 
+                     Array.isArray(selectedEvent.datosExtendidos.datos_mongo.medicos) && 
+                     selectedEvent.datosExtendidos.datos_mongo.medicos.length > 0 && (
                       <div>
                         <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
                           <Users size={16} />
@@ -869,10 +869,11 @@ export default function BoxDetalle() {
                         </p>
                         <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
                           <div className="space-y-2">
-                            {selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales.map((medico, index) => {
+                            {selectedEvent.datosExtendidos.datos_mongo.medicos.map((medico, index) => {
                               try {
                                 // Renderizar según la estructura de MedicoEnAgenda
                                 const medicoId = medico.medico_id || 'ID no disponible';
+                                const nombreMedico = medico.nombre_medico || `Médico ID: ${medicoId}`;
                                 const rol = medico.rol || '';
                                 const esPrincipal = Boolean(medico.es_principal);
                                 
@@ -881,12 +882,12 @@ export default function BoxDetalle() {
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="flex items-center gap-2">
-                                          <UserCheck size={14} className={esPrincipal ? "text-blue-600" : "text-blue-600"} />
-                                          <span className={`font-medium ${esPrincipal ? 'text-blue-800' : 'text-blue-800'}`}>
-                                            Médico ID: {medicoId}
+                                          <UserCheck size={14} className={esPrincipal ? "text-green-600" : "text-blue-600"} />
+                                          <span className={`font-medium ${esPrincipal ? 'text-green-800' : 'text-blue-800'}`}>
+                                            {nombreMedico}
                                           </span>
                                           {esPrincipal && (
-                                            <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                                            <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">
                                               Principal
                                             </span>
                                           )}

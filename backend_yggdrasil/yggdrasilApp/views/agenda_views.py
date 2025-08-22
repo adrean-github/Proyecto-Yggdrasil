@@ -359,15 +359,24 @@ class AgendaDetalleExtendidoView(APIView):
             agenda_extendida = AgendaExtendida.objects(agenda_id=agenda_id).first()
             
             if agenda_extendida:
-                # Agregar información de MongoDB
+                # Obtener nombres de todos los médicos de una sola consulta
+                medicos_ids = [m.medico_id for m in agenda_extendida.medicos if m.medico_id]
+                medicos_dict = {}
+                
+                if medicos_ids:
+                    medicos_queryset = Medico.objects.filter(idmedico__in=medicos_ids).values('idmedico', 'nombre')
+                    medicos_dict = {m['idmedico']: m['nombre'] for m in medicos_queryset}
+                
+                # Agregar información de MongoDB con nombres de médicos
                 agenda_data['datos_mongo'] = {
                     'tipo_procedimiento': agenda_extendida.tipo_procedimiento,
                     'equipamiento_requerido': agenda_extendida.equipamiento_requerido,
                     'preparacion_especial': agenda_extendida.preparacion_especial,
                     'notas_adicionales': agenda_extendida.notas_adicionales,
-                    'medicos_adicionales': [
+                    'medicos': [
                         {
                             'medico_id': m.medico_id,
+                            'nombre_medico': medicos_dict.get(m.medico_id, f'Médico ID {m.medico_id}'),
                             'es_principal': m.es_principal,
                             'rol': m.rol,
                             'hora_inicio': m.hora_inicio.isoformat() if m.hora_inicio else None,
