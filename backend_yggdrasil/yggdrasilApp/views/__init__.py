@@ -21,7 +21,8 @@ from .agenda_views import (
     AgendasPorMedicoView,
     DatosModificadosAPIView,
     VistaActualizableDispSerializer,
-    VistaActualizableDispView
+    VistaActualizableDispView,
+    AgendaDetalleExtendidoView
 )
 
 # Médico views
@@ -100,6 +101,7 @@ __all__ = [
     'DatosModificadosAPIView',
     'VistaActualizableDispSerializer',
     'VistaActualizableDispView',
+    'AgendaDetalleExtendidoView',
     
     # Médico views
     'SugerenciasMedicoView',

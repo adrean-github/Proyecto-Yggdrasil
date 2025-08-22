@@ -330,3 +330,61 @@ class VistaActualizableDispView(APIView):
             vista.actualizado = serializer.validated_data['actualizado']
             return Response({"message": "Flag actualizado correctamente."})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AgendaDetalleExtendidoView(APIView):
+    """Vista para obtener información completa de una agenda (PostgreSQL + MongoDB)"""
+    
+    def get(self, request, agenda_id):
+        try:
+            from ..mongo_models import AgendaExtendida
+            
+            # Obtener datos base de PostgreSQL
+            agenda = Agendabox.objects.get(id=agenda_id)
+            agenda_data = {
+                'id': agenda.id,
+                'fechaagenda': agenda.fechaagenda,
+                'horainicioagenda': agenda.horainicioagenda,
+                'horafinagenda': agenda.horafinagenda,
+                'idbox': agenda.idbox_id,
+                'esMedica': agenda.esMedica,
+                'idmedico': agenda.idmedico_id,
+                'nombre_medico': agenda.idmedico.nombre if agenda.idmedico else None,
+                'nombre_responsable': agenda.nombre_responsable,
+                'observaciones': agenda.observaciones,
+                'habilitada': agenda.habilitada
+            }
+            
+            # Intentar obtener datos extendidos de MongoDB
+            agenda_extendida = AgendaExtendida.objects(agenda_id=agenda_id).first()
+            
+            if agenda_extendida:
+                # Agregar información de MongoDB
+                agenda_data['datos_mongo'] = {
+                    'tipo_procedimiento': agenda_extendida.tipo_procedimiento,
+                    'equipamiento_requerido': agenda_extendida.equipamiento_requerido,
+                    'preparacion_especial': agenda_extendida.preparacion_especial,
+                    'notas_adicionales': agenda_extendida.notas_adicionales,
+                    'medicos_adicionales': [
+                        {
+                            'medico_id': m.medico_id,
+                            'es_principal': m.es_principal,
+                            'rol': m.rol,
+                            'hora_inicio': m.hora_inicio.isoformat() if m.hora_inicio else None,
+                            'hora_fin': m.hora_fin.isoformat() if m.hora_fin else None,
+                            'observaciones': m.observaciones
+                        } for m in agenda_extendida.medicos
+                    ],
+                    'created_at': agenda_extendida.created_at.isoformat(),
+                    'updated_at': agenda_extendida.updated_at.isoformat(),
+                    'updated_by': agenda_extendida.updated_by
+                }
+            else:
+                agenda_data['datos_mongo'] = None
+            
+            return Response(agenda_data, status=200)
+            
+        except Agendabox.DoesNotExist:
+            return Response({'error': 'Agenda no encontrada'}, status=404)
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

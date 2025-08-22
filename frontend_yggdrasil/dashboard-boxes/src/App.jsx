@@ -15,7 +15,6 @@ import HomeHeader from "./homeHeader";
 import Agendas from "./components/Agendas"; 
 import AgendarMedica from "./components/AgendarMedica";
 import HistorialBox from "./components/HistorialBox";
-import { Box } from "lucide-react";
 
 function LayoutWithHeader({ children }) {
   const location = useLocation();

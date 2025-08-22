@@ -17,13 +17,18 @@ import {
   CalendarDays,
   X,
   ExternalLink,
-  Package
+  Package,
+  Activity,
+  ClipboardList,
+  FileText,
+  Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { buildApiUrl } from "../config/api";
+import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import InventarioModal from './InventarioModal';
@@ -40,8 +45,88 @@ export default function BoxDetalle() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activeTab, setActiveTab] = useState('basico'); // 'basico' o 'extendido'
   const [razonInhabilitacion, setRazonInhabilitacion] = useState("");
   const [showInventarioModal, setShowInventarioModal] = useState(false);
+
+  // Función auxiliar para verificar si existen datos extendidos válidos
+  const tieneDatosExtendidos = (datosExtendidos) => {
+    if (!datosExtendidos || !datosExtendidos.datos_mongo) return false;
+    
+    const datosMongo = datosExtendidos.datos_mongo;
+    
+    // Verificar campos de texto
+    const camposTexto = [
+      'tipo_procedimiento',
+      'preparacion_especial',
+      'notas_adicionales'
+    ];
+    
+    const tieneTexto = camposTexto.some(campo => {
+      const valor = datosMongo[campo];
+      return valor && typeof valor === 'string' && valor.trim() !== '';
+    });
+    
+    // Verificar equipamiento (array)
+    const tieneEquipamiento = datosMongo.equipamiento_requerido && 
+                             Array.isArray(datosMongo.equipamiento_requerido) && 
+                             datosMongo.equipamiento_requerido.length > 0;
+    
+    // Verificar médicos (array de objetos)
+    const tieneMedicos = datosMongo.medicos && 
+                        Array.isArray(datosMongo.medicos) && 
+                        datosMongo.medicos.length > 0;
+    
+    return tieneTexto || tieneEquipamiento || tieneMedicos;
+  };
+
+  // Función para cambiar al tab de detalles completos
+  const verDetallesCompletos = () => {
+    console.log('[DEBUG] Cambiando a tab extendido');
+    console.log('[DEBUG] Datos extendidos:', selectedEvent?.datosExtendidos);
+    console.log('[DEBUG] Datos mongo:', selectedEvent?.datosExtendidos?.datos_mongo);
+    console.log('[DEBUG] Médicos:', selectedEvent?.datosExtendidos?.datos_mongo?.medicos);
+    
+    // Debug más específico para médicos
+    if (selectedEvent?.datosExtendidos?.datos_mongo?.medicos) {
+      selectedEvent.datosExtendidos.datos_mongo.medicos.forEach((medico, index) => {
+        console.log(`[DEBUG] Médico ${index}:`, medico, typeof medico);
+      });
+    }
+    
+    setActiveTab('extendido');
+  };
+
+  // Función para manejar el cierre del modal
+  const cerrarModal = () => {
+    setShowEventDetails(false);
+    setActiveTab('basico');
+  };
+
+  // Función para manejar cambios de estado de box desde WebSocket
+  const handleBoxStateChange = ({ boxId, nuevoEstado, evento, tipo }) => {
+    console.log(`[DEBUG BoxDetalle] Box ${boxId} cambió:`, { nuevoEstado, evento, tipo });
+    // Si el box que cambió es el que estamos viendo, actualizar los datos
+    if (parseInt(boxId) === parseInt(id)) {
+      if (tipo === 'agenda_cambio') {
+        // Cambio en agenda - refrescar todos los datos del box
+        console.log(`[DEBUG BoxDetalle] Refrescando datos por cambio de agenda: ${evento}`);
+        fetchBoxData();
+      } else {
+        // Cambio directo de estado - actualizar solo si realmente es diferente
+        setBoxData(prevData => {
+          if (prevData && prevData.estadobox !== nuevoEstado) {
+            console.log(`[DEBUG BoxDetalle] WebSocket: actualizando de ${prevData.estadobox} a ${nuevoEstado}`);
+            return { ...prevData, estadobox: nuevoEstado };
+          }
+          return prevData;
+        });
+      }
+    }
+  };
+
+  // WebSocket para cambios de estado de boxes
+  useBoxesWebSocket(handleBoxStateChange);
 
   useEffect(() => {
     setLastUpdated(new Date().toLocaleString());
@@ -98,7 +183,11 @@ export default function BoxDetalle() {
     try {
       const csrfToken = getCsrfToken();
   
-      const nuevoEstado = boxData.estadobox === "Habilitado" ? "Inhabilitado" : "Habilitado"; // Define el nuevo estado
+      // Usar el estado actual del boxData, no calcular antes
+      const estadoActual = boxData.estadobox;
+      const nuevoEstado = estadoActual === "Habilitado" ? "Inhabilitado" : "Habilitado";
+      
+      console.log(`[DEBUG toggleEstado] Cambiando de ${estadoActual} a ${nuevoEstado}`);
   
       const response = await fetch(buildApiUrl(`/api/boxes/${id}/toggle-estado/`), {
         method: "POST",
@@ -116,15 +205,21 @@ export default function BoxDetalle() {
       if (response.ok) {
         const data = await response.json();
   
-        setBoxData((prev) => ({
-          ...prev,
-          estadobox: data.estadobox,
-          comentario: data.comentario || razonInhabilitacion,
-        }));
+        // Actualización optimista más robusta
+        setBoxData((prev) => {
+          const nuevoEstado = data.estadobox;
+          console.log(`[DEBUG toggleEstado] Actualizando estado de ${prev?.estadobox} a ${nuevoEstado}`);
+          return {
+            ...prev,
+            estadobox: nuevoEstado,
+            comentario: data.comentario || razonInhabilitacion,
+          };
+        });
   
         setShowConfirmDialog(false);
         setRazonInhabilitacion("");
   
+        // Refrescar historial
         const historialResponse = await fetch(
           buildApiUrl(`/api/boxes/${id}/historial-modificaciones/`),
           {
@@ -154,12 +249,28 @@ export default function BoxDetalle() {
     }
   };
 
-  const handleEventClick = (info) => {
+  const handleEventClick = async (info) => {
     const event = info.event;
     const extendedProps = event.extendedProps || {};
     
     console.log('Evento clickeado:', event);
     console.log('¿Es tope?', extendedProps.esTope);
+    
+    // Cargar información extendida de MongoDB
+    let datosExtendidos = null;
+    try {
+      const response = await fetch(buildApiUrl(`/api/agenda/${event.id}/detalle-extendido/`), {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        datosExtendidos = await response.json();
+        console.log('Datos extendidos de MongoDB:', datosExtendidos);
+        console.log('Estructura datos_mongo:', datosExtendidos?.datos_mongo);
+        console.log('Médicos:', datosExtendidos?.datos_mongo?.medicos);
+      }
+    } catch (error) {
+      console.error('Error al cargar datos extendidos:', error);
+    }
     
     setSelectedEvent({
       id: event.id,
@@ -169,7 +280,8 @@ export default function BoxDetalle() {
       extendedProps: extendedProps,
       observaciones: extendedProps.observaciones || 'Sin observaciones',
       medico: extendedProps.medico || 'No asignado',
-      esTope: extendedProps.esTope || false
+      esTope: extendedProps.esTope || false,
+      datosExtendidos: datosExtendidos // Agregar datos de MongoDB
     });
     setShowEventDetails(true);
   };
@@ -601,7 +713,7 @@ export default function BoxDetalle() {
         {showEventDetails && selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
             <motion.div
-              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -612,102 +724,283 @@ export default function BoxDetalle() {
                   <h3 className="text-lg font-semibold text-gray-800">Detalles de la agenda</h3>
                 </div>
                 <button 
-                  onClick={() => setShowEventDetails(false)}
+                  onClick={cerrarModal}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X size={20} />
                 </button>
               </div>
-              
-              <div className="space-y-4">
-                {selectedEvent.esTope && (
-                  <div className="bg-red-100 border border-red-300 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="text-red-800" size={20} />
-                      <span className="text-red-900 font-semibold">CONFLICTO DE HORARIO</span>
+
+              {/* Tabs */}
+              <div className="flex border-b border-gray-200 mb-4">
+                <button
+                  onClick={() => setActiveTab('basico')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'basico'
+                      ? 'border-[#1B5D52] text-[#1B5D52]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Información básica
+                </button>
+                {selectedEvent?.datosExtendidos && tieneDatosExtendidos(selectedEvent.datosExtendidos) && (
+                  <button
+                    onClick={() => setActiveTab('extendido')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'extendido'
+                        ? 'border-[#1B5D52] text-[#1B5D52]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Información extendida
+                  </button>
+                )}
+              </div>
+
+              {/* Contenido del modal con scroll */}
+              <div className="overflow-y-auto max-h-[60vh]">
+                {activeTab === 'basico' && (
+                  <div className="space-y-4">
+                    {selectedEvent.esTope && (
+                      <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="text-red-800" size={20} />
+                          <span className="text-red-900 font-semibold">CONFLICTO DE HORARIO</span>
+                        </div>
+                        <p className="text-red-800 text-sm mt-1">
+                          Este evento se superpone con otra agenda en el mismo box.
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-sm text-gray-600">ID agenda</p>
+                      <p className="font-medium">
+                        #{selectedEvent.id.toString()}
+                      </p>
                     </div>
-                    <p className="text-red-800 text-sm mt-1">
-                      Este evento se superpone con otra agenda en el mismo box.
-                    </p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Inicio</p>
+                        <p className="font-medium">
+                          {selectedEvent.start.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-600">Fin</p>
+                        <p className="font-medium">
+                          {selectedEvent.end ? selectedEvent.end.toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'Sin definir'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-600">Tipo</p>
+                      <p className="font-medium">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          selectedEvent.extendedProps.tipo === 'Médica' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : selectedEvent.extendedProps.tipo === 'No médica'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {selectedEvent.extendedProps.tipo}
+                        </span>
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-600">Médico / Responsable</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <UserCheck size={16} />
+                        {selectedEvent.medico}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-600">Observaciones</p>
+                      <p className="font-medium bg-gray-50 p-3 rounded-lg">
+                        {selectedEvent.observaciones}
+                      </p>
+                    </div>
                   </div>
                 )}
+
+                {activeTab === 'extendido' && selectedEvent?.datosExtendidos?.datos_mongo && (
+                  <div className="space-y-6">
+                    {/* Información extendida con validaciones estrictas */}
+                    {selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento && 
+                     typeof selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento === 'string' && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                          <Activity size={16} />
+                          Tipo de Procedimiento
+                        </p>
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                          <p className="font-medium text-blue-800">
+                            {selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+
+                    {selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales && 
+                     Array.isArray(selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales) && 
+                     selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales.length > 1 && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                          <Users size={16} />
+                          Médicos Participantes
+                        </p>
+                        <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
+                          <div className="space-y-2">
+                            {selectedEvent.datosExtendidos.datos_mongo.medicos_adicionales.map((medico, index) => {
+                              try {
+                                // Renderizar según la estructura de MedicoEnAgenda
+                                const medicoId = medico.medico_id || 'ID no disponible';
+                                const rol = medico.rol || '';
+                                const esPrincipal = Boolean(medico.es_principal);
+                                
+                                return (
+                                  <div key={index} className={`p-3 rounded-lg ${esPrincipal ? 'bg-blue-100 border border-blue-300' : 'bg-blue-100'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <UserCheck size={14} className={esPrincipal ? "text-blue-600" : "text-blue-600"} />
+                                          <span className={`font-medium ${esPrincipal ? 'text-blue-800' : 'text-blue-800'}`}>
+                                            Médico ID: {medicoId}
+                                          </span>
+                                          {esPrincipal && (
+                                            <span className="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full">
+                                              Principal
+                                            </span>
+                                          )}
+                                        </div>
+                                        {rol && (
+                                          <p className={`text-sm ml-5 ${esPrincipal ? 'text-blue-600' : 'text-blue-600'}`}>
+                                            Rol: {rol}
+                                          </p>
+                                        )}                                        
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              } catch (error) {
+                                console.error('Error renderizando médico:', error, medico);
+                                return (
+                                  <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded">
+                                    <UserCheck size={14} className="text-red-600" />
+                                    <span className="font-medium text-red-600">Error cargando médico</span>
+                                  </div>
+                                );
+                              }
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+
+                    {selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido && 
+                     Array.isArray(selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido) &&
+                     selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido.length > 0 && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                          <Package size={16} />
+                          Equipamiento Requerido
+                        </p>
+                        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                          <div className="space-y-1">
+                            {selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido.map((item, index) => (
+                              <div key={index} className="flex items-start gap-2">
+                                <span className="text-green-600 mt-1">°</span>
+                                <span className="font-medium text-green-800">{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedEvent.datosExtendidos.datos_mongo.preparacion_especial && 
+                     typeof selectedEvent.datosExtendidos.datos_mongo.preparacion_especial === 'string' && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                          <ClipboardList size={16} />
+                          Preparación Especial
+                        </p>
+                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                          <p className="font-medium text-yellow-800">
+                            {selectedEvent.datosExtendidos.datos_mongo.preparacion_especial}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedEvent.datosExtendidos.datos_mongo.notas_adicionales && 
+                     typeof selectedEvent.datosExtendidos.datos_mongo.notas_adicionales === 'string' && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                          <FileText size={16} />
+                          Notas Adicionales
+                        </p>
+                        <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
+                          <p className="font-medium text-purple-800 whitespace-pre-wrap">
+                            {selectedEvent.datosExtendidos.datos_mongo.notas_adicionales}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                   
-              <div className="space-y-4">  
 
-                 <div>
-                    <p className="text-sm text-gray-600">ID agenda</p>
-                    <p className="font-medium">
-                      #{selectedEvent.id.toString()}
-                    </p>
-                  </div>
+                    {/* Mensaje si no hay datos extendidos */}
+                    {selectedEvent.datosExtendidos?.datos_mongo && 
+                     !selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento && 
+                     (!selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido || selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido.length === 0) && 
+                     !selectedEvent.datosExtendidos.datos_mongo.preparacion_especial && 
+                     !selectedEvent.datosExtendidos.datos_mongo.notas_adicionales && 
+                     (!selectedEvent.datosExtendidos.datos_mongo.medicos || selectedEvent.datosExtendidos.datos_mongo.medicos.length === 0) && (
+                      <div className="text-center py-8">
+                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">No hay información extendida disponible para esta agenda</p>
+                      </div>
+                    )}
 
-                  <div className="grid grid-cols-2 gap-4">
-
-                  <div>
-                    <p className="text-sm text-gray-600">Inicio</p>
-                    <p className="font-medium">
-                      {selectedEvent.start.toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+                    {/* Mensaje si no hay datos de MongoDB */}
+                    {!selectedEvent.datosExtendidos?.datos_mongo && (
+                      <div className="text-center py-8">
+                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">No hay información extendida disponible para esta agenda</p>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-600">Fin</p>
-                    <p className="font-medium">
-                      {selectedEvent.end ? selectedEvent.end.toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : 'Sin definir'}
-                    </p>
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Tipo</p>
-                  <p className="font-medium">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      selectedEvent.extendedProps.tipo === 'Médica' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : selectedEvent.extendedProps.tipo === 'No médica'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {selectedEvent.extendedProps.tipo}
-                    </span>
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Médico / Responsable</p>
-                  <p className="font-medium flex items-center gap-2">
-                    <UserCheck size={16} />
-                    {selectedEvent.medico}
-                  </p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Observaciones</p>
-                  <p className="font-medium bg-gray-50 p-3 rounded-lg">
-                    {selectedEvent.observaciones}
-                  </p>
-                </div>
+                )}
               </div>
               
-              <button
-                onClick={() => setShowEventDetails(false)}
-                className="w-full mt-6 py-2 px-4 bg-[#1B5D52] text-white rounded-lg hover:bg-[#14463d] transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={cerrarModal}
+                  className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

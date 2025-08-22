@@ -3,6 +3,21 @@ import { buildWsUrl } from '../config/api';
 
 export const useBoxesWebSocket = (onBoxStateChange) => {
   const socketRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  const debouncedCallback = (data) => {
+    // Cancelar timeout anterior si existe
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // Crear nuevo timeout para evitar llamadas demasiado frecuentes
+    timeoutRef.current = setTimeout(() => {
+      if (onBoxStateChange) {
+        onBoxStateChange(data);
+      }
+    }, 100); // 100ms de debounce
+  };
 
   useEffect(() => {
     // Crear conexión WebSocket para boxes
@@ -21,13 +36,18 @@ export const useBoxesWebSocket = (onBoxStateChange) => {
         console.log('[DEBUG] Mensaje WebSocket de Boxes recibido:', data);
         
         if (data.type === "actualizacion_estado_box") {
-          // Llamar al callback que pasó el componente
-          if (onBoxStateChange) {
-            onBoxStateChange({
-              boxId: data.box_id,
-              nuevoEstado: data.nuevo_estado
-            });
-          }
+          // Usar callback con debounce para cambios de estado
+          debouncedCallback({
+            boxId: data.box_id,
+            nuevoEstado: data.nuevo_estado
+          });
+        } else if (data.type === "actualizacion_agenda_box") {
+          // Cambio en agenda que afecta el estado del box
+          debouncedCallback({
+            boxId: data.box_id,
+            evento: data.evento,
+            tipo: 'agenda_cambio'
+          });
         }
       } catch (e) {
         console.error("Error procesando mensaje WebSocket de Boxes:", e);
@@ -44,6 +64,9 @@ export const useBoxesWebSocket = (onBoxStateChange) => {
 
     // Cleanup cuando el componente se desmonta
     return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       if (socketRef.current) {
         socketRef.current.close();
       }

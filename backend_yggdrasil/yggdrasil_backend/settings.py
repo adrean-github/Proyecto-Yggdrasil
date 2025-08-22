@@ -68,8 +68,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     # URLs de Cloudflare Tunnel
-    "https://intervals-charged-mozilla-minolta.trycloudflare.com",  # Frontend
-    "https://formats-biotechnology-intention-affordable.trycloudflare.com",         # Backend
+    "https://ahead-handed-vacation-attempts.trycloudflare.com",  # Frontend
+    "https://ct-suites-brake-devon.trycloudflare.com",         # Backend
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -99,8 +99,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     # URLs de Cloudflare Tunnel
-    "https://intervals-charged-mozilla-minolta.trycloudflare.com",  # Frontend
-    "https://formats-biotechnology-intention-affordable.trycloudflare.com",         # Backend
+    "https://ahead-handed-vacation-attempts.trycloudflare.com ",  # Frontend
+    "https://ct-suites-brake-devon.trycloudflare.com",         # Backend
 ]
 
 ROOT_URLCONF = 'yggdrasil_backend.urls'

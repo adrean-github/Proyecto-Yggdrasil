@@ -53,8 +53,18 @@ class BoxesConsumer(AsyncWebsocketConsumer):
 
     # Handler para cambios de estado de box
     async def box_estado_actualizado(self, event):
+        print(f"[DEBUG Consumer] Enviando actualización de box: {event}")
         await self.send(text_data=json.dumps({
             'type': 'actualizacion_estado_box',
             'box_id': event.get('box_id'),
-            'nuevo_estado': event.get('nuevo_estado')
+            'nuevo_estado': event.get('nuevo_estado'),
+            'timestamp': event.get('timestamp', None)
+        }))
+
+    # Handler para cambios en agendas que afectan boxes
+    async def agenda_box_actualizada(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'actualizacion_agenda_box',
+            'box_id': event.get('box_id'),
+            'evento': event.get('evento')
         }))

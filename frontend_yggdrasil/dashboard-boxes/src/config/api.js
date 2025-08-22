@@ -6,8 +6,8 @@
 // export const WS_BASE_URL = 'ws://localhost:8000';
 
 // Para Cloudflare Tunnel (cambia por tu URL real):
-export const API_BASE_URL = 'https://formats-biotechnology-intention-affordable.trycloudflare.com';
-export const WS_BASE_URL = 'wss://formats-biotechnology-intention-affordable.trycloudflare.com';
+export const API_BASE_URL = 'https://ct-suites-brake-devon.trycloudflare.com';
+export const WS_BASE_URL = 'wss://ct-suites-brake-devon.trycloudflare.com';
 
 // Helper functions para construir URLs
 export const buildApiUrl = (endpoint) => {

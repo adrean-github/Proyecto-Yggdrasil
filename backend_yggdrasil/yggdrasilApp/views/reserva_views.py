@@ -7,6 +7,23 @@ from ..serializers import AgendaboxSerializer
 from rest_framework import status
 from datetime import datetime, time, timedelta
 from django.utils import timezone
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+
+def notificar_cambio_box_agenda(box_id, tipo_evento="agenda_modificada"):
+    """
+    Función helper para notificar cambios en agendas que afectan el estado de boxes
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "boxes",  # Grupo de boxes
+        {
+            "type": "agenda_box_actualizada",
+            "box_id": box_id,
+            "evento": tipo_evento,
+        }
+    )
 
 
 class AgendasNoMedicasView(APIView):
@@ -123,6 +140,9 @@ class CrearReservaNoMedicaView(APIView):
             from ..modulos.cache_manager import CacheSignals
             CacheSignals.agenda_creada(nueva_agenda, fuente='reserva_no_medica')
 
+            # ⭐ NUEVO: Notificar cambio por WebSocket
+            notificar_cambio_box_agenda(box_id, "agenda_creada")
+
             return Response({
                 'mensaje': 'Reserva creada exitosamente',
                 'id': nueva_agenda.id,
@@ -185,6 +205,9 @@ class CrearReservaMedicaView(APIView):
             # ⭐ NUEVO: Invalidar cache automáticamente
             from ..modulos.cache_manager import CacheSignals
             CacheSignals.agenda_creada(nueva_agenda, fuente='reserva_medica')
+
+            # ⭐ NUEVO: Notificar cambio por WebSocket
+            notificar_cambio_box_agenda(box_id, "agenda_creada")
 
             return Response({
                 'mensaje': 'Reserva médica creada exitosamente',
@@ -273,7 +296,12 @@ class LiberarReservaView(APIView):
     def delete(self, request, reserva_id):
         try:
             reserva = Agendabox.objects.get(id=reserva_id)
+            box_id = reserva.idbox_id  # Guardar el box_id antes de eliminar
             reserva.delete()
+            
+            # ⭐ NUEVO: Notificar cambio por WebSocket
+            notificar_cambio_box_agenda(box_id, "agenda_eliminada")
+            
             return Response({'mensaje': 'Reserva eliminada/liberada'}, status=200)
         except Agendabox.DoesNotExist:
             return Response({'error': 'Reserva no encontrada'}, status=404)
@@ -289,6 +317,10 @@ class UpdateReservaView(APIView):
         serializer = AgendaboxSerializer(reserva, data=request.data, partial=True) 
         if serializer.is_valid():
             serializer.save()
+            
+            # ⭐ NUEVO: Notificar cambio por WebSocket
+            notificar_cambio_box_agenda(reserva.idbox_id, "agenda_modificada")
+            
             return Response({'mensaje': 'Reserva actualizada', 'reserva': serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

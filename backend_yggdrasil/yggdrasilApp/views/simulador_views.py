@@ -9,6 +9,24 @@ from ..models import Agendabox
 from ..serializers import AgendaboxSerializer
 from ..modulos.agenda_adapter import SimuladorAdapter
 from ..modulos.simulador_agenda import SimuladorAgenda
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+
+def notificar_cambios_masivos_agenda(boxes_afectados):
+    """
+    Función helper para notificar cambios masivos en agendas del simulador
+    """
+    channel_layer = get_channel_layer()
+    for box_id in boxes_afectados:
+        async_to_sync(channel_layer.group_send)(
+            "boxes",  # Grupo de boxes
+            {
+                "type": "agenda_box_actualizada",
+                "box_id": box_id,
+                "evento": "agenda_masiva_creada",
+            }
+        )
 
 
 # Variable global para almacenar agendas temporalmente
@@ -60,7 +78,21 @@ def confirmar_guardado_agendas(request):
         return JsonResponse({'error': 'Solo se permite POST'}, status=405)
     try:
         agendas = GLOBAL.pop()
+        
+        # Guardar las agendas
         Agendabox.objects.bulk_create(agendas)
-        return JsonResponse({"mensaje": "Agendas confirmadas y guardadas exitosamente"}, status=status.HTTP_200_OK)
+        
+        # ⭐ NUEVO: Recopilar boxes afectados y notificar cambios
+        boxes_afectados = set()
+        for agenda in agendas:
+            boxes_afectados.add(agenda.idbox_id)
+        
+        # Notificar cambios masivos por WebSocket
+        notificar_cambios_masivos_agenda(list(boxes_afectados))
+        
+        return JsonResponse({
+            "mensaje": f"Agendas confirmadas y guardadas exitosamente. {len(boxes_afectados)} boxes afectados.",
+            "boxes_afectados": len(boxes_afectados)
+        }, status=status.HTTP_200_OK)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

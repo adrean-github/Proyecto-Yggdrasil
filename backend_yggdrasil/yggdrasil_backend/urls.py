@@ -28,7 +28,7 @@ from yggdrasilApp.views import (
     # Agenda views
     AgendaBox, DatosModificadosAPIView, VistaActualizableDispView,
     AgendasConTopeView, TodasAgendasView, CheckDisponibilidadView,
-    AgendasPorMedicoView, AgendasPorPasilloView,
+    AgendasPorMedicoView, AgendasPorPasilloView, AgendaDetalleExtendidoView,
     
     # Médico views
     SugerenciasMedicoView, MedicosDisponiblesView,
@@ -93,6 +93,7 @@ urlpatterns = [
     path('api/boxes-inhabilitados/', BoxesInhabilitadosView.as_view(), name='boxes-inhabilitados'), 
     path('api/agendas-con-tope/', AgendasConTopeView.as_view(), name='agendas-con-tope'),
     path('api/todas-las-agendas/', TodasAgendasView.as_view(), name='todas-las-agendas'),
+    path('api/agenda/<int:agenda_id>/detalle-extendido/', AgendaDetalleExtendidoView.as_view(), name='agenda-detalle-extendido'),
     path('api/medicos-disponibles/', MedicosDisponiblesView.as_view(), name='medicos-disponibles'),
     path('api/login/', login_view, name='login_view'),
     path('api/logout/',logout_view, name='logout_view'),

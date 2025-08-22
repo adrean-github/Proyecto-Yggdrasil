@@ -265,6 +265,7 @@ class ToggleEstadoBoxView(APIView):
                     "nuevo_estado": nuevo_estado,
                 }
             )
+            print(f"[DEBUG WebSocket] Mensaje enviado: box_id={box_id}, estado={nuevo_estado}")
             
             return Response({
                 'estadobox': box.estadobox,

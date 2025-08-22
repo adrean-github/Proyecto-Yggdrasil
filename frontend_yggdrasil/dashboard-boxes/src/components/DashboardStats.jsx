@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { buildApiUrl } from "../config/api";
+import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
 import { 
   Card, 
   CardContent, 
@@ -49,6 +50,21 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [especialidadFilter, setEspecialidadFilter] = useState('top10');
   const [filteredEspecialidades, setFilteredEspecialidades] = useState([]);
+  
+  // Función para manejar cambios de estado de box desde WebSocket
+  const handleBoxStateChange = ({ boxId, nuevoEstado, evento, tipo }) => {
+    console.log(`[DEBUG Dashboard] Box ${boxId} cambió:`, { nuevoEstado, evento, tipo });
+    // En el dashboard, cuando cambia el estado de un box o sus agendas, 
+    // podrías querer refrescar las estadísticas
+    // Por ahora, solo loggeamos el cambio
+    if (tipo === 'agenda_cambio') {
+      console.log(`[DEBUG Dashboard] Agenda del box ${boxId} ${evento}`);
+      // Opcionalmente, podrías refrescar las estadísticas aquí
+    }
+  };
+
+  // WebSocket para cambios de estado de boxes
+  useBoxesWebSocket(handleBoxStateChange);
   
   //obtener estadísticas del dashboard
   useEffect(() => {

@@ -68,14 +68,38 @@ export default function Boxes() {
   const navigate = useNavigate();
 
   // Función para manejar cambios de estado de box desde WebSocket
-  const handleBoxStateChange = ({ boxId, nuevoEstado }) => {
-    console.log(`[DEBUG] Actualizando estado del box ${boxId} a ${nuevoEstado}`);
-    setBoxes(prevBoxes => prevBoxes.map(box =>
-      box.idbox === boxId ? { ...box, estadobox: nuevoEstado } : box
-    ));
-    setBoxesraw(prevBoxes => prevBoxes.map(box =>
-      box.idbox === boxId ? { ...box, estadobox: nuevoEstado } : box
-    ));
+  const handleBoxStateChange = ({ boxId, nuevoEstado, evento, tipo }) => {
+    if (tipo === 'agenda_cambio') {
+      // Cambio en agenda - refrescar el estado del box afectado
+      console.log(`[DEBUG] Agenda del box ${boxId} cambió: ${evento}`);
+      // Para cambios de agenda, necesitamos recalcular el estado del box
+      // basado en la fecha/hora actual
+      if (enVivo) {
+        // Solo si estamos en modo en vivo, refrescamos el estado
+        const ahora = new Date();
+        const fechaActual = ahora.toISOString().split("T")[0];
+        const horaActual = ahora.toTimeString().slice(0, 5);
+        handleFechaHoraChange(fechaActual, horaActual);
+      }
+    } else {
+      // Cambio directo de estado del box (habilitado/inhabilitado)
+      console.log(`[DEBUG] Actualizando estado del box ${boxId} a ${nuevoEstado}`);
+      const boxIdNum = parseInt(boxId);
+      
+      // Función para actualizar de manera más robusta
+      const updateBoxState = (prevBoxes) => {
+        return prevBoxes.map(box => {
+          if (box.idbox === boxIdNum) {
+            console.log(`[DEBUG] Box ${boxIdNum} actualizado de ${box.estadobox} a ${nuevoEstado}`);
+            return { ...box, estadobox: nuevoEstado };
+          }
+          return box;
+        });
+      };
+      
+      setBoxes(updateBoxState);
+      setBoxesraw(updateBoxState);
+    }
   };
 
   // WebSocket para cambios de estado de boxes
