@@ -65,6 +65,9 @@ export default function Agenda() {
         if (res.ok) {
           const data = await res.json();
           setBoxesInhabilitados(data.map(box => box.idbox));
+          if (vista === "todas") {
+            fetchAgendas();
+          }
         }
       } catch (err) {
         console.error("Error fetching boxes inhabilitados:", err);
@@ -183,9 +186,10 @@ export default function Agenda() {
               tope.horafinagenda > agenda.hora_inicio &&
               tope.id !== agenda.id 
           );
-
+  
           const boxInhabilitado = boxesInhabilitados.includes(parseInt(agenda.box_id));
           let motivoInhabilitacion = null;
+          
           if (boxInhabilitado) {
             motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
           }
@@ -206,6 +210,7 @@ export default function Agenda() {
         ...agenda,
         tope: false,
         boxInhabilitado: boxesInhabilitados.includes(parseInt(agenda.box_id)),
+        motivoInhabilitacion: null,
       }));
     }
   };
@@ -551,35 +556,39 @@ export default function Agenda() {
   
   const obtenerMotivoInhabilitacion = async (boxId) => {
     try {
+      if (!boxId) return "Sin especificar";
+      
       const response = await fetch(buildApiUrl(`/api/boxes/${boxId}/`), {
         credentials: 'include'
       });
       
-      if (!response.ok) throw new Error("Error al obtener datos del box");
+      if (!response.ok) return "Error al obtener datos del box";
       
       const boxData = await response.json();
       
       if (boxData.estadobox === 'Inhabilitado') {
-        const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
-          credentials: 'include'
-        });
-        
-        if (historialResponse.ok) {
-          const historialData = await historialResponse.json();
-          const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+        try {
+          const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
+            credentials: 'include'
+          });
           
-          const inhabilitaciones = historialModificaciones
-            .filter(item => item.accion === 'INHABILITACION' && item.comentario)
-            .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-          
-          if (inhabilitaciones.length > 0) {
-            return inhabilitaciones[0].comentario;
+          if (historialResponse.ok) {
+            const historialData = await historialResponse.json();
+            const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+            
+            const inhabilitaciones = historialModificaciones
+              .filter(item => item.accion === 'INHABILITACION' && item.comentario)
+              .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            
+            if (inhabilitaciones.length > 0) {
+              return inhabilitaciones[0].comentario;
+            }
           }
           
           return boxData.comentario || "Sin especificar";
+        } catch (error) {
+          return boxData.comentario || "Sin especificar";
         }
-        
-        return boxData.comentario || "Sin especificar";
       }
       
       return null; 
@@ -587,6 +596,20 @@ export default function Agenda() {
       console.error("Error obteniendo motivo de inhabilitación:", error);
       return "Error al obtener motivo";
     }
+  };
+
+  const aplicarFiltroInmediato = (tipo, valor) => {
+    let agendasFiltradas = [...agendas];
+    
+    if (tipo === 'tope' && valor) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
+    } else if (tipo === 'inhabilitado' && valor) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
+    }
+    
+    setAgendas(agendasFiltradas);
+  
+    fetchAgendas(true);
   };
 
   const modificarAgenda = async (e) => {
@@ -630,8 +653,7 @@ export default function Agenda() {
       
       if (!res.ok) throw new Error(await res.text());
       
-      // Actualizar el estado y cerrar el modal
-      fetchAgendas(); // Recargar las agendas
+      fetchAgendas(); 
       setModal({ tipo: null, data: null, mensaje: null });
       
     } catch (err) {
@@ -646,12 +668,17 @@ export default function Agenda() {
     fetchAgendas(true);
   };
 
-  // Cargar agendas automáticamente al cambiar a vista "todas"
   useEffect(() => {
-    if (vista === "todas") {
-      fetchAgendas();
-    }
-  }, [vista]);
+    const loadInitialData = async () => {
+      if (vista === "todas") {
+        if (boxesInhabilitados.length > 0 || boxesInhabilitados.length === 0) {
+          await fetchAgendas();
+        }
+      }
+    };
+    
+    loadInitialData();
+  }, [vista, boxesInhabilitados]);
 
   return (
     <>
@@ -752,7 +779,7 @@ export default function Agenda() {
           <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
 
-            {/* Filtros adicionales */}
+            {/*filtros adicionales*/}
             <div className="flex items-center gap-6 flex-wrap mt-4">
               {/* Mostrar solo topes */}
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -769,14 +796,15 @@ export default function Agenda() {
                   type="checkbox"
                   checked={filtroTopes}
                   onChange={() => {
-                    setFiltroTopes(!filtroTopes);
-                    aplicarFiltros();
+                    const nuevoValor = !filtroTopes;
+                    setFiltroTopes(nuevoValor);
+                    // Aplicar filtro inmediatamente sin esperar
+                    aplicarFiltroCheckbox('tope', nuevoValor);
                   }}
                   className="hidden"
                 />
                 <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
               </label>
-
               {/* Mostrar solo inhabilitados */}
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <div
@@ -792,8 +820,10 @@ export default function Agenda() {
                   type="checkbox"
                   checked={filtroInhabilitados}
                   onChange={() => {
-                    setFiltroInhabilitados(!filtroInhabilitados);
-                    aplicarFiltros();
+                    const nuevoValor = !filtroInhabilitados;
+                    setFiltroInhabilitados(nuevoValor);
+                    // Aplicar filtro inmediatamente sin esperar
+                    aplicarFiltroCheckbox('inhabilitado', nuevoValor);
                   }}
                   className="hidden"
                 />
@@ -989,9 +1019,9 @@ export default function Agenda() {
                       <td className="px-4 py-2 border">{a.responsable}</td>
                       <td className="px-4 py-2 border">
                       {a.tope 
-                        ? `Tope con agenda #${a.tope}` 
+                        ? `TOPE con agenda #${a.tope}` 
                         : a.boxInhabilitado 
-                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                          ? `INHABILITADO: ${a.motivoInhabilitacion || "Sin especificar"}` 
                           : a.observaciones || "-"
                       }
                       </td>

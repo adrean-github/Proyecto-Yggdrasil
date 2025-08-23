@@ -414,22 +414,70 @@ export default function Boxes() {
       <div className="flex flex-col lg:flex-row gap-4">
         {/*panel principal de boxes */}
         <div className="flex-1">
-          {/*filtros de estado */}
-          <div className="flex flex-wrap gap-2 mb-4">
+        {/*filtros de estado*/}
+        <div className="mb-4">
+          {/* Para móviles */}
+          <div className="block sm:hidden">
+            <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
+                {estadosDisponibles.filter((_, i) => i < 3).map((estado) => {
+                  const count = estado.valor === "Todos" ? boxesFiltradosPorPasillo.length : countByEstado(estado.valor);
+                  return (
+                    <button
+                      key={estado.valor}
+                      onClick={() => setFiltroEstado(estado.valor)}
+                      className={`px-2 py-1 rounded-md shadow-sm text-xs font-medium transition-all flex items-center justify-between
+                        ${filtroEstado === estado.valor ? "ring-1 ring-offset-1 ring-gray-400 scale-[1.02]" : "opacity-95 hover:opacity-100"} 
+                        ${estado.color} ${estado.textColor}`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-current opacity-80"></div>
+                        <span className="truncate">{estado.label}</span>
+                      </div>
+                      <span className="font-bold ml-1">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex justify-center gap-1.5">
+                {estadosDisponibles.filter((_, i) => i >= 3).map((estado) => {
+                  const count = countByEstado(estado.valor);
+                  return (
+                    <button
+                      key={estado.valor}
+                      onClick={() => setFiltroEstado(estado.valor)}
+                      className={`px-2 py-1 rounded-md shadow-sm text-xs font-medium transition-all flex items-center justify-between w-1/3 min-w-[100px]
+                        ${filtroEstado === estado.valor ? "ring-1 ring-offset-1 ring-gray-400 scale-[1.02]" : "opacity-95 hover:opacity-100"} 
+                        ${estado.color} ${estado.textColor}`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-current opacity-80"></div>
+                        <span className="truncate">{estado.label}</span>
+                      </div>
+                      <span className="font-bold ml-1">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          
+          {/*pantallas grandes*/}
+          <div className="hidden sm:flex flex-wrap gap-2">
             {estadosDisponibles.map((estado) => (
               <button
                 key={estado.valor}
                 onClick={() => setFiltroEstado(estado.valor)}
-                className={`px-4 py-1 rounded-lg shadow-sm text-sm font-medium transition-all flex items-center gap-2
+                className={`px-3 py-1 rounded-md shadow-sm text-xs font-medium transition-all flex items-center gap-2
                   ${filtroEstado === estado.valor ? "ring-2 ring-offset-1 ring-gray-400 scale-105" : "opacity-90 hover:opacity-100"} 
                   ${estado.color} ${estado.textColor}`}
               >
-                <div className="w-3 h-3 rounded-full bg-current opacity-70"></div>
+                <div className="w-2 h-2 rounded-full bg-current opacity-70"></div>
                 {estado.label} ({estado.valor === "Todos" ? boxesFiltradosPorPasillo.length : countByEstado(estado.valor)})
               </button>
             ))}
           </div>
-
+        </div>
           {/*lista de boxes */}
           <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-2">
             <AnimatePresence mode="sync">
