@@ -40,6 +40,7 @@ export default function Agenda() {
   const [filtroNombre, setFiltroNombre] = useState("");
   const [pasilloSeleccionado, setPasilloSeleccionado] = useState("");
   const [agendas, setAgendas] = useState([]);
+  const [agendasSinFiltrar, setAgendasSinFiltrar] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [sugerencias, setSugerencias] = useState([]);
   const [modal, setModal] = useState({ tipo: null, data: null, mensaje: null });
@@ -54,28 +55,141 @@ export default function Agenda() {
   const [filtroTopes, setFiltroTopes] = useState(false);
   const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
   const [todosLosTopes, setTodosLosTopes] = useState({});
+  const motivosCache = useRef(new Map());
   const gestionRef = useRef(null);
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(150);
 
-  // Cargar boxes inhabilitados al iniciar
+  // Cargar datos iniciales de forma paralela
   useEffect(() => {
-    const fetchBoxesInhabilitados = async () => {
+    const loadInitialData = async () => {
       try {
-        const res = await fetch(buildApiUrl('/api/boxes-inhabilitados/'));
-        if (res.ok) {
-          const data = await res.json();
-          setBoxesInhabilitados(data.map(box => box.idbox));
-          if (vista === "todas") {
-            fetchAgendas();
-          }
+        setLoading(true);
+        
+        // Ejecutar ambas llamadas en paralelo
+        const [boxesResponse, agendasResponse, topesResponse] = await Promise.all([
+          fetch(buildApiUrl('/api/boxes-inhabilitados/')),
+          fetch(buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`)),
+          fetch(buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`))
+        ]);
+
+        // Procesar boxes inhabilitados
+        const boxesInhabilitados = [];
+        if (boxesResponse.ok) {
+          const boxesData = await boxesResponse.json();
+          boxesInhabilitados.push(...boxesData.map(box => box.idbox));
+          setBoxesInhabilitados(boxesInhabilitados);
         }
+
+        // Procesar topes
+        const mapaTopes = {};
+        if (topesResponse.ok) {
+          const topesData = await topesResponse.json();
+          if (Array.isArray(topesData)) {
+            topesData.forEach(tope => {
+              if (!mapaTopes[tope.idbox]) {
+                mapaTopes[tope.idbox] = [];
+              }
+              mapaTopes[tope.idbox].push(tope);
+            });
+          }
+          setTodosLosTopes(mapaTopes);
+        }
+
+        // Procesar agendas
+        if (agendasResponse.ok) {
+          const fetchedData = await agendasResponse.json();
+          
+          const limpiarDato = (valor, defecto = "-") => {
+            return valor !== null && valor !== undefined ? valor : defecto;
+          };
+
+          const agendasProcesadas = fetchedData.map(a => ({
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id),
+            fecha: limpiarDato(a.fecha),
+            hora_inicio: limpiarDato(a.hora_inicio?.slice(0, 5)),
+            hora_fin: limpiarDato(a.hora_fin?.slice(0, 5)),
+            tipo: limpiarDato(a.tipo),
+            responsable: limpiarDato(a.responsable),
+            observaciones: limpiarDato(a.observaciones)
+          }));
+
+          // Marcar topes e inhabilitados de forma síncrona (ya tenemos los datos)
+          const agendasConTopes = await Promise.all(
+            agendasProcesadas.map(async agenda => {
+              const topesEnBox = mapaTopes[agenda.box_id] || [];
+              const topeCon = topesEnBox.find(
+                tope =>
+                  tope.fechaagenda === agenda.fecha &&
+                  tope.horainicioagenda < agenda.hora_fin &&
+                  tope.horafinagenda > agenda.hora_inicio &&
+                  tope.id !== agenda.id 
+              );
+
+              const boxInhabilitado = boxesInhabilitados.includes(parseInt(agenda.box_id));
+              let motivoInhabilitacion = null;
+              
+              if (boxInhabilitado) {
+                // Solo hacer la llamada HTTP si es necesario y de forma paralela
+                try {
+                  motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
+                } catch (err) {
+                  motivoInhabilitacion = "Error al obtener motivo";
+                }
+              }
+              
+              return {
+                ...agenda,
+                tope: topeCon ? topeCon.id : false,
+                boxInhabilitado,
+                motivoInhabilitacion: boxInhabilitado ? motivoInhabilitacion : null,
+              };
+            })
+          );
+
+          setAgendasSinFiltrar(agendasConTopes);
+        }
+        
       } catch (err) {
-        console.error("Error fetching boxes inhabilitados:", err);
+        console.error("Error loading initial data:", err);
+        setAgendasSinFiltrar([]);
+      } finally {
+        setLoading(false);
       }
     };
     
-    fetchBoxesInhabilitados();
-  }, []);
+    // Solo cargar al inicio si estamos en vista "todas"
+    if (vista === "todas") {
+      loadInitialData();
+    }
+  }, []); // Solo ejecutar una vez al montar el componente
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroTopes, filtroInhabilitados, agendas]);
+
+
+  // Aplicar filtros cuando cambian los estados de los checkboxes
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtroTopes, filtroInhabilitados, agendasSinFiltrar]);
+
+  // Función para aplicar filtros sobre las agendas sin filtrar
+  const aplicarFiltros = () => {
+    let agendasFiltradas = [...agendasSinFiltrar];
+
+    if (filtroTopes) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
+    }
+
+    if (filtroInhabilitados) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
+    }
+
+    setAgendas(agendasFiltradas);
+  };
 
   // Autocomplete médico
   useEffect(() => {
@@ -186,10 +300,9 @@ export default function Agenda() {
               tope.horafinagenda > agenda.hora_inicio &&
               tope.id !== agenda.id 
           );
-  
+
           const boxInhabilitado = boxesInhabilitados.includes(parseInt(agenda.box_id));
           let motivoInhabilitacion = null;
-          
           if (boxInhabilitado) {
             motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
           }
@@ -210,9 +323,48 @@ export default function Agenda() {
         ...agenda,
         tope: false,
         boxInhabilitado: boxesInhabilitados.includes(parseInt(agenda.box_id)),
-        motivoInhabilitacion: null,
       }));
     }
+  };
+
+  const abrirModalEdicion = async (agenda) => {
+    let agendaConId = { ...agenda };
+    
+    // Si es una agenda médica y no tenemos idmedico, lo buscamos
+    if ((agenda.tipo === "Médica" || agenda.tipo === "Medica" || agenda.tipo === "médica") && 
+        !agenda.idmedico && agenda.responsable && agenda.responsable.trim() !== "-") {
+      
+      try {
+        const res = await fetch(
+          buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(agenda.responsable.trim())}`)
+        );
+        
+        if (res.ok) {
+          const medicos = await res.json();
+          
+          // Buscar coincidencia exacta primero
+          let medicoEncontrado = medicos.find(m => 
+            m.nombre.toLowerCase().trim() === agenda.responsable.toLowerCase().trim()
+          );
+          
+          // Si no hay coincidencia exacta, buscar que contenga el nombre
+          if (!medicoEncontrado) {
+            medicoEncontrado = medicos.find(m => 
+              m.nombre.toLowerCase().includes(agenda.responsable.toLowerCase().trim())
+            );
+          }
+          
+          if (medicoEncontrado) {
+            agendaConId.idmedico = medicoEncontrado.idmedico || medicoEncontrado.id;
+            console.log("ID del médico cargado al abrir modal:", agendaConId.idmedico);
+          }
+        }
+      } catch (err) {
+        console.warn("Error buscando médico al abrir modal:", err);
+      }
+    }
+    
+    setModal({ tipo: "editar", data: agendaConId });
   };
 
   const validarModificacion = async (nuevaAgenda, agendas) => {
@@ -227,22 +379,58 @@ export default function Agenda() {
       return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
     }
     
-    const bloquesLibres = await generarHorasLibres(
+    // 1. Validar que el box esté disponible
+    const bloquesLibresBox = await generarHorasLibres(
       nuevaAgenda.fecha, 
       nuevaAgenda.box_id
     );
     
-    const horarioValido = bloquesLibres.some(bloque => {
+    const boxDisponible = bloquesLibresBox.some(bloque => {
       const bloqueInicio = parseDateTime(nuevaAgenda.fecha, bloque.inicio);
       const bloqueFin = parseDateTime(nuevaAgenda.fecha, bloque.fin);
       return start >= bloqueInicio && end <= bloqueFin;
     });
     
-    if (!horarioValido) {
+    if (!boxDisponible) {
       return { 
         valido: false, 
-        mensaje: "El horario seleccionado no está disponible"
+        mensaje: "El box no está disponible en el horario seleccionado"
       };
+    }
+    
+    // 2. Validar que el médico esté disponible (si es agenda médica y tenemos ID de médico)
+    if ((nuevaAgenda.tipo === "Médica" || nuevaAgenda.tipo === "Medica" || nuevaAgenda.tipo === "médica") && nuevaAgenda.idmedico) {
+      try {
+        const res = await fetch(
+          buildApiUrl(`/api/medico/disponibilidad/?medico_id=${nuevaAgenda.idmedico}&fecha=${nuevaAgenda.fecha}`)
+        );
+        
+        if (res.ok) {
+          const data = await res.json();
+          
+          // Verificar conflictos de horario (excluyendo la agenda actual)
+          const conflictos = data.agendas.filter(agenda => 
+            agenda.id !== nuevaAgenda.id && // Excluir la agenda actual
+            agenda.hora_inicio && agenda.hora_fin && // Asegurar que tiene horarios
+            parseDateTime(nuevaAgenda.fecha, agenda.hora_inicio) < end &&
+            parseDateTime(nuevaAgenda.fecha, agenda.hora_fin) > start
+          );
+          
+          if (conflictos.length > 0) {
+            const conflictosInfo = conflictos.map(c => 
+              `Box ${c.box_id} (${c.hora_inicio}-${c.hora_fin})`
+            ).join(', ');
+            
+            return { 
+              valido: false, 
+              mensaje: `El médico tiene ${conflictos.length} conflicto(s): ${conflictosInfo}` 
+            };
+          }
+        }
+      } catch (err) {
+        console.warn("Error verificando disponibilidad médica:", err);
+        // Continuar sin validación médica si hay error en la API
+      }
     }
     
     return { valido: true };
@@ -256,7 +444,12 @@ export default function Agenda() {
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      return data.bloques_libres || [];
+      
+      // Mapear la estructura de la API a la esperada
+      return data.bloques_libres.map(bloque => ({
+        inicio: bloque.hora_inicio,
+        fin: bloque.hora_fin
+      })) || [];
     } catch (err) {
       console.error("Error obteniendo bloques libres:", err);
       return [];
@@ -274,10 +467,20 @@ export default function Agenda() {
       const data = await res.json();
       const bloquesLibres = data.bloques_libres || [];
       
+      // Validar y mapear a la estructura esperada
+      const bloquesValidos = bloquesLibres
+        .filter(bloque => bloque && bloque.hora_inicio && bloque.hora_fin)
+        .map(bloque => ({
+          inicio: bloque.hora_inicio,
+          fin: bloque.hora_fin
+        }));
+  
+      console.log("Bloques libres procesados:", bloquesValidos); // Para debug
+  
       if (!horaInicioSeleccionada) {
         const horasDisponibles = [];
         
-        bloquesLibres.forEach(bloque => {
+        bloquesValidos.forEach(bloque => {
           const [inicioH, inicioM] = bloque.inicio.split(':').map(Number);
           const [finH, finM] = bloque.fin.split(':').map(Number);
           
@@ -295,14 +498,15 @@ export default function Agenda() {
           }
         });
         
+        console.log("Horas inicio disponibles:", horasDisponibles); // Para debug
         return horasDisponibles;
       } else {
-        // Generar horas de fin disponibles basadas en la hora de inicio seleccionada
+        // Generar horas de fin disponibles
         const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
         
         const horasFinDisponibles = [];
         
-        bloquesLibres.forEach(bloque => {
+        bloquesValidos.forEach(bloque => {
           const [bloqueH, bloqueM] = bloque.inicio.split(':').map(Number);
           const [bloqueFinH, bloqueFinM] = bloque.fin.split(':').map(Number);
           
@@ -332,6 +536,7 @@ export default function Agenda() {
           }
         });
         
+        console.log("Horas fin disponibles:", horasFinDisponibles); // Para debug
         return horasFinDisponibles;
       }
     } catch (err) {
@@ -350,10 +555,15 @@ export default function Agenda() {
         }
       }
       
-      return !horaInicioSeleccionada ? horas : horas.filter(h => {
-        const [hh, mm] = h.split(':').map(Number);
-        return hh > horaH || (hh === horaH && mm > horaM);
-      });
+      if (!horaInicioSeleccionada) {
+        return horas;
+      } else {
+        const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
+        return horas.filter(h => {
+          const [hh, mm] = h.split(':').map(Number);
+          return hh > horaH || (hh === horaH && mm > horaM);
+        });
+      }
     }
   };
   
@@ -410,7 +620,7 @@ export default function Agenda() {
     try {
       setLoading(true);
       let url = "";
-
+  
       if (vista === "todas") {
         url = buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`);
       } else if (vista === "box") {
@@ -430,11 +640,11 @@ export default function Agenda() {
         throw new Error(errorText);
       }
       const fetchedData = await res.json();
-
+  
       const limpiarDato = (valor, defecto = "-") => {
         return valor !== null && valor !== undefined ? valor : defecto;
       };
-
+  
       const agendasProcesadas = fetchedData.map(a => {
         if (vista === "todas") {
           return {
@@ -446,8 +656,8 @@ export default function Agenda() {
             tipo: limpiarDato(a.tipo),
             responsable: limpiarDato(a.responsable),
             observaciones: limpiarDato(a.observaciones)
-        };
-        }else if (vista === "box") {
+          };
+        } else if (vista === "box") {
           return {
             id: limpiarDato(a.id),
             box_id: limpiarDato(a.box_id || filtroId),
@@ -481,22 +691,20 @@ export default function Agenda() {
             observaciones: limpiarDato(a.observaciones)
           };
         }
-      });
+        return null;
+      }).filter(Boolean);
+      
+      // Marcar topes e inhabilitados
       const agendasConTopes = await marcarTopesYInhabilitados(agendasProcesadas);
-      let agendasFiltradas = agendasConTopes;
-      
-      if (filtroTopes) {
-        agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
-      }
-      
-      if (filtroInhabilitados) {
-        agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
-      }
-      
-      setAgendas(agendasFiltradas);
 
+      // Guardar todas las agendas sin filtrar
+      setAgendasSinFiltrar(agendasConTopes);
+      
+      // Los filtros se aplicarán automáticamente por el useEffect de aplicarFiltros()
+  
     } catch (err) {
       console.error("Error fetching agendas:", err);
+      setAgendasSinFiltrar([]);
       setAgendas([]);
       if (manual) {
         setModal({ tipo: "alerta", mensaje: "Error al cargar las agendas. Verifica los filtros." });
@@ -520,12 +728,36 @@ export default function Agenda() {
 
   const eliminarAgenda = async (id) => {
     try {
-      const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
-      setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
-      fetchAgendas();
+      const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { 
+        method: "DELETE",
+        headers: {
+          'Accept': 'application/json', // ← Forzar respuesta JSON
+        }
+      });
+      
+      // Verificar si la respuesta es JSON
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.mensaje || 'Error eliminando reserva');
+        setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
+      } else {
+        // Si no es JSON, obtener texto y tratar de parsear manualmente
+        const text = await res.text();
+        throw new Error(`Respuesta inesperada del servidor: ${text.substring(0, 100)}...`);
+      }
+      
+      // Recargar agendas después de eliminar
+      setTimeout(() => {
+        fetchAgendas(true);
+      }, 1000);
+      
     } catch (err) {
-      setModal({ tipo: "alerta", mensaje: "Error eliminando: " + err.message });
+      console.error("Error eliminando agenda:", err);
+      setModal({ 
+        tipo: "alerta", 
+        mensaje: `Error eliminando: ${err.message || 'Error desconocido'}` 
+      });
     }
   };
 
@@ -553,132 +785,152 @@ export default function Agenda() {
       }));
     }
   };
-  
+    
   const obtenerMotivoInhabilitacion = async (boxId) => {
+    // Verificar caché primero
+    if (motivosCache.current.has(boxId)) {
+      return motivosCache.current.get(boxId);
+    }
+
     try {
-      if (!boxId) return "Sin especificar";
-      
       const response = await fetch(buildApiUrl(`/api/boxes/${boxId}/`), {
         credentials: 'include'
       });
       
-      if (!response.ok) return "Error al obtener datos del box";
+      if (!response.ok) throw new Error("Error al obtener datos del box");
       
       const boxData = await response.json();
       
       if (boxData.estadobox === 'Inhabilitado') {
-        try {
-          const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
-            credentials: 'include'
-          });
-          
-          if (historialResponse.ok) {
-            const historialData = await historialResponse.json();
-            const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+        let motivo = boxData.comentario || "Sin especificar";
+        
+        // Intentar obtener historial solo si no hay comentario directo
+        if (!boxData.comentario || boxData.comentario === "Sin especificar") {
+          try {
+            const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
+              credentials: 'include'
+            });
             
-            const inhabilitaciones = historialModificaciones
-              .filter(item => item.accion === 'INHABILITACION' && item.comentario)
-              .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-            
-            if (inhabilitaciones.length > 0) {
-              return inhabilitaciones[0].comentario;
+            if (historialResponse.ok) {
+              const historialData = await historialResponse.json();
+              const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+              
+              const inhabilitaciones = historialModificaciones
+                .filter(item => item.accion === 'INHABILITACION' && item.comentario)
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+              
+              if (inhabilitaciones.length > 0) {
+                motivo = inhabilitaciones[0].comentario;
+              }
             }
+          } catch (historialErr) {
+            console.warn("No se pudo obtener historial para box", boxId, historialErr);
           }
-          
-          return boxData.comentario || "Sin especificar";
-        } catch (error) {
-          return boxData.comentario || "Sin especificar";
         }
+        
+        // Guardar en caché
+        motivosCache.current.set(boxId, motivo);
+        return motivo;
       }
       
       return null; 
     } catch (error) {
       console.error("Error obteniendo motivo de inhabilitación:", error);
-      return "Error al obtener motivo";
+      const errorMsg = "Error al obtener motivo";
+      motivosCache.current.set(boxId, errorMsg);
+      return errorMsg;
     }
   };
 
-  const aplicarFiltroInmediato = (tipo, valor) => {
-    let agendasFiltradas = [...agendas];
-    
-    if (tipo === 'tope' && valor) {
-      agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
-    } else if (tipo === 'inhabilitado' && valor) {
-      agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
-    }
-    
-    setAgendas(agendasFiltradas);
-  
-    fetchAgendas(true);
-  };
 
   const modificarAgenda = async (e) => {
     e.preventDefault();
-    
+  
     // Validación adicional
     if (!modal.data.hora_inicio || !modal.data.hora_fin) {
       return setModal({
         ...modal,
-        mensaje: "Debes seleccionar tanto hora de inicio como de fin"
+        mensaje: "Debes seleccionar tanto hora de inicio como de fin",
       });
     }
   
     // Verificar que la hora fin sea posterior a la hora inicio
-    const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(':').map(Number);
-    const [horaFinH, horaFinM] = modal.data.hora_fin.split(':').map(Number);
-    
+    const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(":").map(Number);
+    const [horaFinH, horaFinM] = modal.data.hora_fin.split(":").map(Number);
+  
     if (horaFinH < horaInicioH || (horaFinH === horaInicioH && horaFinM <= horaInicioM)) {
       return setModal({
         ...modal,
-        mensaje: "La hora de fin debe ser posterior a la hora de inicio"
+        mensaje: "La hora de fin debe ser posterior a la hora de inicio",
       });
     }
   
     try {
+      const payload = {
+        idbox: modal.data.box_id,
+        fechaagenda: modal.data.fecha,
+        horainicioagenda: modal.data.hora_inicio + ":00",
+        horafinagenda: modal.data.hora_fin + ":00",
+        nombre_responsable: modal.data.responsable,
+        observaciones: modal.data.observaciones || "",
+      };
+  
+      // Si no hay `idmedico`, enviamos solo el nombre del médico
+      if (modal.data.idmedico) {
+        payload.idmedico = modal.data.idmedico;
+      }
+  
+      console.log("Payload enviado:", payload);
+  
       const res = await fetch(
         buildApiUrl(`/api/reservas/${modal.data.id}/modificar/`),
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idbox: modal.data.box_id,
-            fechaagenda: modal.data.fecha,
-            horainicioagenda: modal.data.hora_inicio + ":00",
-            horafinagenda: modal.data.hora_fin + ":00",
-            nombre_responsable: modal.data.responsable,
-            observaciones: modal.data.observaciones,
-          }),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
         }
       );
-      
-      if (!res.ok) throw new Error(await res.text());
-      
-      fetchAgendas(); 
-      setModal({ tipo: null, data: null, mensaje: null });
-      
+  
+      // Verificar tipo de respuesta
+      const contentType = res.headers.get("content-type");
+      let responseData;
+  
+      if (contentType && contentType.includes("application/json")) {
+        responseData = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta inesperada: ${text.substring(0, 100)}...`);
+      }
+  
+      if (!res.ok) {
+        throw new Error(
+          responseData.error || responseData.mensaje || "Error modificando reserva"
+        );
+      }
+  
+      setModal({ tipo: "success", mensaje: "Agenda modificada correctamente" });
+  
+      // Recargar agendas después de modificar
+      setTimeout(() => {
+        fetchAgendas(true);
+        setModal({ tipo: null, data: null, mensaje: null });
+      }, 1500);
     } catch (err) {
+      console.error("Error modificando agenda:", err);
       setModal({
         ...modal,
-        mensaje: `Error al guardar: ${err.message}`
+        mensaje: `Error al guardar: ${err.message || "Error desconocido"}`,
       });
     }
   };
 
-  const aplicarFiltros = () => {
-    fetchAgendas(true);
-  };
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (vista === "todas") {
-        if (boxesInhabilitados.length > 0 || boxesInhabilitados.length === 0) {
-          await fetchAgendas();
-        }
-      }
-    };
-    
-    loadInitialData();
-  }, [vista, boxesInhabilitados]);
+  const totalPages = Math.ceil(agendas.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const agendasPaginadas = agendas.slice(startIndex, endIndex);
 
   return (
     <>
@@ -758,7 +1010,12 @@ export default function Agenda() {
                 key={v}
                 onClick={() => {
                   setVista(v);
-                  if (v === "todas") fetchAgendas();
+                  // Solo hacer fetch manual para otras vistas, "todas" ya se carga automáticamente
+                  if (v !== "todas") {
+                    // Limpiar datos al cambiar de vista
+                    setAgendas([]);
+                    setAgendasSinFiltrar([]);
+                  }
                 }}
                 className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
                   vista === v ? "text-white" : "text-gray-600"
@@ -776,61 +1033,51 @@ export default function Agenda() {
             ))}
           </div>
         </div>
-          <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
+        <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
-            {/*filtros adicionales*/}
-            <div className="flex items-center gap-6 flex-wrap mt-4">
-              {/* Mostrar solo topes */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
-                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                    filtroTopes
-                      ? "bg-[#005C48] border-[#005C48]"
-                      : "border-gray-400 bg-white"
-                  }`}
-                >
-                  {filtroTopes && <Check className="w-4 h-4 text-white" />}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={filtroTopes}
-                  onChange={() => {
-                    const nuevoValor = !filtroTopes;
-                    setFiltroTopes(nuevoValor);
-                    // Aplicar filtro inmediatamente sin esperar
-                    aplicarFiltroCheckbox('tope', nuevoValor);
-                  }}
-                  className="hidden"
-                />
-                <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
-              </label>
-              {/* Mostrar solo inhabilitados */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
-                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                    filtroInhabilitados
-                      ? "bg-orange-500 border-orange-500"
-                      : "border-gray-400 bg-white"
-                  }`}
-                >
-                  {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={filtroInhabilitados}
-                  onChange={() => {
-                    const nuevoValor = !filtroInhabilitados;
-                    setFiltroInhabilitados(nuevoValor);
-                    // Aplicar filtro inmediatamente sin esperar
-                    aplicarFiltroCheckbox('inhabilitado', nuevoValor);
-                  }}
-                  className="hidden"
-                />
-                <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
-              </label>
-            </div>
+          {/* Filtros adicionales */}
+          <div className="flex items-center gap-6 flex-wrap mt-4">
+            {/* Mostrar solo topes */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                  filtroTopes
+                    ? "bg-[#005C48] border-[#005C48]"
+                    : "border-gray-400 bg-white"
+                }`}
+              >
+                {filtroTopes && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <input
+                type="checkbox"
+                checked={filtroTopes}
+                onChange={(e) => setFiltroTopes(e.target.checked)}
+                className="hidden"
+              />
+              <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
+            </label>
 
+            {/* Mostrar solo inhabilitados */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                  filtroInhabilitados
+                    ? "bg-orange-500 border-orange-500"
+                    : "border-gray-400 bg-white"
+                }`}
+              >
+                {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <input
+                type="checkbox"
+                checked={filtroInhabilitados}
+                onChange={(e) => setFiltroInhabilitados(e.target.checked)}
+                className="hidden"
+              />
+              <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
+            </label>
+          </div>
 
             {vista === "box" && (
               <>
@@ -848,75 +1095,75 @@ export default function Agenda() {
             {vista === "medico" && (
               <div className="relative w-full sm:w-auto">
                 <input
-            type="text"
-            placeholder="Nombre de médico (mínimo 2 caracteres)"
-            value={filtroNombre}
-            onChange={(e) => {
-                  setFiltroNombre(e.target.value);
-                  setActiveIndex(-1);
-                  if (e.target.value.length < 2) setSugerencias([]);
-                }}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setTimeout(() => {
-                  if (!document.activeElement?.closest('.sugerencias-container')) {
-                    setInputFocused(false);
-                  }
-                }, 200)}
-                onKeyDown={(e) => {
-                  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-                    e.preventDefault();
-                    if (e.key === 'ArrowDown') {
-                      setActiveIndex((prev) => (prev + 1) % sugerencias.length);
-                    } else if (e.key === 'ArrowUp') {
-                      setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
-                    } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
-                      setFiltroNombre(sugerencias[activeIndex].nombre);
-                      setSugerencias([]);
+                  type="text"
+                  placeholder="Nombre de médico (mínimo 2 caracteres)"
+                  value={filtroNombre}
+                  onChange={(e) => {
+                    setFiltroNombre(e.target.value);
+                    setActiveIndex(-1);
+                    if (e.target.value.length < 2) setSugerencias([]);
+                  }}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setTimeout(() => {
+                    if (!document.activeElement?.closest('.sugerencias-container')) {
                       setInputFocused(false);
                     }
-                  }
-                }}
-                className="border rounded px-3 py-2 w-full"
-              />
-              
-              {cargandoSugerencias && (
-                <div className="absolute right-3 top-2.5">
-                  <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              )}
-              
-              {(inputFocused && sugerencias.length > 0) && (
-                <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {sugerencias.map((medico, index) => (
-                    <li
-                      key={medico.id}
-                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                        index === activeIndex ? 'bg-blue-50' : ''
-                      }`}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setFiltroNombre(medico.nombre);
+                  }, 200)}
+                  onKeyDown={(e) => {
+                    if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                      e.preventDefault();
+                      if (e.key === 'ArrowDown') {
+                        setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                      } else if (e.key === 'ArrowUp') {
+                        setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                      } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                        setFiltroNombre(sugerencias[activeIndex].nombre);
                         setSugerencias([]);
                         setInputFocused(false);
-                      }}
-                      onMouseEnter={() => setActiveIndex(index)}
-                    >
-                      {medico.nombre}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              
-              {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
-                  {errorSugerencias || "No se encontraron médicos"}
-                </div>
-              )}
-            </div>
-          )}
+                      }
+                    }
+                  }}
+                  className="border rounded px-3 py-2 w-full"
+                />
+                
+                {cargandoSugerencias && (
+                  <div className="absolute right-3 top-2.5">
+                    <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
+                
+                {(inputFocused && sugerencias.length > 0) && (
+                  <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {sugerencias.map((medico, index) => (
+                      <li
+                        key={medico.id}
+                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                          index === activeIndex ? 'bg-gray-100' : ''
+                        }`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setFiltroNombre(medico.nombre);
+                          setSugerencias([]);
+                          setInputFocused(false);
+                        }}
+                        onMouseEnter={() => setActiveIndex(index)}
+                      >
+                        {medico.nombre}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                
+                {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
+                    {errorSugerencias || "No se encontraron médicos"}
+                  </div>
+                )}
+              </div>
+            )}
           
           {vista === "pasillo" && (
             <select 
@@ -979,14 +1226,11 @@ export default function Agenda() {
                 </tr>
               </thead>
               <tbody>
-              {agendas.map((a, i) => {
-                console.log("Agenda:", a.id, "Tope:", a.tope, "BoxInhabilitado:", a.boxInhabilitado);
-                
+              {agendasPaginadas.map((a, i) => {
                 let rowClass = "hover:bg-gray-100 ";
                 
                 if (a.tope) {
                   rowClass += "bg-red-200 ";
-                  console.log("AGENDA CON TOPE:", a.id, "Tope con:", a.tope);
                 } else if (a.boxInhabilitado) {
                   rowClass += "bg-orange-200 ";
                 } else if (i % 2 === 0) {
@@ -994,7 +1238,7 @@ export default function Agenda() {
                 } else {
                   rowClass += "bg-white ";
                 }
-  
+
                   return (
                     <tr key={i} className={rowClass}>
                       <td className="px-4 py-2 border">{a.id}</td>
@@ -1019,9 +1263,9 @@ export default function Agenda() {
                       <td className="px-4 py-2 border">{a.responsable}</td>
                       <td className="px-4 py-2 border">
                       {a.tope 
-                        ? `TOPE con agenda #${a.tope}` 
+                        ? `Tope con agenda #${a.tope}` 
                         : a.boxInhabilitado 
-                          ? `INHABILITADO: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
                           : a.observaciones || "-"
                       }
                       </td>
@@ -1031,7 +1275,7 @@ export default function Agenda() {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
-                            onClick={() => setModal({ tipo: "editar", data: a })}
+                            onClick={() => abrirModalEdicion(a)}
                             title="Editar agenda"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -1082,11 +1326,149 @@ export default function Agenda() {
           </div>
         )}
 
+
+        {/* Estadísticas, pag navegación */}
+        {agendas.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {/* Información y estadísticas */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <p className="text-sm text-gray-600 font-medium">
+                  Mostrando <span className="text-[#005C48] font-bold">{agendas.length}</span> agendas
+                </p>
+                
+                {/* Contadores de estados */}
+                <div className="flex items-center gap-3 text-xs">
+                  {filtroTopes && (
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      {agendas.filter(a => a.tope).length} con tope
+                    </span>
+                  )}
+                  {filtroInhabilitados && (
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                      {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                    </span>
+                  )}
+                  {!filtroTopes && !filtroInhabilitados && (
+                    <>
+                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                        {agendas.filter(a => a.tope).length} con tope
+                      </span>
+                      <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                        {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                      </span>
+                      <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                        {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
+                className="flex items-center gap-1 px-4 py-2 bg-[#005C48] text-white rounded-lg hover:bg-[#004335] transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                </svg>
+                Volver arriba
+              </button>
+            </div>
+
+            {/* Paginación */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Filas por página:</span>
+                <select 
+                  value={rowsPerPage}
+                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value={150}>150</option>
+                  <option value={100}>100</option>
+                  <option value={50}>50</option>
+                  <option value={10}>10</option>
+                  <option value={1000}>1000</option>
+
+
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  ← Anterior
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded ${
+                          currentPage === pageNum
+                            ? 'bg-[#005C48] text-white'
+                            : 'border hover:bg-gray-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <>
+                      <span className="px-1">...</span>
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        className={`w-8 h-8 rounded ${
+                          currentPage === totalPages
+                            ? 'bg-[#005C48] text-white'
+                            : 'border hover:bg-gray-100'
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal */}
         {modal.tipo && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
-              {modal.tipo === "alerta" ? (
+            {modal.tipo === "success" ? (
+              <>
+                <h2 className="text-xl font-bold mb-4">Éxito</h2>
+                <p className="mb-6 text-green-600">{modal.mensaje}</p>
+                <div className="flex justify-end">
+                  <button 
+                    className="px-4 py-2 bg-[#005C48] text-white rounded" 
+                    onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </>
+            ) : modal.tipo === "alerta" ? (
                 <>
                   <h2 className="text-xl font-bold mb-4">Aviso</h2>
                   <p className="mb-6">{modal.mensaje}</p>
@@ -1143,19 +1525,29 @@ export default function Agenda() {
                         type="number"
                         value={modal.data.box_id}
                         onChange={async (e) => {
-                          const newData = { ...modal.data, box_id: e.target.value };
-                          const validacion = await validarModificacion(newData, agendas);
+                          const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
                           setModal({ 
                             ...modal, 
                             data: newData,
-                            mensaje: validacion.valido ? null : validacion.mensaje
+                            mensaje: null
                           });
-                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                          
+                          // Resetear horas
                           setHorasDisponibles({
-                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                            inicio: [],
                             fin: []
                           });
+                          
+                          // Cargar horas disponibles para el nuevo box
+                          if (newData.fecha && newData.box_id) {
+                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                            setHorasDisponibles({
+                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                              fin: []
+                            });
+                          }
                         }}
+                        
                         className={`border rounded px-3 py-2 w-full ${
                           boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
                             ? 'border-orange-500 bg-orange-50' 
@@ -1178,18 +1570,27 @@ export default function Agenda() {
                         type="date"
                         value={modal.data.fecha}
                         onChange={async (e) => {
-                          const newData = { ...modal.data, fecha: e.target.value };
-                          const validacion = await validarModificacion(newData, agendas);
+                          const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
                           setModal({ 
                             ...modal, 
                             data: newData,
-                            mensaje: validacion.valido ? null : validacion.mensaje
+                            mensaje: null
                           });
-                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                          
+                          // Resetear horas
                           setHorasDisponibles({
-                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                            inicio: [],
                             fin: []
                           });
+                          
+                          // Cargar horas disponibles para la nueva fecha
+                          if (newData.box_id && newData.fecha) {
+                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                            setHorasDisponibles({
+                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                              fin: []
+                            });
+                          }
                         }}
                         className="border rounded px-3 py-2 w-full"
                         required
@@ -1241,7 +1642,12 @@ export default function Agenda() {
                           onChange={(e) => {
                             setModal({ 
                               ...modal, 
-                              data: { ...modal.data, responsable: e.target.value } 
+                              data: { 
+                                ...modal.data, 
+                                responsable: e.target.value,
+                                // Limpiar el idmedico si se está escribiendo un nuevo nombre
+                                idmedico: modal.data.responsable !== e.target.value ? null : modal.data.idmedico
+                              } 
                             });
                             setMostrarSugerencias(true);
                           }}
@@ -1251,8 +1657,8 @@ export default function Agenda() {
                           required
                         />
                         {mostrarSugerencias && sugerenciasMedico.length > 0 && (
-                          <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                            {sugerenciasMedico.map((medico) => (
+                          <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            {sugerenciasMedico.map((medico, index) => (
                               <li
                                 key={medico.id}
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -1260,7 +1666,11 @@ export default function Agenda() {
                                 onClick={() => {
                                   setModal({
                                     ...modal,
-                                    data: { ...modal.data, responsable: medico.nombre }
+                                    data: { 
+                                      ...modal.data, 
+                                      responsable: medico.nombre,
+                                      idmedico: medico.idmedico || medico.id // Asegúrate de usar el campo correcto
+                                    }
                                   });
                                   setMostrarSugerencias(false);
                                 }}
@@ -1272,6 +1682,7 @@ export default function Agenda() {
                         )}
                       </div>
                     </div>
+
 
                     <div className="space-y-2 md:col-span-2">
                       <label className="block text-sm font-medium">Observaciones</label>

@@ -291,21 +291,24 @@ class MisReservasNoMedicasView(APIView):
 
         return Response(data, status=200)
 
-
 class LiberarReservaView(APIView):
     def delete(self, request, reserva_id):
         try:
             reserva = Agendabox.objects.get(id=reserva_id)
-            box_id = reserva.idbox_id  # Guardar el box_id antes de eliminar
+            box_id = reserva.idbox_id
             reserva.delete()
             
-            # ⭐ NUEVO: Notificar cambio por WebSocket
-            notificar_cambio_box_agenda(box_id, "agenda_eliminada")
-            
+            # ⭐ AGREGAR TRY-CATCH para la notificación
+            try:
+                notificar_cambio_box_agenda(box_id, "agenda_eliminada")
+            except Exception as e:
+                print(f"Error en notificación WebSocket: {e}")
+                # Puedes decidir si quieres continuar o no
+                pass
+                
             return Response({'mensaje': 'Reserva eliminada/liberada'}, status=200)
         except Agendabox.DoesNotExist:
             return Response({'error': 'Reserva no encontrada'}, status=404)
-
 
 class UpdateReservaView(APIView):
     def put(self, request, reserva_id):
@@ -318,8 +321,16 @@ class UpdateReservaView(APIView):
         if serializer.is_valid():
             serializer.save()
             
+                        
+            # ⭐ AGREGAR TRY-CATCH para la notificación
+            try:
+                notificar_cambio_box_agenda(reserva.idbox_id, "agenda_modificada")
+            except Exception as e:
+                print(f"Error en notificación WebSocket: {e}")
+                # Puedes decidir si quieres continuar o no
+                pass
+
             # ⭐ NUEVO: Notificar cambio por WebSocket
-            notificar_cambio_box_agenda(reserva.idbox_id, "agenda_modificada")
             
             return Response({'mensaje': 'Reserva actualizada', 'reserva': serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

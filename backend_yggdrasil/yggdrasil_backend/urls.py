@@ -31,7 +31,7 @@ from yggdrasilApp.views import (
     AgendasPorMedicoView, AgendasPorPasilloView, AgendaDetalleExtendidoView,
     
     # Médico views
-    SugerenciasMedicoView, MedicosDisponiblesView,
+    SugerenciasMedicoView, MedicosDisponiblesView,  MedicoDisponibilidadView,
     
     # Reserva views
     AgendasNoMedicasView, BloquesNoMedicosDisponiblesView, CrearReservaNoMedicaView,
@@ -78,6 +78,7 @@ urlpatterns = [
     path('api/verificar_actualizacion/', VistaActualizableDispView.as_view(), name='vista_flag'),
     path('api/agendas-no-medicas/<int:id>/', AgendasNoMedicasView.as_view()),
     path('api/bloques-no-medicos/<int:id>/', BloquesNoMedicosDisponiblesView.as_view()),
+    path('api/medico/disponibilidad/', MedicoDisponibilidadView.as_view(), name='medico-disponibilidad'),
     path('api/reservar-no-medica/', CrearReservaNoMedicaView.as_view()),
     path('api/reservar-medica/', CrearReservaMedicaView.as_view(), name='reservar-medica'),
     path('api/<int:box_id>/bloques-libres/', BloquesLibresView.as_view(), name='bloques-libres'),
