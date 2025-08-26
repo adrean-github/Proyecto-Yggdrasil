@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { buildApiUrl } from "../config/api";
 import {
@@ -17,6 +16,11 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { DateRange } from "react-date-range";
+import { addMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { es } from "date-fns/locale";
+import "react-date-range/dist/styles.css"; 
+import "react-date-range/dist/theme/default.css"; 
 
 export default function Agenda() {
   const pasillos = [
@@ -36,8 +40,6 @@ export default function Agenda() {
 
   const [tipoAgendamiento, setTipoAgendamiento] = useState(null);
   const [vista, setVista] = useState("todas");
-  const [desde, setDesde] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [hasta, setHasta] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filtroId, setFiltroId] = useState("");
   const [filtroNombre, setFiltroNombre] = useState("");
   const [pasilloSeleccionado, setPasilloSeleccionado] = useState("");
@@ -57,14 +59,27 @@ export default function Agenda() {
   const [filtroTopes, setFiltroTopes] = useState(false);
   const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
   const [todosLosTopes, setTodosLosTopes] = useState({});
-  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const motivosCache = useRef(new Map());
   const gestionRef = useRef(null);
-  const dateRangeRef = useRef(null);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(150);
+
+
+  const formatDateToYYYYMMDD = (date) => {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseYYYYMMDD = (str) => {
+  if (!str) return new Date();
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d); // fecha local sin corrimiento
+};
 
   // Cerrar selector de fecha al hacer clic fuera
   useEffect(() => {
@@ -1051,10 +1066,15 @@ export default function Agenda() {
   const endIndex = startIndex + rowsPerPage;
   const agendasPaginadas = agendas.slice(startIndex, endIndex);
 
-  // Función para manejar la selección de rango de fechas
-  const handleDateRangeSelect = (startDate, endDate) => {
-    setDesde(startDate);
-    setHasta(endDate);
+  const [desde, setDesde] = useState(formatDateToYYYYMMDD(new Date()));
+  const [hasta, setHasta] = useState(formatDateToYYYYMMDD(new Date()));
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const dateRangeRef = useRef(null);
+
+
+  const handleDateRangeSelect = (start, end) => {
+    setDesde(start);
+    setHasta(end);
     setShowDateRangePicker(false);
   };
 
@@ -1302,6 +1322,7 @@ export default function Agenda() {
                 </select>
               )}
     
+
               {/* Selector de rango de fechas mejorado */}
               <div className="relative" ref={dateRangeRef}>
                 <button
@@ -1312,41 +1333,49 @@ export default function Agenda() {
                   <CalendarDays className="w-4 h-4" />
                   <span>{desde} a {hasta}</span>
                 </button>
-                
+
                 {showDateRangePicker && (
-                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 p-4 w-80">
+                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 p-4">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-semibold">Seleccionar rango de fechas</h3>
-                      <button 
+                      <button
                         onClick={() => setShowDateRangePicker(false)}
                         className="text-gray-500 hover:text-gray-700"
                       >
                         ✕
                       </button>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Desde</label>
-                        <input
-                          type="date"
-                          value={desde}
-                          onChange={(e) => setDesde(e.target.value)}
-                          className="border rounded px-2 py-1 w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Hasta</label>
-                        <input
-                          type="date"
-                          value={hasta}
-                          onChange={(e) => setHasta(e.target.value)}
-                          min={desde}
-                          className="border rounded px-2 py-1 w-full"
-                        />
-                      </div>
-                    </div>
-                    
+
+                    {/* Calendario interactivo */}
+                    <DateRange
+                      ranges={[{
+                        startDate: parseYYYYMMDD(desde),
+                        endDate: parseYYYYMMDD(hasta),
+                        key: "selection"
+                      }]}
+                      onChange={(item) => {
+                        const start = new Date(
+                          item.selection.startDate.getFullYear(),
+                          item.selection.startDate.getMonth(),
+                          item.selection.startDate.getDate()
+                        );
+                        const end = new Date(
+                          item.selection.endDate.getFullYear(),
+                          item.selection.endDate.getMonth(),
+                          item.selection.endDate.getDate()
+                        );
+                        setDesde(formatDateToYYYYMMDD(start));
+                        setHasta(formatDateToYYYYMMDD(end));
+                      }}
+                      moveRangeOnFirstSelection={false}
+                      locale={es}
+                      showDateDisplay={false}
+                      rangeColors={["#005C48"]}
+                      months={2}              // 👀 muestra 2 meses a la vez
+                      direction="horizontal" // 👀 lado a lado, mejor UX
+                    />
+
+                    {/* Botones */}
                     <div className="mt-4 flex justify-end">
                       <button
                         onClick={() => setShowDateRangePicker(false)}
@@ -1361,69 +1390,76 @@ export default function Agenda() {
                         Aplicar
                       </button>
                     </div>
-                    
-                    {/* Opciones rápidas de rango de fechas */}
+
+                    {/* Opciones rápidas */}
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-sm font-medium mb-2">Rangos predefinidos:</p>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => handleDateRangeSelect(
-                            format(new Date(), "yyyy-MM-dd"),
-                            format(new Date(), "yyyy-MM-dd")
+                            formatDateToYYYYMMDD(new Date()),
+                            formatDateToYYYYMMDD(new Date())
                           )}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
                           Hoy
                         </button>
+
                         <button
                           onClick={() => {
                             const today = new Date();
                             const nextWeek = new Date(today);
                             nextWeek.setDate(today.getDate() + 7);
                             handleDateRangeSelect(
-                              format(today, "yyyy-MM-dd"),
-                              format(nextWeek, "yyyy-MM-dd")
+                              formatDateToYYYYMMDD(today),
+                              formatDateToYYYYMMDD(nextWeek)
                             );
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
                           Próxima semana
                         </button>
+
                         <button
                           onClick={() => {
                             const today = new Date();
-                            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(today);
                             handleDateRangeSelect(
-                              format(startOfMonth, "yyyy-MM-dd"),
-                              format(endOfMonth, "yyyy-MM-dd")
+                              formatDateToYYYYMMDD(start),
+                              formatDateToYYYYMMDD(end)
                             );
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
                           Este mes
                         </button>
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-                            const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-                            handleDateRangeSelect(
-                              format(startOfNextMonth, "yyyy-MM-dd"),
-                              format(endOfNextMonth, "yyyy-MM-dd")
-                            );
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Próximo mes
-                        </button>
+
+                        {/* Próximos 3 meses */}
+                        {[1, 2, 3].map((i) => (
+                          <button
+                            key={i}
+                            onClick={() => {
+                              const start = startOfMonth(addMonths(new Date(), i));
+                              const end = endOfMonth(addMonths(new Date(), i));
+                              handleDateRangeSelect(
+                                formatDateToYYYYMMDD(start),
+                                formatDateToYYYYMMDD(end)
+                              );
+                            }}
+                            className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                          >
+                            {`Mes ${i === 1 ? "próximo" : `+${i}`}`}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-    
-              <button 
+
+
+              <button
                 onClick={() => fetchAgendas(true)}
                 disabled={loading}
                 className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
@@ -1545,7 +1581,7 @@ export default function Agenda() {
                         {loading ? (
                           <div className="flex flex-col items-center justify-center">
                           <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
-                          <p className="text-gray-600">Cargando estadísticas del dashboard...</p>
+                          <p className="text-gray-600">Cargando agendas...</p>
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center">
