@@ -328,11 +328,15 @@ export default function Agenda() {
   };
 
   const abrirModalEdicion = async (agenda) => {
+    console.log("Abriendo modal para agenda:", agenda);
+    
     let agendaConId = { ...agenda };
     
     // Si es una agenda médica y no tenemos idmedico, lo buscamos
     if ((agenda.tipo === "Médica" || agenda.tipo === "Medica" || agenda.tipo === "médica") && 
         !agenda.idmedico && agenda.responsable && agenda.responsable.trim() !== "-") {
+      
+      console.log("Buscando idmedico para médico:", agenda.responsable);
       
       try {
         const res = await fetch(
@@ -341,22 +345,17 @@ export default function Agenda() {
         
         if (res.ok) {
           const medicos = await res.json();
+          console.log("Sugerencias de médicos obtenidas:", medicos);
           
-          // Buscar coincidencia exacta primero
-          let medicoEncontrado = medicos.find(m => 
+          const medicoEncontrado = medicos.find(m => 
             m.nombre.toLowerCase().trim() === agenda.responsable.toLowerCase().trim()
           );
           
-          // Si no hay coincidencia exacta, buscar que contenga el nombre
-          if (!medicoEncontrado) {
-            medicoEncontrado = medicos.find(m => 
-              m.nombre.toLowerCase().includes(agenda.responsable.toLowerCase().trim())
-            );
-          }
-          
           if (medicoEncontrado) {
-            agendaConId.idmedico = medicoEncontrado.idmedico || medicoEncontrado.id;
+            agendaConId.idmedico = medicoEncontrado.idMedico || medicoEncontrado.id;
             console.log("ID del médico cargado al abrir modal:", agendaConId.idmedico);
+          } else {
+            console.log("No se encontró médico exacto para:", agenda.responsable);
           }
         }
       } catch (err) {
@@ -364,6 +363,7 @@ export default function Agenda() {
       }
     }
     
+    console.log("Datos finales del modal:", agendaConId);
     setModal({ tipo: "editar", data: agendaConId });
   };
 
@@ -372,6 +372,7 @@ export default function Agenda() {
       return { valido: false, mensaje: "Debe completar horas de inicio y fin" };
     }
     
+
     const start = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_inicio);
     const end = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_fin);
     
@@ -398,38 +399,103 @@ export default function Agenda() {
       };
     }
     
-    // 2. Validar que el médico esté disponible (si es agenda médica y tenemos ID de médico)
-    if ((nuevaAgenda.tipo === "Médica" || nuevaAgenda.tipo === "Medica" || nuevaAgenda.tipo === "médica") && nuevaAgenda.idmedico) {
+    // 2. Validar que el médico esté disponible (si es agenda médica)
+    if ((nuevaAgenda.tipo === "Médica" || nuevaAgenda.tipo === "Medica" || nuevaAgenda.tipo === "médica") && 
+        nuevaAgenda.idmedico) {
+      
       try {
+        console.log("Validando disponibilidad para médico ID:", nuevaAgenda.idmedico);
+        
         const res = await fetch(
           buildApiUrl(`/api/medico/disponibilidad/?medico_id=${nuevaAgenda.idmedico}&fecha=${nuevaAgenda.fecha}`)
         );
         
-        if (res.ok) {
-          const data = await res.json();
-          
-          // Verificar conflictos de horario (excluyendo la agenda actual)
-          const conflictos = data.agendas.filter(agenda => 
-            agenda.id !== nuevaAgenda.id && // Excluir la agenda actual
-            agenda.hora_inicio && agenda.hora_fin && // Asegurar que tiene horarios
-            parseDateTime(nuevaAgenda.fecha, agenda.hora_inicio) < end &&
-            parseDateTime(nuevaAgenda.fecha, agenda.hora_fin) > start
-          );
-          
-          if (conflictos.length > 0) {
-            const conflictosInfo = conflictos.map(c => 
-              `Box ${c.box_id} (${c.hora_inicio}-${c.hora_fin})`
-            ).join(', ');
-            
-            return { 
-              valido: false, 
-              mensaje: `El médico tiene ${conflictos.length} conflicto(s): ${conflictosInfo}` 
-            };
-          }
+        if (!res.ok) {
+          console.warn("Error en API de disponibilidad médica:", res.status, res.statusText);
+          // Si la API falla, continuar sin validación médica
+          return { valido: true };
         }
+        
+        const data = await res.json();
+        console.log("Datos de disponibilidad recibidos:", data);
+        
+        if (!data.agendas || !Array.isArray(data.agendas)) {
+          console.warn("Formato inesperado de respuesta de disponibilidad:", data);
+          return { valido: true }; // Continuar si el formato es inesperado
+        }
+        
+        // Verificar conflictos de horario (excluyendo la agenda actual que se está modificando)
+        const conflictos = data.agendas.filter(agenda => {
+          // Excluir la agenda actual
+          if (agenda.id === nuevaAgenda.id) {
+            return false;
+          }
+          
+          // Verificar que tenga horarios válidos
+          if (!agenda.hora_inicio || !agenda.hora_fin) {
+            return false;
+          }
+          
+          // Parsear las horas de la agenda existente
+          let agendaInicio, agendaFin;
+          
+          try {
+            // Manejar diferentes formatos de hora
+            const horaInicioStr = agenda.hora_inicio.includes(':') ? 
+              agenda.hora_inicio.slice(0, 5) : agenda.hora_inicio;
+            const horaFinStr = agenda.hora_fin.includes(':') ? 
+              agenda.hora_fin.slice(0, 5) : agenda.hora_fin;
+            
+            agendaInicio = parseDateTime(nuevaAgenda.fecha, horaInicioStr);
+            agendaFin = parseDateTime(nuevaAgenda.fecha, horaFinStr);
+          } catch (error) {
+            console.warn("Error parseando horarios de agenda existente:", agenda, error);
+            return false; // Ignorar agendas con horarios mal formateados
+          }
+          
+          // Verificar si hay solapamiento de horarios
+          const hayConflicto = agendaInicio < end && agendaFin > start;
+          
+          if (hayConflicto) {
+            console.log("Conflicto detectado:", {
+              agendaExistente: agenda,
+              nuevaAgenda: {
+                inicio: start,
+                fin: end
+              }
+            });
+          }
+          
+          return hayConflicto;
+        });
+        
+        if (conflictos.length > 0) {
+          console.log("Conflictos encontrados:", conflictos);
+          
+          const conflictosInfo = conflictos.map(c => {
+            const horaInicio = c.hora_inicio.includes(':') ? 
+              c.hora_inicio.slice(0, 5) : c.hora_inicio;
+            const horaFin = c.hora_fin.includes(':') ? 
+              c.hora_fin.slice(0, 5) : c.hora_fin;
+            
+            return `Box ${c.box_id} (${horaInicio}-${horaFin})`;
+          }).join(', ');
+          
+          return { 
+            valido: false, 
+            mensaje: `El médico ${nuevaAgenda.responsable} ya tiene ${conflictos.length} cita(s) programada(s) en ese horario: ${conflictosInfo}` 
+          };
+        }
+        
+        console.log("No se encontraron conflictos de horario para el médico");
+        
       } catch (err) {
-        console.warn("Error verificando disponibilidad médica:", err);
-        // Continuar sin validación médica si hay error en la API
+        console.error("Error verificando disponibilidad médica:", err);
+        // Si hay error en la validación médica, mostrar advertencia pero permitir continuar
+        return { 
+          valido: true,
+          advertencia: "No se pudo verificar la disponibilidad del médico. Procediendo sin validación médica."
+        };
       }
     }
     
@@ -842,7 +908,6 @@ export default function Agenda() {
     }
   };
 
-
   const modificarAgenda = async (e) => {
     e.preventDefault();
   
@@ -865,22 +930,97 @@ export default function Agenda() {
       });
     }
   
+    // Validar disponibilidad del médico y box
+    const validacion = await validarModificacion(modal.data, agendas);
+    
+    if (!validacion.valido) {
+      return setModal({
+        ...modal,
+        mensaje: validacion.mensaje,
+      });
+    }
+    
+    // Mostrar advertencia si existe pero permitir continuar
+    if (validacion.advertencia) {
+      console.warn("Advertencia en validación:", validacion.advertencia);
+      // Opcional: puedes mostrar la advertencia al usuario
+      // return setModal({
+      //   ...modal,
+      //   mensaje: validacion.advertencia + " ¿Desea continuar?",
+      // });
+    }
+  
     try {
+      let idmedicoParaEnviar = modal.data.idmedico;
+      let nombreResponsable = modal.data.responsable;
+  
+      // Si es agenda médica y no tenemos idmedico, intentar buscarlo
+      if ((modal.data.tipo === "Médica" || modal.data.tipo === "Medica" || modal.data.tipo === "médica") && 
+          !idmedicoParaEnviar && nombreResponsable) {
+        
+        console.log("Buscando ID médico para:", nombreResponsable);
+        
+        try {
+          const res = await fetch(
+            buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(nombreResponsable.trim())}`)
+          );
+          
+          if (res.ok) {
+            const medicos = await res.json();
+            console.log("Médicos disponibles:", medicos);
+            
+            // Buscar médico
+            const medicoEncontrado = medicos.find(m => 
+              m.nombre.toLowerCase().trim() === nombreResponsable.toLowerCase().trim()
+            );
+            
+            if (medicoEncontrado) {
+              // USAR idMedico (con M mayúscula)
+              idmedicoParaEnviar = medicoEncontrado.idMedico;
+              console.log("ID médico encontrado para validación:", idmedicoParaEnviar);
+            } else {
+              console.log("No se encontró médico con nombre exacto:", nombreResponsable);
+              // Si no se encuentra el médico exacto, mostrar advertencia
+              const medicosSimilares = medicos.filter(m => 
+                m.nombre.toLowerCase().includes(nombreResponsable.toLowerCase().trim())
+              );
+              
+              if (medicosSimilares.length > 0) {
+                const sugerencias = medicosSimilares.map(m => m.nombre).join(', ');
+                return setModal({
+                  ...modal,
+                  mensaje: `No se encontró el médico "${nombreResponsable}". ¿Quisiste decir: ${sugerencias}?`
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Error buscando médico:", err);
+          return setModal({
+            ...modal,
+            mensaje: "Error al verificar la información del médico. Inténtalo nuevamente."
+          });
+        }
+      }
+  
       const payload = {
         idbox: modal.data.box_id,
         fechaagenda: modal.data.fecha,
         horainicioagenda: modal.data.hora_inicio + ":00",
         horafinagenda: modal.data.hora_fin + ":00",
-        nombre_responsable: modal.data.responsable,
+        nombre_responsable: nombreResponsable,
         observaciones: modal.data.observaciones || "",
       };
   
-      // Si no hay `idmedico`, enviamos solo el nombre del médico
-      if (modal.data.idmedico) {
-        payload.idmedico = modal.data.idmedico;
+      // Añadir idmedico solo si lo encontramos
+      if (idmedicoParaEnviar) {
+        payload.idmedico = idmedicoParaEnviar;
+        console.log("ID médico incluido en payload:", idmedicoParaEnviar);
+      } else if (modal.data.tipo === "Médica" || modal.data.tipo === "Medica" || modal.data.tipo === "médica") {
+        console.warn("Agenda médica sin ID de médico válido");
       }
   
-      console.log("Payload enviado:", payload);
+      console.log("Payload FINAL enviado:", payload);
   
       const res = await fetch(
         buildApiUrl(`/api/reservas/${modal.data.id}/modificar/`),
@@ -893,7 +1033,7 @@ export default function Agenda() {
           body: JSON.stringify(payload),
         }
       );
-  
+    
       // Verificar tipo de respuesta
       const contentType = res.headers.get("content-type");
       let responseData;
@@ -918,6 +1058,7 @@ export default function Agenda() {
         fetchAgendas(true);
         setModal({ tipo: null, data: null, mensaje: null });
       }, 1500);
+      
     } catch (err) {
       console.error("Error modificando agenda:", err);
       setModal({
@@ -1041,582 +1182,580 @@ export default function Agenda() {
             {/* Mostrar solo topes */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <div
-                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                  filtroTopes
-                    ? "bg-[#005C48] border-[#005C48]"
-                    : "border-gray-400 bg-white"
-                }`}
-              >
-                {filtroTopes && <Check className="w-4 h-4 text-white" />}
-              </div>
-              <input
-                type="checkbox"
-                checked={filtroTopes}
-                onChange={(e) => setFiltroTopes(e.target.checked)}
-                className="hidden"
-              />
-              <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
-            </label>
-
-            {/* Mostrar solo inhabilitados */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <div
-                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                  filtroInhabilitados
-                    ? "bg-orange-500 border-orange-500"
-                    : "border-gray-400 bg-white"
-                }`}
-              >
-                {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
-              </div>
-              <input
-                type="checkbox"
-                checked={filtroInhabilitados}
-                onChange={(e) => setFiltroInhabilitados(e.target.checked)}
-                className="hidden"
-              />
-              <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
-            </label>
-          </div>
-
-            {vista === "box" && (
-              <>
-                <input 
-            type="number" 
-            placeholder="ID de box" 
-            value={filtroId} 
-            onChange={(e) => setFiltroId(e.target.value)}
-            className="border rounded px-3 py-2 w-full sm:w-auto" 
-                />
-                
-              </>
-            )}
-            
-            {vista === "medico" && (
-              <div className="relative w-full sm:w-auto">
-                <input
-                  type="text"
-                  placeholder="Nombre de médico (mínimo 2 caracteres)"
-                  value={filtroNombre}
-                  onChange={(e) => {
-                    setFiltroNombre(e.target.value);
-                    setActiveIndex(-1);
-                    if (e.target.value.length < 2) setSugerencias([]);
-                  }}
-                  onFocus={() => setInputFocused(true)}
-                  onBlur={() => setTimeout(() => {
-                    if (!document.activeElement?.closest('.sugerencias-container')) {
-                      setInputFocused(false);
-                    }
-                  }, 200)}
-                  onKeyDown={(e) => {
-                    if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-                      e.preventDefault();
-                      if (e.key === 'ArrowDown') {
-                        setActiveIndex((prev) => (prev + 1) % sugerencias.length);
-                      } else if (e.key === 'ArrowUp') {
-                        setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
-                      } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
-                        setFiltroNombre(sugerencias[activeIndex].nombre);
-                        setSugerencias([]);
-                        setInputFocused(false);
-                      }
-                    }
-                  }}
-                  className="border rounded px-3 py-2 w-full"
-                />
-                
-                {cargandoSugerencias && (
-                  <div className="absolute right-3 top-2.5">
-                    <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                    filtroTopes
+                      ? "bg-[#005C48] border-[#005C48]"
+                      : "border-gray-400 bg-white"
+                  }`}
+                >
+                  {filtroTopes && <Check className="w-4 h-4 text-white" />}
+                </div>
+                    <input
+                    type="checkbox"
+                    checked={filtroTopes}
+                    onChange={(e) => setFiltroTopes(e.target.checked)}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
+                </label>
+    
+                {/* Mostrar solo inhabilitados */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                      filtroInhabilitados
+                        ? "bg-orange-500 border-orange-500"
+                        : "border-gray-400 bg-white"
+                    }`}
+                  >
+                    {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
                   </div>
+                  <input
+                    type="checkbox"
+                    checked={filtroInhabilitados}
+                    onChange={(e) => setFiltroInhabilitados(e.target.checked)}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
+                </label>
+              </div>
+    
+                {vista === "box" && (
+                  <>
+                    <input 
+                type="number" 
+                placeholder="ID de box" 
+                value={filtroId} 
+                onChange={(e) => setFiltroId(e.target.value)}
+                className="border rounded px-3 py-2 w-full sm:w-auto" 
+                    />
+                    
+                  </>
                 )}
                 
-                {(inputFocused && sugerencias.length > 0) && (
-                  <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {sugerencias.map((medico, index) => (
-                      <li
-                        key={medico.id}
-                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                          index === activeIndex ? 'bg-gray-100' : ''
-                        }`}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setFiltroNombre(medico.nombre);
-                          setSugerencias([]);
+                {vista === "medico" && (
+                  <div className="relative w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Nombre de médico (mínimo 2 caracteres)"
+                      value={filtroNombre}
+                      onChange={(e) => {
+                        setFiltroNombre(e.target.value);
+                        setActiveIndex(-1);
+                        if (e.target.value.length < 2) setSugerencias([]);
+                      }}
+                      onFocus={() => setInputFocused(true)}
+                      onBlur={() => setTimeout(() => {
+                        if (!document.activeElement?.closest('.sugerencias-container')) {
                           setInputFocused(false);
-                        }}
-                        onMouseEnter={() => setActiveIndex(index)}
-                      >
-                        {medico.nombre}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                
-                {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
-                    {errorSugerencias || "No se encontraron médicos"}
+                        }
+                      }, 200)}
+                      onKeyDown={(e) => {
+                        if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                          e.preventDefault();
+                          if (e.key === 'ArrowDown') {
+                            setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                          } else if (e.key === 'ArrowUp') {
+                            setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                          } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                            setFiltroNombre(sugerencias[activeIndex].nombre);
+                            setSugerencias([]);
+                            setInputFocused(false);
+                          }
+                        }
+                      }}
+                      className="border rounded px-3 py-2 w-full"
+                    />
+                    
+                    {cargandoSugerencias && (
+                      <div className="absolute right-3 top-2.5">
+                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {(inputFocused && sugerencias.length > 0) && (
+                      <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {sugerencias.map((medico, index) => (
+                          <li
+                            key={medico.id}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                              index === activeIndex ? 'bg-gray-100' : ''
+                            }`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setFiltroNombre(medico.nombre);
+                              setSugerencias([]);
+                              setInputFocused(false);
+                            }}
+                            onMouseEnter={() => setActiveIndex(index)}
+                          >
+                            {medico.nombre}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    
+                    {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
+                        {errorSugerencias || "No se encontraron médicos"}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
-          
-          {vista === "pasillo" && (
-            <select 
-              value={pasilloSeleccionado} 
-              onChange={(e) => setPasilloSeleccionado(e.target.value)}
-              className="border rounded px-3 py-2 w-full sm:w-auto"
-            >
-              <option value="">Selecciona un pasillo</option>
-              {pasillos.map((p, i) => (
-                <option key={i} value={p}>{p}</option>
-              ))}
-            </select>
-          )}
-
-          <input 
-            type="date" 
-            value={desde} 
-            onChange={(e) => setDesde(e.target.value)} 
-            className="border rounded px-3 py-2 w-full sm:w-auto"
-          />
-          
-          <input 
-            type="date" 
-            value={hasta} 
-            onChange={(e) => setHasta(e.target.value)} 
-            min={desde} 
-            className="border rounded px-3 py-2 w-full sm:w-auto"
-          />
-
-          <button 
-            onClick={() => fetchAgendas(true)}
-            disabled={loading}
-            className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
-          >
-            <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
-          </button>
-
-          {agendas.length > 0 && (
-            <button 
-              onClick={exportExcel} 
-              className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4"/> Exportar a Excel
-            </button>
-          )}
-        </div>
-
-        {/* Tabla agendas */}
-        {agendas.length > 0 ? (
-          <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
-            <p className="text-sm text-gray-500 text-center py-2 md:hidden">
-              Desliza horizontalmente para ver más columnas
-            </p>
-            <table className="min-w-full border border-gray-200 rounded-lg">
-              <thead className="bg-gray-100">
-                <tr>
-                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-2 border text-center">{h}</th>
+              
+              {vista === "pasillo" && (
+                <select 
+                  value={pasilloSeleccionado} 
+                  onChange={(e) => setPasilloSeleccionado(e.target.value)}
+                  className="border rounded px-3 py-2 w-full sm:w-auto"
+                >
+                  <option value="">Selecciona un pasillo</option>
+                  {pasillos.map((p, i) => (
+                    <option key={i} value={p}>{p}</option>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-              {agendasPaginadas.map((a, i) => {
-                let rowClass = "hover:bg-gray-100 ";
-                
-                if (a.tope) {
-                  rowClass += "bg-red-200 ";
-                } else if (a.boxInhabilitado) {
-                  rowClass += "bg-orange-200 ";
-                } else if (i % 2 === 0) {
-                  rowClass += "bg-gray-50 ";
-                } else {
-                  rowClass += "bg-white ";
-                }
-
-                  return (
-                    <tr key={i} className={rowClass}>
-                      <td className="px-4 py-2 border">{a.id}</td>
-                      <td 
-                          className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
-                          onClick={() => navigate(`/agendas/${a.box_id}`)}
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            {a.box_id}
-                            {a.boxInhabilitado && (
-                              <span className="text-xs text-orange-600 flex items-center">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                Inhabilitado
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      <td className="px-4 py-2 border">{a.fecha}</td>
-                      <td className="px-4 py-2 border">{a.hora_inicio}</td>
-                      <td className="px-4 py-2 border">{a.hora_fin}</td>
-                      <td className="px-4 py-2 border">{a.tipo}</td>
-                      <td className="px-4 py-2 border">{a.responsable}</td>
-                      <td className="px-4 py-2 border">
-                      {a.tope 
-                        ? `Tope con agenda #${a.tope}` 
-                        : a.boxInhabilitado 
-                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
-                          : a.observaciones || "-"
-                      }
-                      </td>
-                      <td className="px-4 py-2 border text-center">
-                        <div className="flex justify-center space-x-2">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
-                            onClick={() => abrirModalEdicion(a)}
-                            title="Editar agenda"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                            onClick={() => setModal({ tipo: "eliminar", data: a })}
-                            title="Eliminar agenda"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </motion.button>
+                </select>
+              )}
+    
+              <input 
+                type="date" 
+                value={desde} 
+                onChange={(e) => setDesde(e.target.value)} 
+                className="border rounded px-3 py-2 w-full sm:w-auto"
+              />
+              
+              <input 
+                type="date" 
+                value={hasta} 
+                onChange={(e) => setHasta(e.target.value)} 
+                min={desde} 
+                className="border rounded px-3 py-2 w-full sm:w-auto"
+              />
+    
+              <button 
+                onClick={() => fetchAgendas(true)}
+                disabled={loading}
+                className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
+              >
+                <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
+              </button>
+    
+              {agendas.length > 0 && (
+                <button 
+                  onClick={exportExcel} 
+                  className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
+                >
+                  <Download className="w-4 h-4"/> Exportar a Excel
+                </button>
+              )}
+            </div>
+    
+            {/* Tabla agendas */}
+            {agendas.length > 0 ? (
+              <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+                <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+                  Desliza horizontalmente para ver más columnas
+                </p>
+                <table className="min-w-full border border-gray-200 rounded-lg">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                        <th key={h} className="px-4 py-2 border text-center">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {agendasPaginadas.map((a, i) => {
+                    let rowClass = "hover:bg-gray-100 ";
+                    
+                    if (a.tope) {
+                      rowClass += "bg-red-200 ";
+                    } else if (a.boxInhabilitado) {
+                      rowClass += "bg-orange-200 ";
+                    } else if (i % 2 === 0) {
+                      rowClass += "bg-gray-50 ";
+                    } else {
+                      rowClass += "bg-white ";
+                    }
+    
+                      return (
+                        <tr key={i} className={rowClass}>
+                          <td className="px-4 py-2 border">{a.id}</td>
+                          <td 
+                              className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
+                              onClick={() => navigate(`/agendas/${a.box_id}`)}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                {a.box_id}
+                                {a.boxInhabilitado && (
+                                  <span className="text-xs text-orange-600 flex items-center">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Inhabilitado
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          <td className="px-4 py-2 border">{a.fecha}</td>
+                          <td className="px-4 py-2 border">{a.hora_inicio}</td>
+                          <td className="px-4 py-2 border">{a.hora_fin}</td>
+                          <td className="px-4 py-2 border">{a.tipo}</td>
+                          <td className="px-4 py-2 border">{a.responsable}</td>
+                          <td className="px-4 py-2 border">
+                          {a.tope 
+                            ? `Tope con agenda #${a.tope}` 
+                            : a.boxInhabilitado 
+                              ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                              : a.observaciones || "-"
+                          }
+                          </td>
+                          <td className="px-4 py-2 border text-center">
+                            <div className="flex justify-center space-x-2">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
+                                onClick={() => abrirModalEdicion(a)}
+                                title="Editar agenda"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                                onClick={() => setModal({ tipo: "eliminar", data: a })}
+                                title="Eliminar agenda"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </motion.button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
+                <table className="min-w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                        <th key={h} className="px-4 py-3 border text-center">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colSpan="9" className="px-4 py-32 text-center bg-white">
+                        <div className="flex flex-col items-center justify-center">
+                          <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
+                          <h3 className="text-lg font-medium text-gray-500 mb-1">
+                            No hay agendas buscadas
+                          </h3>
+                          <p className="text-gray-400">
+                            Haz uso de los filtros superiores para buscar agendas
+                          </p>
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
-            <table className="min-w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-3 border text-center">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colSpan="9" className="px-4 py-32 text-center bg-white">
-                    <div className="flex flex-col items-center justify-center">
-                      <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium text-gray-500 mb-1">
-                        No hay agendas buscadas
-                      </h3>
-                      <p className="text-gray-400">
-                        Haz uso de los filtros superiores para buscar agendas
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-
-        {/* Estadísticas, pag navegación */}
-        {agendas.length > 0 && (
-          <div className="mt-6 space-y-4">
-            {/* Información y estadísticas */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <p className="text-sm text-gray-600 font-medium">
-                  Mostrando <span className="text-[#005C48] font-bold">{agendas.length}</span> agendas
-                </p>
-                
-                {/* Contadores de estados */}
-                <div className="flex items-center gap-3 text-xs">
-                  {filtroTopes && (
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                      {agendas.filter(a => a.tope).length} con tope
-                    </span>
-                  )}
-                  {filtroInhabilitados && (
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                      {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
-                    </span>
-                  )}
-                  {!filtroTopes && !filtroInhabilitados && (
-                    <>
-                      <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                        {agendas.filter(a => a.tope).length} con tope
-                      </span>
-                      <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                        {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
-                      </span>
-                      <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
-                        {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
-                      </span>
-                    </>
-                  )}
-                </div>
+                  </tbody>
+                </table>
               </div>
-              
-              <button
-                onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
-                className="flex items-center gap-1 px-4 py-2 bg-[#005C48] text-white rounded-lg hover:bg-[#004335] transition-colors text-sm font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                </svg>
-                Volver arriba
-              </button>
-            </div>
-
-            {/* Paginación */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>Filas por página:</span>
-                <select 
-                  value={rowsPerPage}
-                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                  className="border rounded px-2 py-1 text-sm"
-                >
-                  <option value={150}>150</option>
-                  <option value={100}>100</option>
-                  <option value={50}>50</option>
-                  <option value={10}>10</option>
-                  <option value={1000}>1000</option>
-
-
-                </select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  ← Anterior
-                </button>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 rounded ${
-                          currentPage === pageNum
-                            ? 'bg-[#005C48] text-white'
-                            : 'border hover:bg-gray-100'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  
-                  {totalPages > 5 && (
-                    <>
-                      <span className="px-1">...</span>
-                      <button
-                        onClick={() => setCurrentPage(totalPages)}
-                        className={`w-8 h-8 rounded ${
-                          currentPage === totalPages
-                            ? 'bg-[#005C48] text-white'
-                            : 'border hover:bg-gray-100'
-                        }`}
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
-                </div>
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                >
-                  Siguiente →
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal */}
-        {modal.tipo && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
-            {modal.tipo === "success" ? (
-              <>
-                <h2 className="text-xl font-bold mb-4">Éxito</h2>
-                <p className="mb-6 text-green-600">{modal.mensaje}</p>
-                <div className="flex justify-end">
-                  <button 
-                    className="px-4 py-2 bg-[#005C48] text-white rounded" 
-                    onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </>
-            ) : modal.tipo === "alerta" ? (
-                <>
-                  <h2 className="text-xl font-bold mb-4">Aviso</h2>
-                  <p className="mb-6">{modal.mensaje}</p>
-                  <div className="flex justify-end">
-                    <button 
-                      className="px-4 py-2 bg-[#005C48] text-white rounded" 
-                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                    >
-                      Cerrar
-                    </button>
-                  </div>
-                </>
-              ) : modal.tipo === "eliminar" ? (
-                <>
-                  <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
-                  <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
-                  <div className="flex justify-end gap-3">
-                    <button 
-                      className="px-4 py-2 bg-gray-200 rounded" 
-                      onClick={() => setModal({ tipo: null, data: null })}
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      className="px-4 py-2 bg-red-500 text-white rounded" 
-                      onClick={() => eliminarAgenda(modal.data.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </>
-              ) : modal.tipo === "editar" ? (
-                <>
-                  <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
-                    {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
-                  </div>
-                  
-                  <form 
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const validacion = await validarModificacion(modal.data, agendas);
-                      if (validacion.valido) {
-                        modificarAgenda(e);
-                      } else {
-                        setModal({...modal, mensaje: validacion.mensaje});
-                      }
-                    }} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                  >
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        value={modal.data.box_id}
-                        onChange={async (e) => {
-                          const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
-                          setModal({ 
-                            ...modal, 
-                            data: newData,
-                            mensaje: null
-                          });
-                          
-                          // Resetear horas
-                          setHorasDisponibles({
-                            inicio: [],
-                            fin: []
-                          });
-                          
-                          // Cargar horas disponibles para el nuevo box
-                          if (newData.fecha && newData.box_id) {
-                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                            setHorasDisponibles({
-                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                              fin: []
-                            });
-                          }
-                        }}
-                        
-                        className={`border rounded px-3 py-2 w-full ${
-                          boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
-                            ? 'border-orange-500 bg-orange-50' 
-                            : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                      {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
-                        <p className="text-orange-600 text-sm flex items-center">
-                          <AlertTriangle className="w-4 h-4 mr-1" />
-                          Este box está actualmente inhabilitado
-                        </p>
+            )}
+    
+    
+            {/* Estadísticas, pag navegación */}
+            {agendas.length > 0 && (
+              <div className="mt-6 space-y-4">
+                {/* Información y estadísticas */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <p className="text-sm text-gray-600 font-medium">
+                      Mostrando <span className="text-[#005C48] font-bold">{agendas.length}</span> agendas
+                    </p>
+                    
+                    {/* Contadores de estados */}
+                    <div className="flex items-center gap-3 text-xs">
+                      {filtroTopes && (
+                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                          {agendas.filter(a => a.tope).length} con tope
+                        </span>
+                      )}
+                      {filtroInhabilitados && (
+                        <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                          {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                        </span>
+                      )}
+                      {!filtroTopes && !filtroInhabilitados && (
+                        <>
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => a.tope).length} con tope
+                          </span>
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                          </span>
+                          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
+                          </span>
+                        </>
                       )}
                     </div>
-
-                    {/* Campo Fecha */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
-                      <input
-                        type="date"
-                        value={modal.data.fecha}
-                        onChange={async (e) => {
-                          const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
-                          setModal({ 
-                            ...modal, 
-                            data: newData,
-                            mensaje: null
-                          });
-                          
-                          // Resetear horas
-                          setHorasDisponibles({
-                            inicio: [],
-                            fin: []
-                          });
-                          
-                          // Cargar horas disponibles para la nueva fecha
-                          if (newData.box_id && newData.fecha) {
-                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                            setHorasDisponibles({
-                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                              fin: []
-                            });
-                          }
-                        }}
-                        className="border rounded px-3 py-2 w-full"
-                        required
-                      />
+                  </div>
+                  
+                  <button
+                    onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
+                    className="flex items-center gap-1 px-4 py-2 bg-[#005C48] text-white rounded-lg hover:bg-[#004335] transition-colors text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                    </svg>
+                    Volver arriba
+                  </button>
+                </div>
+    
+                {/* Paginación */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>Filas por página:</span>
+                    <select 
+                      value={rowsPerPage}
+                      onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value={150}>150</option>
+                      <option value={100}>100</option>
+                      <option value={50}>50</option>
+                      <option value={10}>10</option>
+                      <option value={1000}>1000</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      ← Anterior
+                    </button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-8 h-8 rounded ${
+                              currentPage === pageNum
+                                ? 'bg-[#005C48] text-white'
+                                : 'border hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      {totalPages > 5 && (
+                        <>
+                          <span className="px-1">...</span>
+                          <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            className={`w-8 h-8 rounded ${
+                              currentPage === totalPages
+                                ? 'bg-[#005C48] text-white'
+                                : 'border hover:bg-gray-100'
+                            }`}
+                          >
+                            {totalPages}
+                          </button>
+                        </>
+                      )}
                     </div>
-
-                    {/* Campo Hora Inicio */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
-                      <select
-                        value={modal.data.hora_inicio}
-                        onChange={handleHoraInicioChange}
-                        className="border rounded px-3 py-2 w-full"
-                        required
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+    
+            {/* Modal */}
+            {modal.tipo && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
+                {modal.tipo === "success" ? (
+                  <>
+                    <h2 className="text-xl font-bold mb-4">Éxito</h2>
+                    <p className="mb-6 text-green-600">{modal.mensaje}</p>
+                    <div className="flex justify-end">
+                      <button 
+                        className="px-4 py-2 bg-[#005C48] text-white rounded" 
+                        onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
                       >
-                        <option value="">Seleccione hora</option>
-                        {horasDisponibles.inicio.map((hora, i) => (
-                          <option key={i} value={hora}>{hora}</option>
-                        ))}
-                      </select>
+                        Cerrar
+                      </button>
                     </div>
-
-                    {/* Campo Hora Fin */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
-                      <select
+                  </>
+                ) : modal.tipo === "alerta" ? (
+                    <>
+                      <h2 className="text-xl font-bold mb-4">Aviso</h2>
+                      <p className="mb-6">{modal.mensaje}</p>
+                      <div className="flex justify-end">
+                        <button 
+                          className="px-4 py-2 bg-[#005C48] text-white rounded" 
+                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </>
+                  ) : modal.tipo === "eliminar" ? (
+                    <>
+                      <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
+                      <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
+                      <div className="flex justify-end gap-3">
+                        <button 
+                          className="px-4 py-2 bg-gray-200 rounded" 
+                          onClick={() => setModal({ tipo: null, data: null })}
+                        >
+                          Cancelar
+                        </button>
+                        <button 
+                          className="px-4 py-2 bg-red-500 text-white rounded" 
+                          onClick={() => eliminarAgenda(modal.data.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </>
+                  ) : modal.tipo === "editar" ? (
+                    <>
+                      <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
+                        {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
+                      </div>
+                      
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const validacion = await validarModificacion(modal.data, agendas);
+                          if (validacion.valido) {
+                            modificarAgenda(e);
+                          } else {
+                            setModal({...modal, mensaje: validacion.mensaje});
+                          }
+                        }} 
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
+                          <input
+                            type="number"
+                            value={modal.data.box_id}
+                            onChange={async (e) => {
+                              const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
+                              setModal({ 
+                                ...modal, 
+                                data: newData,
+                                mensaje: null
+                              });
+                              
+                              // Resetear horas
+                              setHorasDisponibles({
+                                inicio: [],
+                                fin: []
+                              });
+                              
+                              // Cargar horas disponibles para el nuevo box
+                              if (newData.fecha && newData.box_id) {
+                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                                setHorasDisponibles({
+                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                                  fin: []
+                                });
+                              }
+                            }}
+                            
+                            className={`border rounded px-3 py-2 w-full ${
+                              boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
+                                ? 'border-orange-500 bg-orange-50' 
+                                : 'border-gray-300'
+                            }`}
+                            required
+                          />
+                          {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
+                            <p className="text-orange-600 text-sm flex items-center">
+                              <AlertTriangle className="w-4 h-4 mr-1" />
+                              Este box está actualmente inhabilitado
+                            </p>
+                          )}
+                        </div>
+    
+                        {/* Campo Fecha */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
+                          <input
+                            type="date"
+                            value={modal.data.fecha}
+                            onChange={async (e) => {
+                              const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
+                              setModal({ 
+                                ...modal, 
+                                data: newData,
+                                mensaje: null
+                              });
+                              
+                              // Resetear horas
+                              setHorasDisponibles({
+                                inicio: [],
+                                fin: []
+                              });
+                              
+                              // Cargar horas disponibles para la nueva fecha
+                              if (newData.box_id && newData.fecha) {
+                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                                setHorasDisponibles({
+                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                                  fin: []
+                                });
+                              }
+                            }}
+                            className="border rounded px-3 py-2 w-full"
+                            required
+                          />
+                        </div>
+    
+                        {/* Campo Hora Inicio */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
+                          <select
+                            value={modal.data.hora_inicio}
+                            onChange={handleHoraInicioChange}
+                            className="border rounded px-3 py-2 w-full"
+                            required
+                          >
+                            <option value="">Seleccione hora</option>
+                            {horasDisponibles.inicio.map((hora, i) => (
+                              <option key={i} value={hora}>{hora}</option>
+                            ))}
+                          </select>
+                        </div>
+    
+                        {/* Campo Hora Fin */}
+                        <div className="space-y-2">
+                        <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
+                        <select
                         value={modal.data.hora_fin}
                         onChange={(e) => {
                           const newData = { ...modal.data, hora_fin: e.target.value };
@@ -1669,7 +1808,7 @@ export default function Agenda() {
                                     data: { 
                                       ...modal.data, 
                                       responsable: medico.nombre,
-                                      idmedico: medico.idmedico || medico.id // Asegúrate de usar el campo correcto
+                                      idmedico: medico.idMedico || medico.id 
                                     }
                                   });
                                   setMostrarSugerencias(false);
@@ -1682,7 +1821,6 @@ export default function Agenda() {
                         )}
                       </div>
                     </div>
-
 
                     <div className="space-y-2 md:col-span-2">
                       <label className="block text-sm font-medium">Observaciones</label>

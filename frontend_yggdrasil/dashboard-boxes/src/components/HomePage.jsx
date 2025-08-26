@@ -54,8 +54,8 @@ const Homepage = () => {
       image: "/estadisticas.png"
     },
     {
-      title: "Agendamiento de boxes",
-      desc: "Como personal de gestión o jefe de pasillo, puedes reservar boxes para actividades de uso médico o no médico, sin topes de horario.",
+      title: "Gestión de agendas",
+      desc: "Gestiona las agendas existentes y reserva boxes para actividades de uso médico o no médico, sin topes de horario.",
       link: "/agendas",
       image: "/res_no_med.png"
     },
