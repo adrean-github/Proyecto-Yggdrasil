@@ -12,7 +12,9 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  Check,   
+  Check,
+  ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
@@ -33,14 +35,14 @@ export default function Agenda() {
   ];
 
   const [tipoAgendamiento, setTipoAgendamiento] = useState(null);
-  const [vista, setVista] = useState("todas"); 
+  const [vista, setVista] = useState("todas");
   const [desde, setDesde] = useState(format(new Date(), "yyyy-MM-dd"));
   const [hasta, setHasta] = useState(format(new Date(), "yyyy-MM-dd"));
   const [filtroId, setFiltroId] = useState("");
   const [filtroNombre, setFiltroNombre] = useState("");
   const [pasilloSeleccionado, setPasilloSeleccionado] = useState("");
   const [agendas, setAgendas] = useState([]);
-  const [agendasSinFiltrar, setAgendasSinFiltrar] = useState([]); 
+  const [agendasSinFiltrar, setAgendasSinFiltrar] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sugerencias, setSugerencias] = useState([]);
   const [modal, setModal] = useState({ tipo: null, data: null, mensaje: null });
@@ -55,11 +57,38 @@ export default function Agenda() {
   const [filtroTopes, setFiltroTopes] = useState(false);
   const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
   const [todosLosTopes, setTodosLosTopes] = useState({});
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const motivosCache = useRef(new Map());
   const gestionRef = useRef(null);
+  const dateRangeRef = useRef(null);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(150);
+
+  // Cerrar selector de fecha al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dateRangeRef.current && !dateRangeRef.current.contains(event.target)) {
+        setShowDateRangePicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Mostrar/ocultar botón de scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollButton(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Cargar datos iniciales de forma paralela
   useEffect(() => {
@@ -67,14 +96,12 @@ export default function Agenda() {
       try {
         setLoading(true);
         
-        // Ejecutar ambas llamadas en paralelo
         const [boxesResponse, agendasResponse, topesResponse] = await Promise.all([
           fetch(buildApiUrl('/api/boxes-inhabilitados/')),
           fetch(buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`)),
           fetch(buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`))
         ]);
 
-        // Procesar boxes inhabilitados
         const boxesInhabilitados = [];
         if (boxesResponse.ok) {
           const boxesData = await boxesResponse.json();
@@ -82,7 +109,6 @@ export default function Agenda() {
           setBoxesInhabilitados(boxesInhabilitados);
         }
 
-        // Procesar topes
         const mapaTopes = {};
         if (topesResponse.ok) {
           const topesData = await topesResponse.json();
@@ -97,7 +123,6 @@ export default function Agenda() {
           setTodosLosTopes(mapaTopes);
         }
 
-        // Procesar agendas
         if (agendasResponse.ok) {
           const fetchedData = await agendasResponse.json();
           
@@ -116,7 +141,6 @@ export default function Agenda() {
             observaciones: limpiarDato(a.observaciones)
           }));
 
-          // Marcar topes e inhabilitados de forma síncrona (ya tenemos los datos)
           const agendasConTopes = await Promise.all(
             agendasProcesadas.map(async agenda => {
               const topesEnBox = mapaTopes[agenda.box_id] || [];
@@ -132,7 +156,6 @@ export default function Agenda() {
               let motivoInhabilitacion = null;
               
               if (boxInhabilitado) {
-                // Solo hacer la llamada HTTP si es necesario y de forma paralela
                 try {
                   motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
                 } catch (err) {
@@ -160,23 +183,19 @@ export default function Agenda() {
       }
     };
     
-    // Solo cargar al inicio si estamos en vista "todas"
     if (vista === "todas") {
       loadInitialData();
     }
-  }, []); // Solo ejecutar una vez al montar el componente
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [filtroTopes, filtroInhabilitados, agendas]);
 
-
-  // Aplicar filtros cuando cambian los estados de los checkboxes
   useEffect(() => {
     aplicarFiltros();
   }, [filtroTopes, filtroInhabilitados, agendasSinFiltrar]);
 
-  // Función para aplicar filtros sobre las agendas sin filtrar
   const aplicarFiltros = () => {
     let agendasFiltradas = [...agendasSinFiltrar];
 
@@ -191,7 +210,6 @@ export default function Agenda() {
     setAgendas(agendasFiltradas);
   };
 
-  // Autocomplete médico
   useEffect(() => {
     if (!filtroNombre.trim()) {
       setSugerencias([]);
@@ -229,7 +247,6 @@ export default function Agenda() {
     return () => clearTimeout(timeout);
   }, [filtroNombre, vista]);
 
-  // Autocomplete para el modal de modificación
   useEffect(() => {
     if (!modal.data?.responsable || modal.data.responsable.length < 2) {
       setSugerenciasMedico([]);
@@ -332,7 +349,6 @@ export default function Agenda() {
     
     let agendaConId = { ...agenda };
     
-    // Si es una agenda médica y no tenemos idmedico, lo buscamos
     if ((agenda.tipo === "Médica" || agenda.tipo === "Medica" || agenda.tipo === "médica") && 
         !agenda.idmedico && agenda.responsable && agenda.responsable.trim() !== "-") {
       
@@ -371,7 +387,6 @@ export default function Agenda() {
     if (!nuevaAgenda.hora_inicio || !nuevaAgenda.hora_fin) {
       return { valido: false, mensaje: "Debe completar horas de inicio y fin" };
     }
-    
 
     const start = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_inicio);
     const end = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_fin);
@@ -401,15 +416,16 @@ export default function Agenda() {
     
     // 2. Validar que el médico esté disponible (si es agenda médica)
     if ((nuevaAgenda.tipo === "Médica" || nuevaAgenda.tipo === "Medica" || nuevaAgenda.tipo === "médica") && 
-        nuevaAgenda.idmedico) {
+        nuevaAgenda.responsable && nuevaAgenda.responsable.trim() !== "-") {
       
       try {
-        console.log("Validando disponibilidad para médico ID:", nuevaAgenda.idmedico);
+        console.log("Validando disponibilidad para médico:", nuevaAgenda.responsable);
         
+        // Usar el nombre del médico en lugar del ID
         const res = await fetch(
           buildApiUrl(`/api/medico/disponibilidad/?medico_id=${nuevaAgenda.idmedico}&fecha=${nuevaAgenda.fecha}`)
         );
-        
+
         if (!res.ok) {
           console.warn("Error en API de disponibilidad médica:", res.status, res.statusText);
           // Si la API falla, continuar sin validación médica
@@ -502,7 +518,6 @@ export default function Agenda() {
     return { valido: true };
   };
   
-  // Para obtener bloques libres completos
   const generarHorasLibres = async (fecha, box_id) => {
     try {
       const res = await fetch(
@@ -511,7 +526,6 @@ export default function Agenda() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       
-      // Mapear la estructura de la API a la esperada
       return data.bloques_libres.map(bloque => ({
         inicio: bloque.hora_inicio,
         fin: bloque.hora_fin
@@ -533,7 +547,6 @@ export default function Agenda() {
       const data = await res.json();
       const bloquesLibres = data.bloques_libres || [];
       
-      // Validar y mapear a la estructura esperada
       const bloquesValidos = bloquesLibres
         .filter(bloque => bloque && bloque.hora_inicio && bloque.hora_fin)
         .map(bloque => ({
@@ -541,7 +554,7 @@ export default function Agenda() {
           fin: bloque.hora_fin
         }));
   
-      console.log("Bloques libres procesados:", bloquesValidos); // Para debug
+      console.log("Bloques libres procesados:", bloquesValidos);
   
       if (!horaInicioSeleccionada) {
         const horasDisponibles = [];
@@ -564,10 +577,9 @@ export default function Agenda() {
           }
         });
         
-        console.log("Horas inicio disponibles:", horasDisponibles); // Para debug
+        console.log("Horas inicio disponibles:", horasDisponibles);
         return horasDisponibles;
       } else {
-        // Generar horas de fin disponibles
         const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
         
         const horasFinDisponibles = [];
@@ -576,11 +588,9 @@ export default function Agenda() {
           const [bloqueH, bloqueM] = bloque.inicio.split(':').map(Number);
           const [bloqueFinH, bloqueFinM] = bloque.fin.split(':').map(Number);
           
-          // Verificar si la hora de inicio está dentro de este bloque
           if ((horaH > bloqueH || (horaH === bloqueH && horaM >= bloqueM)) &&
               (horaH < bloqueFinH || (horaH === bloqueFinH && horaM < bloqueFinM))) {
             
-            // Calcular la primera hora de fin posible (30 minutos después)
             let h = horaH;
             let m = horaM + 30;
             
@@ -589,7 +599,6 @@ export default function Agenda() {
               m -= 60;
             }
             
-            // Generar horas hasta el fin del bloque
             while (h < bloqueFinH || (h === bloqueFinH && m <= bloqueFinM)) {
               horasFinDisponibles.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
               
@@ -602,13 +611,12 @@ export default function Agenda() {
           }
         });
         
-        console.log("Horas fin disponibles:", horasFinDisponibles); // Para debug
+        console.log("Horas fin disponibles:", horasFinDisponibles);
         return horasFinDisponibles;
       }
     } catch (err) {
       console.error("Error generando horas disponibles:", err);
       
-      // Fallback en caso de error
       const horas = [];
       const inicioDia = 8;
       const finDia = 18;
@@ -633,12 +641,10 @@ export default function Agenda() {
     }
   };
   
-  // Actualización del useEffect para manejar las horas disponibles
   useEffect(() => {
     if (modal.tipo === "editar" && modal.data) {
       const cargarHoras = async () => {
         try {
-          // Cargar horas de inicio
           const horasInicio = await generarHorasDisponibles(
             modal.data.fecha, 
             modal.data.box_id
@@ -649,7 +655,6 @@ export default function Agenda() {
             inicio: Array.isArray(horasInicio) ? horasInicio : []
           }));
           
-          // Si hay hora de inicio seleccionada, cargar horas de fin
           if (modal.data.hora_inicio) {
             const horasFin = await generarHorasDisponibles(
               modal.data.fecha, 
@@ -760,14 +765,10 @@ export default function Agenda() {
         return null;
       }).filter(Boolean);
       
-      // Marcar topes e inhabilitados
       const agendasConTopes = await marcarTopesYInhabilitados(agendasProcesadas);
 
-      // Guardar todas las agendas sin filtrar
       setAgendasSinFiltrar(agendasConTopes);
       
-      // Los filtros se aplicarán automáticamente por el useEffect de aplicarFiltros()
-  
     } catch (err) {
       console.error("Error fetching agendas:", err);
       setAgendasSinFiltrar([]);
@@ -797,23 +798,20 @@ export default function Agenda() {
       const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { 
         method: "DELETE",
         headers: {
-          'Accept': 'application/json', // ← Forzar respuesta JSON
+          'Accept': 'application/json',
         }
       });
       
-      // Verificar si la respuesta es JSON
       const contentType = res.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.mensaje || 'Error eliminando reserva');
         setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
       } else {
-        // Si no es JSON, obtener texto y tratar de parsear manualmente
         const text = await res.text();
         throw new Error(`Respuesta inesperada del servidor: ${text.substring(0, 100)}...`);
       }
       
-      // Recargar agendas después de eliminar
       setTimeout(() => {
         fetchAgendas(true);
       }, 1000);
@@ -832,12 +830,11 @@ export default function Agenda() {
     const newData = { 
       ...modal.data, 
       hora_inicio: nuevaHoraInicio,
-      hora_fin: "" // Resetear hora fin al cambiar inicio
+      hora_fin: ""
     };
     
     setModal({ ...modal, data: newData, mensaje: null });
     
-    // Cargar nuevas horas fin
     if (nuevaHoraInicio) {
       const horasFin = await generarHorasDisponibles(
         newData.fecha, 
@@ -853,7 +850,6 @@ export default function Agenda() {
   };
     
   const obtenerMotivoInhabilitacion = async (boxId) => {
-    // Verificar caché primero
     if (motivosCache.current.has(boxId)) {
       return motivosCache.current.get(boxId);
     }
@@ -870,7 +866,6 @@ export default function Agenda() {
       if (boxData.estadobox === 'Inhabilitado') {
         let motivo = boxData.comentario || "Sin especificar";
         
-        // Intentar obtener historial solo si no hay comentario directo
         if (!boxData.comentario || boxData.comentario === "Sin especificar") {
           try {
             const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
@@ -894,7 +889,6 @@ export default function Agenda() {
           }
         }
         
-        // Guardar en caché
         motivosCache.current.set(boxId, motivo);
         return motivo;
       }
@@ -911,7 +905,6 @@ export default function Agenda() {
   const modificarAgenda = async (e) => {
     e.preventDefault();
   
-    // Validación adicional
     if (!modal.data.hora_inicio || !modal.data.hora_fin) {
       return setModal({
         ...modal,
@@ -919,7 +912,6 @@ export default function Agenda() {
       });
     }
   
-    // Verificar que la hora fin sea posterior a la hora inicio
     const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(":").map(Number);
     const [horaFinH, horaFinM] = modal.data.hora_fin.split(":").map(Number);
   
@@ -930,7 +922,6 @@ export default function Agenda() {
       });
     }
   
-    // Validar disponibilidad del médico y box
     const validacion = await validarModificacion(modal.data, agendas);
     
     if (!validacion.valido) {
@@ -940,21 +931,14 @@ export default function Agenda() {
       });
     }
     
-    // Mostrar advertencia si existe pero permitir continuar
     if (validacion.advertencia) {
       console.warn("Advertencia en validación:", validacion.advertencia);
-      // Opcional: puedes mostrar la advertencia al usuario
-      // return setModal({
-      //   ...modal,
-      //   mensaje: validacion.advertencia + " ¿Desea continuar?",
-      // });
     }
   
     try {
       let idmedicoParaEnviar = modal.data.idmedico;
       let nombreResponsable = modal.data.responsable;
   
-      // Si es agenda médica y no tenemos idmedico, intentar buscarlo
       if ((modal.data.tipo === "Médica" || modal.data.tipo === "Medica" || modal.data.tipo === "médica") && 
           !idmedicoParaEnviar && nombreResponsable) {
         
@@ -969,18 +953,15 @@ export default function Agenda() {
             const medicos = await res.json();
             console.log("Médicos disponibles:", medicos);
             
-            // Buscar médico
             const medicoEncontrado = medicos.find(m => 
               m.nombre.toLowerCase().trim() === nombreResponsable.toLowerCase().trim()
             );
             
             if (medicoEncontrado) {
-              // USAR idMedico (con M mayúscula)
               idmedicoParaEnviar = medicoEncontrado.idMedico;
               console.log("ID médico encontrado para validación:", idmedicoParaEnviar);
             } else {
               console.log("No se encontró médico con nombre exacto:", nombreResponsable);
-              // Si no se encuentra el médico exacto, mostrar advertencia
               const medicosSimilares = medicos.filter(m => 
                 m.nombre.toLowerCase().includes(nombreResponsable.toLowerCase().trim())
               );
@@ -1012,7 +993,6 @@ export default function Agenda() {
         observaciones: modal.data.observaciones || "",
       };
   
-      // Añadir idmedico solo si lo encontramos
       if (idmedicoParaEnviar) {
         payload.idmedico = idmedicoParaEnviar;
         console.log("ID médico incluido en payload:", idmedicoParaEnviar);
@@ -1034,7 +1014,6 @@ export default function Agenda() {
         }
       );
     
-      // Verificar tipo de respuesta
       const contentType = res.headers.get("content-type");
       let responseData;
   
@@ -1053,7 +1032,6 @@ export default function Agenda() {
   
       setModal({ tipo: "success", mensaje: "Agenda modificada correctamente" });
   
-      // Recargar agendas después de modificar
       setTimeout(() => {
         fetchAgendas(true);
         setModal({ tipo: null, data: null, mensaje: null });
@@ -1072,6 +1050,13 @@ export default function Agenda() {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const agendasPaginadas = agendas.slice(startIndex, endIndex);
+
+  // Función para manejar la selección de rango de fechas
+  const handleDateRangeSelect = (startDate, endDate) => {
+    setDesde(startDate);
+    setHasta(endDate);
+    setShowDateRangePicker(false);
+  };
 
   return (
     <>
@@ -1151,9 +1136,7 @@ export default function Agenda() {
                 key={v}
                 onClick={() => {
                   setVista(v);
-                  // Solo hacer fetch manual para otras vistas, "todas" ya se carga automáticamente
                   if (v !== "todas") {
-                    // Limpiar datos al cambiar de vista
                     setAgendas([]);
                     setAgendasSinFiltrar([]);
                   }
@@ -1319,20 +1302,126 @@ export default function Agenda() {
                 </select>
               )}
     
-              <input 
-                type="date" 
-                value={desde} 
-                onChange={(e) => setDesde(e.target.value)} 
-                className="border rounded px-3 py-2 w-full sm:w-auto"
-              />
-              
-              <input 
-                type="date" 
-                value={hasta} 
-                onChange={(e) => setHasta(e.target.value)} 
-                min={desde} 
-                className="border rounded px-3 py-2 w-full sm:w-auto"
-              />
+              {/* Selector de rango de fechas mejorado */}
+              <div className="relative" ref={dateRangeRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowDateRangePicker(!showDateRangePicker)}
+                  className="flex items-center gap-2 border rounded px-3 py-2 w-full sm:w-auto bg-white hover:bg-gray-50"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  <span>{desde} a {hasta}</span>
+                </button>
+                
+                {showDateRangePicker && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 p-4 w-80">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-semibold">Seleccionar rango de fechas</h3>
+                      <button 
+                        onClick={() => setShowDateRangePicker(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Desde</label>
+                        <input
+                          type="date"
+                          value={desde}
+                          onChange={(e) => setDesde(e.target.value)}
+                          className="border rounded px-2 py-1 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Hasta</label>
+                        <input
+                          type="date"
+                          value={hasta}
+                          onChange={(e) => setHasta(e.target.value)}
+                          min={desde}
+                          className="border rounded px-2 py-1 w-full"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        onClick={() => setShowDateRangePicker(false)}
+                        className="px-3 py-1 bg-gray-200 rounded mr-2 hover:bg-gray-300"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => setShowDateRangePicker(false)}
+                        className="px-3 py-1 bg-[#005C48] text-white rounded hover:bg-[#004335]"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                    
+                    {/* Opciones rápidas de rango de fechas */}
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm font-medium mb-2">Rangos predefinidos:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleDateRangeSelect(
+                            format(new Date(), "yyyy-MM-dd"),
+                            format(new Date(), "yyyy-MM-dd")
+                          )}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Hoy
+                        </button>
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const nextWeek = new Date(today);
+                            nextWeek.setDate(today.getDate() + 7);
+                            handleDateRangeSelect(
+                              format(today, "yyyy-MM-dd"),
+                              format(nextWeek, "yyyy-MM-dd")
+                            );
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Próxima semana
+                        </button>
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                            handleDateRangeSelect(
+                              format(startOfMonth, "yyyy-MM-dd"),
+                              format(endOfMonth, "yyyy-MM-dd")
+                            );
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Este mes
+                        </button>
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                            const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                            handleDateRangeSelect(
+                              format(startOfNextMonth, "yyyy-MM-dd"),
+                              format(endOfNextMonth, "yyyy-MM-dd")
+                            );
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Próximo mes
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
     
               <button 
                 onClick={() => fetchAgendas(true)}
@@ -1359,6 +1448,8 @@ export default function Agenda() {
                   Desliza horizontalmente para ver más columnas
                 </p>
                 <table className="min-w-full border border-gray-200 rounded-lg">
+
+
                   <thead className="bg-gray-100">
                     <tr>
                       {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
@@ -1380,23 +1471,23 @@ export default function Agenda() {
                       rowClass += "bg-white ";
                     }
     
-                      return (
+                        return (
                         <tr key={i} className={rowClass}>
                           <td className="px-4 py-2 border">{a.id}</td>
                           <td 
-                              className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
-                              onClick={() => navigate(`/agendas/${a.box_id}`)}
-                            >
-                              <div className="flex items-center justify-center gap-1">
-                                {a.box_id}
-                                {a.boxInhabilitado && (
-                                  <span className="text-xs text-orange-600 flex items-center">
-                                    <AlertTriangle className="w-3 h-3 mr-1" />
-                                    Inhabilitado
-                                  </span>
-                                )}
-                              </div>
-                            </td>
+                            className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
+                            onClick={() => navigate(`/agendas/${a.box_id}`)}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                            {a.box_id}
+                            {a.boxInhabilitado && (
+                              <span className="text-xs text-orange-600 flex items-center">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Inhabilitado
+                              </span>
+                            )}
+                            </div>
+                          </td>
                           <td className="px-4 py-2 border">{a.fecha}</td>
                           <td className="px-4 py-2 border">{a.hora_inicio}</td>
                           <td className="px-4 py-2 border">{a.hora_fin}</td>
@@ -1404,54 +1495,60 @@ export default function Agenda() {
                           <td className="px-4 py-2 border">{a.responsable}</td>
                           <td className="px-4 py-2 border">
                           {a.tope 
-                            ? `Tope con agenda #${a.tope}` 
-                            : a.boxInhabilitado 
-                              ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
-                              : a.observaciones || "-"
+                          ? `Tope con agenda #${a.tope}` 
+                          : a.boxInhabilitado 
+                            ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                            : a.observaciones || "-"
                           }
                           </td>
                           <td className="px-4 py-2 border text-center">
-                            <div className="flex justify-center space-x-2">
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
-                                onClick={() => abrirModalEdicion(a)}
-                                title="Editar agenda"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                                onClick={() => setModal({ tipo: "eliminar", data: a })}
-                                title="Eliminar agenda"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </motion.button>
-                            </div>
+                          <div className="flex justify-center space-x-2">
+                            <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
+                            onClick={() => abrirModalEdicion(a)}
+                            title="Editar agenda"
+                            >
+                            <Edit2 className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                            onClick={() => setModal({ tipo: "eliminar", data: a })}
+                            title="Eliminar agenda"
+                            >
+                            <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
-                <table className="min-w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                        );
+                      })}
+                      </tbody>
+                    </table>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
+                    <table className="min-w-full">
+                      <thead className="bg-gray-100">
+                      <tr>
+                        {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
                         <th key={h} className="px-4 py-3 border text-center">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan="9" className="px-4 py-32 text-center bg-white">
-                        <div className="flex flex-col items-center justify-center">
+                        ))}
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr>
+                        <td colSpan="9" className="px-4 py-32 text-center bg-white">
+                        {loading ? (
+                          <div className="flex flex-col items-center justify-center">
+                          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
+                          <p className="text-gray-600">Cargando estadísticas del dashboard...</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center">
                           <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
                           <h3 className="text-lg font-medium text-gray-500 mb-1">
                             No hay agendas buscadas
@@ -1459,16 +1556,17 @@ export default function Agenda() {
                           <p className="text-gray-400">
                             Haz uso de los filtros superiores para buscar agendas
                           </p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-    
-    
-            {/* Estadísticas, pag navegación */}
+                          </div>
+                        )}
+                        </td>
+                      </tr>
+                      </tbody>
+                    </table>
+                    </div>
+                  )}
+              
+              
+                  {/* Estadísticas, pag navegación */}
             {agendas.length > 0 && (
               <div className="mt-6 space-y-4">
                 {/* Información y estadísticas */}
@@ -1592,8 +1690,8 @@ export default function Agenda() {
     
             {/* Modal */}
             {modal.tipo && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className={`bg-white rounded-lg p-6 shadow-lg max-h-[90vh] overflow-y-auto ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"} mt-24 sm:mt-12`}>
                 {modal.tipo === "success" ? (
                   <>
                     <h2 className="text-xl font-bold mb-4">Éxito</h2>
@@ -1643,8 +1741,19 @@ export default function Agenda() {
                     <>
                       <div className="flex justify-between items-start mb-4">
                         <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
-                        {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
+                        <button 
+                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          ✕
+                        </button>
                       </div>
+                      
+                      {modal.mensaje && (
+                        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                          {modal.mensaje}
+                        </div>
+                      )}
                       
                       <form 
                         onSubmit={async (e) => {
@@ -1671,13 +1780,11 @@ export default function Agenda() {
                                 mensaje: null
                               });
                               
-                              // Resetear horas
                               setHorasDisponibles({
                                 inicio: [],
                                 fin: []
                               });
                               
-                              // Cargar horas disponibles para el nuevo box
                               if (newData.fecha && newData.box_id) {
                                 const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
                                 setHorasDisponibles({
@@ -1716,13 +1823,11 @@ export default function Agenda() {
                                 mensaje: null
                               });
                               
-                              // Resetear horas
                               setHorasDisponibles({
                                 inicio: [],
                                 fin: []
                               });
                               
-                              // Cargar horas disponibles para la nueva fecha
                               if (newData.box_id && newData.fecha) {
                                 const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
                                 setHorasDisponibles({
@@ -1784,7 +1889,6 @@ export default function Agenda() {
                               data: { 
                                 ...modal.data, 
                                 responsable: e.target.value,
-                                // Limpiar el idmedico si se está escribiendo un nuevo nombre
                                 idmedico: modal.data.responsable !== e.target.value ? null : modal.data.idmedico
                               } 
                             });
@@ -1855,6 +1959,25 @@ export default function Agenda() {
               ) : null}
             </div>
           </div>
+        )}
+
+        {/* Botón flotante para subir */}
+        {showScrollButton && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            const isMobile = window.innerWidth < 640; 
+            window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
+          }}
+          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#005C48] text-white shadow-lg flex items-center justify-center"
+          aria-label="Volver arriba"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </motion.button>
         )}
       </div>
     </>

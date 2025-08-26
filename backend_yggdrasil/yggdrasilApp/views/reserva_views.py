@@ -9,6 +9,7 @@ from datetime import datetime, time, timedelta
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from ..models import Medico  
 
 
 def notificar_cambio_box_agenda(box_id, tipo_evento="agenda_modificada"):
@@ -310,6 +311,7 @@ class LiberarReservaView(APIView):
         except Agendabox.DoesNotExist:
             return Response({'error': 'Reserva no encontrada'}, status=404)
 
+
 class UpdateReservaView(APIView):
     def put(self, request, reserva_id):
         try:
@@ -317,9 +319,8 @@ class UpdateReservaView(APIView):
         except Agendabox.DoesNotExist:
             return Response({'error': 'Reserva no encontrada'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Crear copia de los datos y manejar idmedico
         data = request.data.copy()
-        
+
         # Manejar idmedico: convertir a integer o None
         if 'idmedico' in data:
             if data['idmedico'] in ['', None, 'null']:
@@ -327,7 +328,6 @@ class UpdateReservaView(APIView):
             else:
                 try:
                     data['idmedico'] = int(data['idmedico'])
-                    # Verificar que el médico existe
                     Medico.objects.get(idmedico=data['idmedico'])
                 except (ValueError, TypeError):
                     return Response({'error': 'idmedico debe ser un número válido'}, status=status.HTTP_400_BAD_REQUEST)
@@ -335,21 +335,21 @@ class UpdateReservaView(APIView):
                     return Response({'error': 'Médico no encontrado'}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = AgendaboxSerializer(reserva, data=data, partial=True)
-        
+
         if serializer.is_valid():
             reserva_actualizada = serializer.save()
-            
+
             # Notificación WebSocket
             try:
                 notificar_cambio_box_agenda(reserva.idbox_id, "agenda_modificada")
             except Exception as e:
                 print(f"Error en notificación WebSocket: {e}")
-            
+
             return Response({
-                'mensaje': 'Reserva actualizada', 
+                'mensaje': 'Reserva actualizada',
                 'reserva': AgendaboxSerializer(reserva_actualizada).data
             }, status=status.HTTP_200_OK)
-            
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class BloquesLibresView(APIView):
