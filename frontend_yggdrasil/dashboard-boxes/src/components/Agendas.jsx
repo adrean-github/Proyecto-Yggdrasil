@@ -1542,7 +1542,10 @@ const parseYYYYMMDD = (str) => {
                           <td className="px-4 py-2 border">{a.id}</td>
                           <td 
                             className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
-                            onClick={() => navigate(`/agendas/${a.box_id}`)}
+                            onClick={() => {
+                              window.scrollTo(0, 0);
+                              navigate(`/agendas/${a.box_id}`);
+                            }}
                           >
                             <div className="flex items-center justify-center gap-1">
                             {a.box_id}
@@ -1632,7 +1635,7 @@ const parseYYYYMMDD = (str) => {
                   )}
               
               
-                  {/* Estadísticas, pag navegación */}
+            {/* Estadísticas, pag navegación */}
             {agendas.length > 0 && (
               <div className="mt-6 space-y-4">
                 {/* Información y estadísticas */}

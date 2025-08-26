@@ -51,3 +51,38 @@ html {
 .react-autosuggest__suggestion--highlighted {
   background-color: #f0f9f6;
 }
+
+/* En tu archivo CSS global */
+@media (max-width: 640px) {
+  /* Cabecera más compacta */
+  .fc .fc-toolbar-title {
+    font-size: 0.9rem !important;
+  }
+  
+  /* Días de la semana más compactos */
+  .fc .fc-col-header-cell-cushion {
+    padding: 2px 2px !important;
+    font-size: 0.7rem !important;
+  }
+  
+  .fc .fc-timegrid-slot-label-cushion {
+    font-size: 0.65rem !important;
+    padding: 1px 2px !important;
+  }
+  
+  /* Eventos sin texto de hora */
+  .fc .fc-event-time {
+    display: none !important;
+  }
+  
+  /* Botones más pequeños */
+  .fc .fc-button {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.7rem !important;
+  }
+  
+  /* Espaciado interno reducido */
+  .fc .fc-timegrid-col-frame {
+    padding: 0 1px !important;
+  }
+}

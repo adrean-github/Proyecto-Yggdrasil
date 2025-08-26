@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { buildApiUrl, buildWsUrl } from "../config/api";
 import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
+import { useLocation } from 'react-router-dom';
+
 
 const pasillos = ["Traumatología - Gimnasio y curaciones", "Medicina", "Pedriatría", "Salud mental",
   "Broncopulmonar - Cardiología", "Otorrinolaringología",
@@ -66,6 +68,11 @@ export default function Boxes() {
   const [showFilters, setShowFilters] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]); 
 
   // Función para manejar cambios de estado de box desde WebSocket
   const handleBoxStateChange = ({ boxId, nuevoEstado, evento, tipo }) => {
@@ -505,7 +512,10 @@ export default function Boxes() {
                               onMouseEnter={(e) => handleMouseEnter(box, e)}
                               onMouseMove={handleMouseMove}
                               onMouseLeave={handleMouseLeave}
-                              onClick={() => navigate(`/boxes/${box.idbox}`)}
+                              onClick={() => {
+                                    window.scrollTo(0, 0);
+                                    navigate(`/boxes/${box.idbox}`);
+                              }}
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
                             >

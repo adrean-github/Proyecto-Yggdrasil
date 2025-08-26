@@ -367,30 +367,36 @@ function UploadForm() {
           transition={{ delay: 0.1 }}
         >
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900">Resultados de validación</h2>
-              <nav className="flex space-x-4">
-                <button
-                  onClick={() => setActiveTab("conflictos")}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    activeTab === "conflictos"
-                      ? "bg-red-900 text-white"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Conflictos
-                </button>
-                <button
-                  onClick={() => setActiveTab("aprobados")}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    activeTab === "aprobados"
-                      ? "bg-[#005C48] text-white"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Agendas válidas
-                </button>
-              </nav>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 className="text-lg font-medium text-gray-900 text-center sm:text-left">Resultados de validación</h2>
+              
+              {/* Contenedor de pestañas con diseño responsive */}
+              <div className="flex flex-col xs:flex-row gap-2 justify-center sm:justify-end">
+                <div className="flex justify-center sm:justify-end">
+                  <button
+                    onClick={() => setActiveTab("conflictos")}
+                    className={`px-3 py-2 text-sm font-medium rounded-md w-full xs:w-auto text-center ${
+                      activeTab === "conflictos"
+                        ? "bg-red-900 text-white"
+                        : "text-gray-500 hover:text-gray-700 bg-gray-100"
+                    }`}
+                  >
+                    Conflictos {desaprobados.length > 0 && `(${desaprobados.length})`}
+                  </button>
+                </div>
+                <div className="flex justify-center sm:justify-end">
+                  <button
+                    onClick={() => setActiveTab("aprobados")}
+                    className={`px-3 py-2 text-sm font-medium rounded-md w-full xs:w-auto text-center ${
+                      activeTab === "aprobados"
+                        ? "bg-[#005C48] text-white"
+                        : "text-gray-500 hover:text-gray-700 bg-gray-100"
+                    }`}
+                  >
+                    Agendas válidas {aprobados.length > 0 && `(${aprobados.length})`}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -404,7 +410,7 @@ function UploadForm() {
                 {activeTab === "conflictos"
                   ? (
                       <>
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center justify-center sm:justify-start">
                           <AlertTriangle className="text-red-500 mr-2" />
                           {desaprobados.length} conflictos detectados
                         </h3>
@@ -413,7 +419,7 @@ function UploadForm() {
                     )
                   : (
                       <>
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center justify-center sm:justify-start">
                           <CheckCircle className="text-green-500 mr-2" />
                           {aprobados.length} agendas válidas
                         </h3>

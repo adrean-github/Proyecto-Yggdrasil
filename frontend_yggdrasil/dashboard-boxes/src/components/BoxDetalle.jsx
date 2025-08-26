@@ -20,6 +20,7 @@ import {
   Package,
   Activity,
   ClipboardList,
+  Info,
   FileText,
   Users
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import InventarioModal from './InventarioModal';
+import { useLocation } from 'react-router-dom';
 
 export default function BoxDetalle() {
   const { id } = useParams();
@@ -48,7 +50,13 @@ export default function BoxDetalle() {
   const [activeTab, setActiveTab] = useState('basico'); // 'basico' o 'extendido'
   const [razonInhabilitacion, setRazonInhabilitacion] = useState("");
   const [showInventarioModal, setShowInventarioModal] = useState(false);
+  const location = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]); 
 
+  
   // Función auxiliar para verificar si existen datos extendidos válidos
   const tieneDatosExtendidos = (datosExtendidos) => {
     if (!datosExtendidos || !datosExtendidos.datos_mongo) return false;
@@ -322,6 +330,7 @@ export default function BoxDetalle() {
   };
 
   const navigateToHistorialCompleto = () => {
+    window.scrollTo(0, 0);
     navigate(`/boxes/${id}/historial`);
   };
 
@@ -547,91 +556,126 @@ export default function BoxDetalle() {
         </div>
 
         {/* Calendario */}
-        <motion.div
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Calendar size={18} />
+          <motion.div
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 lg:col-span-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <Calendar size={30} />
               Agenda del Box
             </h3>
-            
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#d8b4fe]"></div>
-                <span>No médica</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#cfe4ff]"></div>
-                <span>Médica</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#ff6b6b]"></div>
-                <span>Tope</span>
+              
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#d8b4fe]"></div>
+                  <span>No médica</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#cfe4ff]"></div>
+                  <span>Médica</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#ff6b6b]"></div>
+                  <span>Tope</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="border-t pt-4">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "timeGridWeek,dayGridMonth"
-            }}
-            events={agendaboxData.map(event => {
-              const esTope = isTope(event, agendaboxData);
-              
-              return {
-                id: event.id,
-                title: "",
-                start: event.start || `${event.fecha}T${event.hora_inicio}`,
-                end: event.end || `${event.fecha}T${event.hora_fin}`,
-                color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
-                textColor: esTope ? '#ffffff' : '#000000',
-                borderColor: esTope ? '#dc2626' : 'transparent',
-                extendedProps: {
-                  esMedica: event.esMedica,
-                  tipo: (event.esMedica === 0 ? 'No médica' : 'Médica'),
-                  observaciones: event.observaciones || 'Sin observaciones',
-                  esTope: esTope,
-                  medico: event.medico || 'No asignado'
-                }
-              }
-            })}
-            locale={esLocale}
-            buttonText={{
-              today: 'Hoy',
-              week: 'Semana',
-              month: 'Mes'
-            }}
-            allDaySlot={false}
-            slotMinTime="08:00:00"
-            slotMaxTime="20:00:00" 
-            editable={false}
-            selectable={false}
-            nowIndicator={true}
-            eventClick={handleEventClick}
-            slotLabelFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }}
-            eventTimeFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }}
-            height="auto"
-            dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-          />
-          </div>
-        </motion.div>
+            {/* Texto informativo agregado */}
+            <div className="mb-3 bg-green-50 border border-[#1B5D52] rounded-lg p-3 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <Info size={16} className="text-[#1B5D52]" />
+                <p className="text-sm text-[#1B5D52] font-medium">
+                  Presione sobre cualquier agenda para ver sus detalles completos
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-3 sm:pt-4">
+              <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                headerToolbar={{
+                  left: "prev,next",
+                  center: "title",
+                  right: "timeGridWeek,dayGridMonth"
+                }}
+                events={agendaboxData.map(event => {
+                  const esTope = isTope(event, agendaboxData);
+                  
+                  return {
+                    id: event.id,
+                    title: "", 
+                    start: event.start || `${event.fecha}T${event.hora_inicio}`,
+                    end: event.end || `${event.fecha}T${event.hora_fin}`,
+                    color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
+                    textColor: esTope ? '#ffffff' : '#000000',
+                    borderColor: esTope ? '#dc2626' : 'transparent',
+                    extendedProps: {
+                      esMedica: event.esMedica,
+                      tipo: (event.esMedica === 0 ? 'No médica' : 'Médica'),
+                      observaciones: event.observaciones || 'Sin observaciones',
+                      esTope: esTope,
+                      medico: event.medico || 'No asignado'
+                    }
+                  }
+                })}
+                locale={esLocale}
+                buttonText={{
+                  week: 'Semana',
+                  month: 'Mes'
+                }}
+                allDaySlot={false}
+                slotMinTime="08:00:00"
+                slotMaxTime="20:00:00" 
+                editable={false}
+                selectable={false}
+                nowIndicator={true}
+                eventClick={handleEventClick}
+                slotLabelFormat={{
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }}
+                eventTimeFormat={{
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }}
+                height="auto"
+                dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
+                // Configuraciones responsivas
+                views={{
+                  timeGridWeek: {
+                    dayHeaderFormat: { weekday: 'short', day: 'numeric' },
+                    slotLabelFormat: {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    }
+                  }
+                }}
+                // Ocultar botones en móviles
+                responsiveOptions={[
+                  {
+                    breakpoint: 640, // breakpoint para sm
+                    buttonText: {
+                      week: 'Sem',
+                      month: 'Mes'
+                    },
+                    headerToolbar: {
+                      left: 'prev,next',
+                      center: 'title',
+                      right: ''
+                    }
+                  }
+                ]}
+              />
+            </div>
+          </motion.div>
       </div>
 
       {/* Modal de confirmación para deshabilitar */}
