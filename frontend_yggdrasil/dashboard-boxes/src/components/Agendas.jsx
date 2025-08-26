@@ -65,7 +65,8 @@ export default function Agenda() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(150);
-
+  const [tempStartDate, setTempStartDate] = useState(null);
+  const [tempEndDate, setTempEndDate] = useState(null); 
 
   const formatDateToYYYYMMDD = (date) => {
   if (!date) return "";
@@ -1322,7 +1323,6 @@ const parseYYYYMMDD = (str) => {
                 </select>
               )}
     
-
               {/* Selector de rango de fechas mejorado */}
               <div className="relative" ref={dateRangeRef}>
                 <button
@@ -1335,9 +1335,8 @@ const parseYYYYMMDD = (str) => {
                 </button>
 
                 {showDateRangePicker && (
-                  <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 p-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-semibold">Seleccionar rango de fechas</h3>
+  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-white border rounded-lg shadow-lg z-10 p-3 w-[98vw] max-w-sm sm:w-[400px] sm:max-w-[98vw]">                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium text-sm">Seleccionar rango de fechas</h3>
                       <button
                         onClick={() => setShowDateRangePicker(false)}
                         className="text-gray-500 hover:text-gray-700"
@@ -1346,60 +1345,31 @@ const parseYYYYMMDD = (str) => {
                       </button>
                     </div>
 
-                    {/* Calendario interactivo */}
-                    <DateRange
-                      ranges={[{
-                        startDate: parseYYYYMMDD(desde),
-                        endDate: parseYYYYMMDD(hasta),
-                        key: "selection"
-                      }]}
-                      onChange={(item) => {
-                        const start = new Date(
-                          item.selection.startDate.getFullYear(),
-                          item.selection.startDate.getMonth(),
-                          item.selection.startDate.getDate()
-                        );
-                        const end = new Date(
-                          item.selection.endDate.getFullYear(),
-                          item.selection.endDate.getMonth(),
-                          item.selection.endDate.getDate()
-                        );
-                        setDesde(formatDateToYYYYMMDD(start));
-                        setHasta(formatDateToYYYYMMDD(end));
-                      }}
-                      moveRangeOnFirstSelection={false}
-                      locale={es}
-                      showDateDisplay={false}
-                      rangeColors={["#005C48"]}
-                      months={2}              // 👀 muestra 2 meses a la vez
-                      direction="horizontal" // 👀 lado a lado, mejor UX
-                    />
+                    {/* Tarjetas de visualización del rango seleccionado */}
+                    {tempStartDate && tempEndDate && (
+                      <div className="mb-3 p-2 bg-gray-50 rounded border">
+                        <p className="text-xs text-gray-600 mb-1">Rango seleccionado:</p>
+                        <div className="flex gap-2 text-xs">
+                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
+                            {formatDateToYYYYMMDD(tempStartDate)}
+                          </span>
+                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
+                            {formatDateToYYYYMMDD(tempEndDate)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Botones */}
-                    <div className="mt-4 flex justify-end">
-                      <button
-                        onClick={() => setShowDateRangePicker(false)}
-                        className="px-3 py-1 bg-gray-200 rounded mr-2 hover:bg-gray-300"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => setShowDateRangePicker(false)}
-                        className="px-3 py-1 bg-[#005C48] text-white rounded hover:bg-[#004335]"
-                      >
-                        Aplicar
-                      </button>
-                    </div>
-
-                    {/* Opciones rápidas */}
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm font-medium mb-2">Rangos predefinidos:</p>
-                      <div className="grid grid-cols-2 gap-2">
+                    {/* Opciones rápidas - más compactas */}
+                    <div className="mb-3">
+                      <p className="text-sm font-medium mb-2">Rangos rápidos:</p>
+                      <div className="grid grid-cols-3 gap-1">
                         <button
-                          onClick={() => handleDateRangeSelect(
-                            formatDateToYYYYMMDD(new Date()),
-                            formatDateToYYYYMMDD(new Date())
-                          )}
+                          onClick={() => {
+                            const today = new Date();
+                            setTempStartDate(today);
+                            setTempEndDate(today);
+                          }}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
                           Hoy
@@ -1410,14 +1380,12 @@ const parseYYYYMMDD = (str) => {
                             const today = new Date();
                             const nextWeek = new Date(today);
                             nextWeek.setDate(today.getDate() + 7);
-                            handleDateRangeSelect(
-                              formatDateToYYYYMMDD(today),
-                              formatDateToYYYYMMDD(nextWeek)
-                            );
+                            setTempStartDate(today);
+                            setTempEndDate(nextWeek);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
-                          Próxima semana
+                          +1 Semana
                         </button>
 
                         <button
@@ -1425,38 +1393,100 @@ const parseYYYYMMDD = (str) => {
                             const today = new Date();
                             const start = startOfMonth(today);
                             const end = endOfMonth(today);
-                            handleDateRangeSelect(
-                              formatDateToYYYYMMDD(start),
-                              formatDateToYYYYMMDD(end)
-                            );
+                            setTempStartDate(start);
+                            setTempEndDate(end);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
                         >
                           Este mes
                         </button>
 
-                        {/* Próximos 3 meses */}
-                        {[1, 2, 3].map((i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              const start = startOfMonth(addMonths(new Date(), i));
-                              const end = endOfMonth(addMonths(new Date(), i));
-                              handleDateRangeSelect(
-                                formatDateToYYYYMMDD(start),
-                                formatDateToYYYYMMDD(end)
-                              );
-                            }}
-                            className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                          >
-                            {`Mes ${i === 1 ? "próximo" : `+${i}`}`}
-                          </button>
-                        ))}
+                        {/* Opciones de bimestre y trimestre */}
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(addMonths(today, 1));
+                            setTempStartDate(start);
+                            setTempEndDate(end);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Bimestre
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(addMonths(today, 2));
+                            setTempStartDate(start);
+                            setTempEndDate(end);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Trimestre
+                        </button>
                       </div>
+                    </div>
+
+                    {/* Contenedor del calendario con scroll único */}
+                    <div className="max-h-[280px] overflow-y-auto border rounded">
+                      <DateRange
+                        ranges={[{
+                          startDate: tempStartDate || parseYYYYMMDD(desde),
+                          endDate: tempEndDate || parseYYYYMMDD(hasta),
+                          key: "selection"
+                        }]}
+                        onChange={(item) => {
+                          setTempStartDate(item.selection.startDate);
+                          setTempEndDate(item.selection.endDate);
+                        }}
+                        moveRangeOnFirstSelection={false}
+                        locale={es}
+                        showDateDisplay={false}
+                        rangeColors={["#005C48"]}
+                        months={12}             // Mostrar todos los meses del año
+                        direction="vertical"    // Dirección vertical
+                        scroll={{ enabled: false }} // Deshabilitamos el scroll del DateRange
+                        // Limitar al año actual
+                        minDate={new Date(new Date().getFullYear(), 0, 1)}  // 1 enero del año actual
+                        maxDate={new Date(new Date().getFullYear(), 11, 31)} // 31 diciembre del año actual
+                      />
+                    </div>
+
+                    {/* Botones - dentro del contenedor principal */}
+                    <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+                      <button
+                        onClick={() => {
+                          setTempStartDate(null);
+                          setTempEndDate(null);
+                          setShowDateRangePicker(false);
+                        }}
+                        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (tempStartDate && tempEndDate) {
+                            setDesde(formatDateToYYYYMMDD(tempStartDate));
+                            setHasta(formatDateToYYYYMMDD(tempEndDate));
+                          }
+                          setTempStartDate(null);
+                          setTempEndDate(null);
+                          setShowDateRangePicker(false);
+                        }}
+                        disabled={!tempStartDate || !tempEndDate}
+                        className="px-3 py-1 bg-[#005C48] text-white rounded hover:bg-[#004335] disabled:opacity-50"
+                      >
+                        Aplicar
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
+
 
 
               <button
