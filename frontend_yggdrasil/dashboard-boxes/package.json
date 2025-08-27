@@ -17,6 +17,7 @@
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "axios": "^1.11.0",
+    "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.7.4",
     "html2canvas": "^1.4.1",
