@@ -26,7 +26,7 @@
     const estadosDisponibles = [
       { label: "Todos", valor: "Todos", color: "bg-blue-900", textColor: "text-white" },
       { label: "Tope", valor: "Tope", color: "bg-[#8B0000]", textColor: "text-white" },
-      { label: "Disponible", valor: "Disponible", color: "bg-gray-100", borderColor: "border-gray-400", textColor: "text-gray-800"},
+      { label: "Disponible", valor: "Disponible", color: "bg-gray-300", borderColor: "border-gray-500", textColor: "text-gray-800"},
       { label: "Ocupado", valor: "Ocupado", color: "bg-[#2E8B57]", textColor: "text-white" },
       { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFC245]", textColor: "text-black" },
     ];
