@@ -31,7 +31,7 @@ import React, { useState, useEffect, useRef } from "react";
       { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFC245]", textColor: "text-black" },
     ];
     
-    // Reemplaza la función getColorClasses para usar variables CSS
+    //Reemplaza la función getColorClasses para usar variables CSS
     const getColorClasses = (estado) => {
       switch (estado) {
         case "Ocupado":
@@ -72,7 +72,6 @@ import React, { useState, useEffect, useRef } from "react";
       }
     };
     
-  
   const agruparEnDúos = (arr) => {
     const res = [];
     for (let i = 0; i < arr.length; i += 2) {

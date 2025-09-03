@@ -109,20 +109,73 @@ html {
 .dark {
   --text-color: #f3f4f6;
   --bg-color: #111827;
+  --bg-secondary: #1f2937;
+  --border-color: #374151;
+  --text-muted: #9ca3af;
+  --accent-color: #1B5D52;
+  
+  /* Colores para estados */
+  --ocupado-bg: #2E8B57;
+  --ocupado-hover: #246b46;
+  --ocupado-text: #ffffff;
+  --ocupado-border: #3a9c6d;
 
+  --disponible-bg: #4b5563;
+  --disponible-hover: #6b7280;
+  --disponible-text: #e5e7eb;
+  --disponible-border: #6b7280;
+
+  --inhabilitado-bg: #d97706;
+  --inhabilitado-hover: #b45309;
+  --inhabilitado-text: #000000;
+  --inhabilitado-border: #f0ad1f;
+
+  --tope-bg: #8B0000;
+  --tope-hover: #600000;
+  --tope-text: #ffffff;
+  --tope-border: #750000;
+
+  --default-bg: #4b5563;
+  --default-hover: #6b7280;
+  --default-text: #e5e7eb;
+  --default-border: #6b7280;
+  
+  /* Colores semánticos */
+  --success-bg: #065f46;
+  --success-text: #d1fae5;
+  --success-border: #047857;
+  --success-light: #a7f3d0;
+  
+  --danger-bg: #7f1d1d;
+  --danger-text: #fecaca;
+  --danger-border: #b91c1c;
+  
+  --warning-bg: #78350f;
+  --warning-text: #fef3c7;
+  --warning-border: #d97706;
+  
+  --info-bg: #1e3a8a;
+  --info-text: #dbeafe;
+  --info-border: #1d4ed8;
+  --info-light: #93c5fd;
+  
+  --disabled-bg: #4b5563;
+  --disabled-text: #9ca3af;
+  
+  --tag-bg: #374151;
+  --tag-text: #e5e7eb;
 }
 
-.dark body {
-  background-color: #111827;
-  color: #f3f4f6;
-}
-
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
-/* Colores para estados de boxes (modo claro por defecto) */
+/* Estilos para el modo claro */
 :root {
+  --text-color: #111827;
+  --bg-color: #ffffff;
+  --bg-secondary: #f9fafb;
+  --border-color: #e5e7eb;
+  --text-muted: #6b7280;
+  --accent-color: #1B5D52;
+  
+  /* Colores para estados */
   --ocupado-bg: #2E8B57;
   --ocupado-hover: #246b46;
   --ocupado-text: #ffffff;
@@ -147,20 +200,33 @@ html {
   --default-hover: #d1d5db;
   --default-text: #374151;
   --default-border: #d1d5db;
+  
+  /* Colores semánticos */
+  --success-bg: #d1fae5;
+  --success-text: #065f46;
+  --success-border: #a7f3d0;
+  --success-light: #a7f3d0;
+  
+  --danger-bg: #fecaca;
+  --danger-text: #7f1d1d;
+  --danger-border: #fca5a5;
+  
+  --warning-bg: #fef3c7;
+  --warning-text: #78350f;
+  --warning-border: #fde68a;
+  
+  --info-bg: #dbeafe;
+  --info-text: #1e3a8a;
+  --info-border: #93c5fd;
+  --info-light: #93c5fd;
+  
+  --disabled-bg: #f3f4f6;
+  --disabled-text: #9ca3af;
+  
+  --tag-bg: #f3f4f6;
+  --tag-text: #374151;
 }
 
-.dark {
-  /* Colores para estados de boxes en modo oscuro */
-  --disponible-bg: #4b5563;
-  --disponible-hover: #6b7280;
-  --disponible-text: #e5e7eb;
-  --disponible-border: #6b7280;
-
-  --default-bg: #4b5563;
-  --default-hover: #6b7280;
-  --default-text: #e5e7eb;
-  --default-border: #6b7280;
-
-  --inhabilitado-bg: #d97706;
-  --inhabilitado-hover: #b45309;
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
