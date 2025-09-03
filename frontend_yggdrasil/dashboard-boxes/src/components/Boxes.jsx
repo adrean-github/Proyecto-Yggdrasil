@@ -1,4 +1,4 @@
-  import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
   import { useNavigate } from "react-router-dom";
   import { motion, AnimatePresence } from "framer-motion";
   import { 
@@ -31,42 +31,43 @@
       { label: "Inhabilitado", valor: "Inhabilitado", color: "bg-[#FFC245]", textColor: "text-black" },
     ];
     
+    // Reemplaza la función getColorClasses para usar variables CSS
     const getColorClasses = (estado) => {
       switch (estado) {
         case "Ocupado":
           return { 
-            bg: "bg-[#2E8B57]",              
-            hover: "hover:bg-[#246b46]",    
-            text: "text-white", 
-            border: "border-[#3a9c6d]"      
+            bg: "bg-[var(--ocupado-bg)]",              
+            hover: "hover:bg-[var(--ocupado-hover)]",    
+            text: "text-[var(--ocupado-text)]", 
+            border: "border-[var(--ocupado-border)]"      
           };
         case "Disponible":
           return { 
-            bg: "bg-gray-300",          
-            hover: "hover:bg-gray-400",    
-            text: "text-gray-800", 
-            border: "border-gray-400"       
+            bg: "bg-[var(--disponible-bg)]",          
+            hover: "hover:bg-[var(--disponible-hover)]",    
+            text: "text-[var(--disponible-text)]", 
+            border: "border-[var(--disponible-border)]"       
           };
         case "Inhabilitado":
           return { 
-            bg: "bg-[#FFC245]",             
-            hover: "hover:bg-[#e0a52d]", 
-            text: "text-black", 
-            border: "border-[#f0ad1f]"       
+            bg: "bg-[var(--inhabilitado-bg)]",             
+            hover: "hover:bg-[var(--inhabilitado-hover)]", 
+            text: "text-[var(--inhabilitado-text)]", 
+            border: "border-[var(--inhabilitado-border)]"       
           };
         case "Tope":
           return { 
-            bg: "bg-[#8B0000]",              
-            hover: "hover:bg-[#600000]",     
-            text: "text-white", 
-            border: "border-[#750000]"     
+            bg: "bg-[var(--tope-bg)]",              
+            hover: "hover:bg-[var(--tope-hover)]",     
+            text: "text-[var(--tope-text)]", 
+            border: "border-[var(--tope-border)]"     
           };
         default:
           return { 
-            bg: "bg-gray-200", 
-            hover: "hover:bg-gray-300", 
-            text: "text-gray-700", 
-            border: "border-gray-300" 
+            bg: "bg-[var(--default-bg)]", 
+            hover: "hover:bg-[var(--default-hover)]", 
+            text: "text-[var(--default-text)]", 
+            border: "border-[var(--default-border)]" 
           };
       }
     };
@@ -96,12 +97,12 @@
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    
-    // Referencia para detectar clics fuera del panel de filtros
+    const filterButtonRef = useRef(null);
     const filtersRef = useRef(null);
+
     useClickOutside(filtersRef, () => {
       if (showFilters) setShowFilters(false);
-    });
+    }, [filterButtonRef]);
   
     useEffect(() => {
       window.scrollTo(0, 0);
@@ -341,15 +342,29 @@
     };
   
     return (
-      <div className="min-h-screen p-4 pb-20 bg-gray-50">
+      <div className="min-h-screen p-4 pb-20" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-gray-200">
+        <div
+          className="rounded-xl shadow-sm p-4 mb-4 border"
+          style={{
+            backgroundColor: 'var(--bg-color)',
+            borderColor: 'var(--border-color)'
+          }}
+        >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Panel de Boxes</h1>
-              <p className="text-gray-600 text-sm mt-1">
+              <h1
+                className="text-2xl md:text-3xl font-bold"
+                style={{ color: 'var(--text-color)' }}
+              >
+                Panel de Boxes
+              </h1>
+              <p
+                className="text-sm mt-1"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 {enVivo ? (
-                  <span className="flex items-center gap-1 text-green-600">
+                  <span className="flex items-center gap-1" style={{ color: '#16a34a' }}>
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                     Modo en vivo activo
                   </span>
@@ -368,8 +383,9 @@
                 <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                 {isLoading ? 'Actualizando...' : 'Actualizar'}
               </button>
-              
+                            
               <button
+                ref={filterButtonRef}
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 bg-[#1B5D52] hover:bg-[#14463d] text-white px-3 py-2 rounded-lg transition-colors text-sm"
               >
@@ -390,12 +406,28 @@
                 className="overflow-hidden mt-4"
                 ref={filtersRef}
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div
+                  className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg border"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderColor: 'var(--border-color)'
+                  }}
+                >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pasillo</label>
-                    <select 
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#1B5D52] focus:border-[#1B5D52] text-sm"
-                      value={filtroPasillo} 
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      Pasillo
+                    </label>
+                    <select
+                      className="w-full rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        backgroundColor: 'var(--bg-color)',
+                        color: 'var(--text-color)',
+                        border: '1px solid var(--border-color)'
+                      }}
+                      value={filtroPasillo}
                       onChange={(e) => setFiltroPasillo(e.target.value)}
                     >
                       <option value="Todos">Todos los pasillos</option>
@@ -404,31 +436,53 @@
                       ))}
                     </select>
                   </div>
-                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      Fecha
+                    </label>
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="date" 
-                        value={filtroFecha} 
-                        onChange={(e) => handleFechaChange(e.target.value)} 
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#1B5D52] focus:border-[#1B5D52] text-sm"
+                      <input
+                        type="date"
+                        value={filtroFecha}
+                        onChange={(e) => handleFechaChange(e.target.value)}
+                        className="w-full rounded-lg px-3 py-2 text-sm"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          color: 'var(--text-color)',
+                          border: '1px solid var(--border-color)'
+                        }}
                       />
                     </div>
                   </div>
-                  
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                    <label
+                      className="block text-sm font-medium mb-1"
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      Hora
+                    </label>
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="time" 
-                        value={filtroHora} 
-                        onChange={(e) => handleHoraChange(e.target.value)} 
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#1B5D52] focus:border-[#1B5D52] text-sm"
+                      <input
+                        type="time"
+                        value={filtroHora}
+                        onChange={(e) => handleHoraChange(e.target.value)}
+                        className="w-full rounded-lg px-3 py-2 text-sm"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          color: 'var(--text-color)',
+                          border: '1px solid var(--border-color)'
+                        }}
                       />
                       <button
                         onClick={volverAVivo}
-                        className="whitespace-nowrap bg-[#1B5D52] text-white px-3 py-2 rounded-lg hover:bg-[#14463d] transition text-sm font-medium flex items-center gap-1"
+                        className="whitespace-nowrap px-3 py-2 rounded-lg transition text-sm font-medium flex items-center gap-1"
+                        style={{
+                          backgroundColor: 'var(--accent-color)',
+                          color: '#fff'
+                        }}
                         title="Volver al estado en vivo"
                       >
                         <Clock size={16} />
@@ -446,9 +500,20 @@
           {/* Panel principal de boxes */}
           <div className="flex-1">
             {/* Filtros de estado - Versión móvil */}
-            <div className="mb-4 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+            <div
+              className="mb-4 p-3 rounded-xl shadow-sm border"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)'
+              }}
+            >
               <div className="block sm:hidden">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Filtrar por estado:</h3>
+                <h3
+                  className="text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  Filtrar por estado:
+                </h3>
                 <div className="flex flex-col gap-1.5">
                   <div className="grid grid-cols-3 gap-1.5">
                     {estadosDisponibles.filter((_, i) => i < 3).map((estado) => {
@@ -496,8 +561,16 @@
               {/* Pantallas grandes - Filtros en línea con el texto */}
               <div className="hidden sm:block">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-700">Filtrar por estado:</h3>
-                  <div className="text-xs text-gray-500">
+                  <h3
+                    className="text-sm font-medium"
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    Filtrar por estado:
+                  </h3>
+                  <div
+                    className="text-xs"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     Mostrando {boxesFiltrados.length} de {boxes.length} boxes
                   </div>
                 </div>
@@ -526,7 +599,8 @@
             </div>
             
             {/* Lista de boxes */}
-            <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-2 border-b border-gray-200 shadow-sm">
+            <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-2 border-b shadow-sm"
+              style={{ borderColor: 'var(--border-color)' }}>
             <AnimatePresence mode="wait">
                 {agruparEnDúos(pasillosMostrar).map((grupo, idx) => (
                   <motion.div
@@ -542,10 +616,29 @@
                       const centrar = grupo.length === 1 && pasilloIdx === 0 ? "mx-auto" : "";
                       
                       return (
-                        <div key={pasillo} className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 w-full flex flex-col ${centrar}`}>
-                          <h2 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200 flex items-center justify-between">
+                        <div
+                          key={pasillo}
+                          className={`rounded-xl p-4 shadow-sm border w-full flex flex-col ${centrar}`}
+                          style={{
+                            backgroundColor: 'var(--bg-color)',
+                            borderColor: 'var(--border-color)'
+                          }}
+                        >
+                          <h2
+                            className="text-md font-semibold mb-3 pb-2 border-b flex items-center justify-between"
+                            style={{
+                              color: 'var(--text-color)',
+                              borderColor: 'var(--border-color)'
+                            }}
+                          >
                             <span>{pasillo}</span>
-                            <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            <span
+                              className="text-xs font-normal px-2 py-1 rounded"
+                              style={{
+                                color: 'var(--text-muted)',
+                                backgroundColor: 'var(--default-bg)'
+                              }}
+                            >
                               {boxesPorGrupo.length} boxes
                             </span>
                           </h2>
@@ -591,8 +684,17 @@
           {/* Panel lateral derecho - Estadísticas */}
           <div className="w-full lg:w-80 flex flex-col gap-4">
             {/* Tarjeta de resumen */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+            <div
+              className="rounded-xl p-4 shadow-sm border"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)'
+              }}
+            >
+              <h3
+                className="font-medium mb-3 flex items-center gap-2"
+                style={{ color: 'var(--text-color)' }}
+              >
                 <Info size={18} />
                 Resumen de estados
               </h3>
@@ -627,32 +729,66 @@
             {!isFuture() && (
               <div
                 onClick={() => navigate("/medicos")}
-                className="cursor-pointer bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                className="cursor-pointer p-5 rounded-xl shadow-sm border hover:shadow-md transition-shadow"
+                style={{
+                  backgroundColor: 'var(--bg-color)',
+                  borderColor: 'var(--border-color)'
+                }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-medium text-gray-800 flex items-center gap-2">
+                  <h3
+                    className="font-medium flex items-center gap-2"
+                    style={{ color: 'var(--text-color)' }}
+                  >
                     <User size={18} />
                     Médicos en línea
                   </h3>
                   <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
                 </div>
-                <div className="text-3xl font-bold text-center text-gray-900 py-2">10</div>
-                <div className="text-xs text-gray-600 text-center">Conectados a la ficha médica</div>
+                <div
+                  className="text-3xl font-bold text-center py-2"
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  10
+                </div>
+                <div
+                  className="text-xs text-center"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Conectados a la ficha médica
+                </div>
               </div>
             )}
   
             {/* Última actualización */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Última actualización</h3>
-              <div className="text-lg font-mono text-gray-900">
+            <div
+              className="p-4 rounded-xl shadow-sm border"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)'
+              }}
+            >
+              <h3
+                className="text-sm font-medium mb-2"
+                style={{ color: 'var(--text-color)' }}
+              >
+                Última actualización
+              </h3>
+              <div
+                className="text-lg font-mono"
+                style={{ color: 'var(--text-color)' }}
+              >
                 {lastUpdated.toLocaleTimeString('es-ES')}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {lastUpdated.toLocaleDateString('es-ES', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+              <div
+                className="text-xs mt-1"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {lastUpdated.toLocaleDateString('es-ES', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
                 })}
               </div>
             </div>
@@ -662,10 +798,13 @@
         {/* Tooltip al hacer hover en box */}
         {boxHover && (
           <motion.div
-            className="fixed z-50 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-xl max-w-xs pointer-events-none"
-            style={{ 
-              top: mousePos.y + 15, 
-              left: Math.min(mousePos.x + 10, window.innerWidth - 250) 
+            className="fixed z-50 text-xs rounded-lg py-2 px-3 shadow-xl max-w-xs pointer-events-none"
+            style={{
+              top: mousePos.y + 15,
+              left: Math.min(mousePos.x + 10, window.innerWidth - 250),
+              backgroundColor: 'var(--bg-color)',
+              color: 'var(--text-color)',
+              border: '1px solid var(--border-color)'
             }}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -678,14 +817,21 @@
             <div className="mb-1">Estado: {boxHover.estadobox}</div>
             <div className="mb-1">Pasillo: {boxHover.pasillobox}</div>
             {boxHover.especialidad_principal && (
-              <div className="mt-1 text-gray-300 text-xs">Especialidad: {boxHover.especialidad_principal}</div>
+              <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                Especialidad: {boxHover.especialidad_principal}
+              </div>
             )}
-            <div className="mt-2 text-gray-300 text-xs">Haga clic para ver detalles</div>
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              Haga clic para ver detalles
+            </div>
           </motion.div>
         )}
   
         {/* Footer */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-[#005C48] text-white text-center py-2 text-xs z-10">
+        <footer
+          className="fixed bottom-0 left-0 right-0 text-white text-center py-2 text-xs z-10"
+          style={{ backgroundColor: 'var(--accent-color)' }}
+        >
           <div className="container mx-auto px-4 flex flex-col items-center sm:flex-row sm:justify-between">
             <span>Hospital Padre Hurtado - Sistema de Gestión de Boxes</span>
             <span>Yggdrasil © {new Date().getFullYear()}</span>

@@ -52,7 +52,7 @@ html {
   background-color: #f0f9f6;
 }
 
-/* En tu archivo CSS global */
+
 @media (max-width: 640px) {
   /* Cabecera más compacta */
   .fc .fc-toolbar-title {
@@ -85,4 +85,82 @@ html {
   .fc .fc-timegrid-col-frame {
     padding: 0 1px !important;
   }
+}
+
+
+/* Estilos para los tamaños de fuente */
+[data-font-size="small"] {
+  font-size: 14px;
+}
+
+[data-font-size="normal"] {
+  font-size: 16px;
+}
+
+[data-font-size="large"] {
+  font-size: 18px;
+}
+
+[data-font-size="x-large"] {
+  font-size: 20px;
+}
+
+/* Estilos para el modo oscuro */
+.dark {
+  --text-color: #f3f4f6;
+  --bg-color: #111827;
+
+}
+
+.dark body {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Colores para estados de boxes (modo claro por defecto) */
+:root {
+  --ocupado-bg: #2E8B57;
+  --ocupado-hover: #246b46;
+  --ocupado-text: #ffffff;
+  --ocupado-border: #3a9c6d;
+
+  --disponible-bg: #d1d5db;
+  --disponible-hover: #9ca3af;
+  --disponible-text: #374151;
+  --disponible-border: #9ca3af;
+
+  --inhabilitado-bg: #FFC245;
+  --inhabilitado-hover: #e0a52d;
+  --inhabilitado-text: #000000;
+  --inhabilitado-border: #f0ad1f;
+
+  --tope-bg: #8B0000;
+  --tope-hover: #600000;
+  --tope-text: #ffffff;
+  --tope-border: #750000;
+
+  --default-bg: #e5e7eb;
+  --default-hover: #d1d5db;
+  --default-text: #374151;
+  --default-border: #d1d5db;
+}
+
+.dark {
+  /* Colores para estados de boxes en modo oscuro */
+  --disponible-bg: #4b5563;
+  --disponible-hover: #6b7280;
+  --disponible-text: #e5e7eb;
+  --disponible-border: #6b7280;
+
+  --default-bg: #4b5563;
+  --default-hover: #6b7280;
+  --default-text: #e5e7eb;
+  --default-border: #6b7280;
+
+  --inhabilitado-bg: #d97706;
+  --inhabilitado-hover: #b45309;
 }
