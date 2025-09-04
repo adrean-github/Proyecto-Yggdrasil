@@ -47,11 +47,113 @@ export default function BoxDetalle() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState('basico'); // 'basico' o 'extendido'
+  const [activeTab, setActiveTab] = useState('basico'); 
   const [razonInhabilitacion, setRazonInhabilitacion] = useState("");
   const [showInventarioModal, setShowInventarioModal] = useState(false);
   const location = useLocation();
-  
+    
+  const calendarStyles = `
+    /* Texto de eventos en negro */
+    .fc-event {
+      color: #000000 !important;
+      font-weight: 500;
+    }
+    
+    /* Encabezados de días (Mar 2) en negro */
+    .fc .fc-col-header-cell-cushion,
+    .fc .fc-daygrid-day-number {
+      color: #000000 !important;
+    }
+    
+    /* Horas en la primera columna */
+    .fc .fc-timegrid-slot-label-cushion {
+      color: var(--fc-timegrid-slot-label-color) !important;
+    }
+    
+    /* Título de la semana */
+    .fc .fc-toolbar-title {
+      color: var(--fc-toolbar-title-color) !important;
+    }
+    
+    /* Botones del calendario con estilo verde */
+    .fc .fc-button {
+      background-color: var(--accent-color, #005C48) !important;
+      background-image: none !important;
+      border: 1px solid var(--accent-color, #005C48) !important;
+      color: white !important;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .fc .fc-button:hover {
+      background-color: var(--accent-hover, #009B77) !important;
+      border-color: var(--accent-hover, #009B77) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Botón activo (seleccionado) */
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+      background-color: white !important;
+      color: var(--accent-color, #005C48) !important;
+      border-color: var(--accent-color, #005C48) !important;
+      box-shadow: 0 0 0 2px rgba(0, 92, 72, 0.2);
+    }
+
+    /* Estados de los botones */
+    .fc .fc-button:focus {
+      box-shadow: 0 0 0 3px rgba(0, 92, 72, 0.3) !important;
+    }
+
+    .fc .fc-button:disabled {
+      background-color: #cbd5e1 !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+      cursor: not-allowed;
+    }
+
+    /* Iconos dentro de los botones */
+    .fc .fc-button .fc-icon {
+      color: inherit !important;
+    }
+
+    /* Botones de navegación (prev/next) */
+    .fc .fc-prev-button,
+    .fc .fc-next-button {
+      padding: 0.4em 0.6em !important;
+    }
+
+    /* Botones de vista (semana/mes) */
+    .fc .fc-timeGridWeek-button,
+    .fc .fc-dayGridMonth-button {
+      padding: 0.4em 0.8em !important;
+    }
+
+    /* Ajustes responsivos para móviles */
+    @media (max-width: 640px) {
+      .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .fc .fc-toolbar-title {
+        font-size: 1.1rem;
+        margin: 0.5rem 0;
+        text-align: center;
+      }
+      
+      .fc .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
+      
+      .fc .fc-button {
+        font-size: 0.8rem;
+        padding: 0.3em 0.6em !important;
+      }
+    }
+  `;
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]); 
@@ -355,7 +457,7 @@ export default function BoxDetalle() {
             className="mt-4 px-4 py-2 rounded-lg transition-colors"
             style={{ backgroundColor: 'var(--accent-color)', color: '#fff' }}
           >
-            Volver al listado de Boxes
+            Volver a panel de boxes
           </button>
         </div>
       </div>
@@ -364,24 +466,33 @@ export default function BoxDetalle() {
 
   return (
     <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <style>{calendarStyles}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 sm:gap-0">
         <button
           onClick={() => navigate("/boxes")}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg transition-colors text-sm sm:text-base"
           style={{ 
             backgroundColor: 'var(--bg-color)',
             color: 'var(--text-color)',
             border: '1px solid var(--border-color)'
           }}
         >
-          <ArrowLeft size={20} />
-          Volver a Boxes
+          <ArrowLeft size={18} className="sm:size-5" />
+          <span className="hidden sm:inline">Volver a panel de boxes</span>
+          <span className="sm:hidden">Volver</span>
         </button>
         
-        <div className="text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Última actualización: {lastUpdated}
+        <div className="text-xs sm:text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+          <RefreshCw size={12} className={`sm:size-3.5 ${loading ? "animate-spin" : ""}`} />
+          <span className="hidden sm:inline">Última actualización: {lastUpdated}</span>
+          <span className="sm:hidden">
+            {lastUpdated.split(' ').length > 2 
+              ? `${lastUpdated.split(' ')[0]} ${lastUpdated.split(' ')[1]}`
+              : lastUpdated
+            }
+          </span>
         </div>
       </div>
 
@@ -397,14 +508,18 @@ export default function BoxDetalle() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <h1 className="text-3xl font-bold" style={{ color: 'var(--text-color)' }}>Detalle de Box #{id}</h1>
-              <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                boxData.estadobox === "Habilitado" 
-                  ? "bg-green-100 text-green-800" 
-                  : "bg-yellow-100 text-yellow-800"
-              }`}>
-                {boxData.estadobox}
+            <div className="flex flex-col gap-4 mb-6">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--text-color)' }}>
+                Detalle de Box #{id}
+              </h1>
+              <div className="flex justify-start">
+                <div className={`px-3 py-2 rounded-full text-xs font-semibold inline-block ${
+                  boxData.estadobox === "Habilitado" 
+                    ? "bg-green-100 text-green-800" 
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {boxData.estadobox}
+                </div>
               </div>
             </div>
 
@@ -638,9 +753,8 @@ export default function BoxDetalle() {
               </p>
             </div>
           </div>
-
-          <div className="border-t pt-3 sm:pt-4" style={{ borderColor: 'var(--border-color)' }}>
-            <FullCalendar
+          <div className="border-t pt-3 sm:pt-4" style={{borderColor: 'var(--border-color)' }}>
+          <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="timeGridWeek"
               headerToolbar={{
@@ -657,7 +771,7 @@ export default function BoxDetalle() {
                   start: event.start || `${event.fecha}T${event.hora_inicio}`,
                   end: event.end || `${event.fecha}T${event.hora_fin}`,
                   color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
-                  textColor: esTope ? '#ffffff' : '#000000',
+                  textColor: '#000000',
                   borderColor: esTope ? '#dc2626' : 'transparent',
                   extendedProps: {
                     esMedica: event.esMedica,

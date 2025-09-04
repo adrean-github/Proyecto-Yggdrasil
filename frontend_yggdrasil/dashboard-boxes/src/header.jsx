@@ -6,8 +6,6 @@ import { buildApiUrl } from "./config/api";
 import { useClickOutside } from './hooks/useClickOutside'; 
 import { useRef } from "react";
 
-
-
 // Componente para las migas de pan 
 function Breadcrumbs() {
   const location = useLocation();
@@ -102,6 +100,7 @@ function useUserPreferences() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('darkMode', darkMode.toString());
+      
       if (darkMode) {
         document.documentElement.classList.add('dark');
         // Variables CSS para modo oscuro
@@ -114,6 +113,10 @@ function useUserPreferences() {
         document.documentElement.style.setProperty('--accent-bg', 'rgba(78, 205, 196, 0.2)');
         document.documentElement.style.setProperty('--border-color', '#374151');
         document.documentElement.style.setProperty('--hover-bg', '#374151');
+        
+        // Variables para FullCalendar (modo oscuro)
+        document.documentElement.style.setProperty('--fc-toolbar-title-color', '#ffffff');
+        document.documentElement.style.setProperty('--fc-timegrid-slot-label-color', '#ffffff');
       } else {
         document.documentElement.classList.remove('dark');
         // Variables CSS para modo claro
@@ -126,6 +129,10 @@ function useUserPreferences() {
         document.documentElement.style.setProperty('--accent-bg', 'rgba(0, 92, 72, 0.1)');
         document.documentElement.style.setProperty('--border-color', '#d1d5db');
         document.documentElement.style.setProperty('--hover-bg', '#f3f4f6');
+        
+        // Variables para FullCalendar (modo claro)
+        document.documentElement.style.setProperty('--fc-toolbar-title-color', '#000000');
+        document.documentElement.style.setProperty('--fc-timegrid-slot-label-color', '#000000');
       }
     }
   }, [darkMode]);
@@ -134,9 +141,8 @@ function useUserPreferences() {
 }
 
 // Componente para el menú de personalización (más discreto)
-function PersonalizationMenu() {
+function PersonalizationMenu({ darkMode, setDarkMode, fontSize, setFontSize }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { fontSize, setFontSize, darkMode, setDarkMode } = useUserPreferences();
   const menuRef = useRef(null);
 
   useClickOutside(menuRef, () => {
@@ -234,7 +240,7 @@ export default function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [userMenuAbierto, setUserMenuAbierto] = useState(false);
   const { user, checking } = useAuth();
-  const { darkMode } = useUserPreferences();
+  const { fontSize, setFontSize, darkMode, setDarkMode } = useUserPreferences();
 
   const handleLogout = async () => {
     await fetch(buildApiUrl("/api/logout/"), {
@@ -242,6 +248,13 @@ export default function Header() {
       credentials: "include",
     });
     window.location.href = "/login";
+  };
+
+  const fontSizeLabels = {
+    'small': 'Pequeño',
+    'normal': 'Normal', 
+    'large': 'Grande',
+    'x-large': 'Muy Grande'
   };
 
   return (
@@ -359,15 +372,9 @@ export default function Header() {
                     <div className="py-1">
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm transition-colors"
+                        className="w-full text-left px-4 py-2 text-sm transition-colors hover:bg-red-50"
                         style={{
                           color: '#dc2626'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = 'transparent';
                         }}
                       >
                         Cerrar sesión
@@ -389,7 +396,12 @@ export default function Header() {
             )}
 
             {/* Menú de personalización (discreto, al final) */}
-            <PersonalizationMenu />
+            <PersonalizationMenu 
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
+            />
           </div>
         </div>
       </div>
@@ -419,10 +431,7 @@ export default function Header() {
               <div className="flex items-center justify-between mb-3">
                 <span>Modo oscuro</span>
                 <button
-                  onClick={() => {
-                    const { darkMode, setDarkMode } = useUserPreferences();
-                    setDarkMode(!darkMode);
-                  }}
+                  onClick={() => setDarkMode(!darkMode)}
                   className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
                   style={{
                     backgroundColor: darkMode ? 'var(--accent-color, #4ECDC4)' : '#d1d5db'
@@ -444,31 +453,23 @@ export default function Header() {
                   <span>Tamaño de fuente</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {['small', 'normal', 'large', 'x-large'].map((size) => {
-                    const currentFontSize = localStorage.getItem('fontSize') || 'normal';
-                    return (
-                      <button
-                        key={size}
-                        onClick={() => {
-                          const { setFontSize } = useUserPreferences();
-                          setFontSize(size);
-                        }}
-                        className="px-3 py-2 text-xs rounded-md transition-colors"
-                        style={{
-                          backgroundColor: currentFontSize === size
-                            ? 'var(--accent-color, #005C48)' 
-                            : 'var(--hover-bg, #f3f4f6)',
-                          color: currentFontSize === size
-                            ? '#ffffff' 
-                            : 'var(--text-color, #111827)'
-                        }}
-                      >
-                        {size === 'small' ? 'Pequeño' : 
-                         size === 'normal' ? 'Normal' : 
-                         size === 'large' ? 'Grande' : 'Muy Grande'}
-                      </button>
-                    );
-                  })}
+                  {Object.entries(fontSizeLabels).map(([sizeId, label]) => (
+                    <button
+                      key={sizeId}
+                      onClick={() => setFontSize(sizeId)}
+                      className="px-3 py-2 text-xs rounded-md transition-colors"
+                      style={{
+                        backgroundColor: fontSize === sizeId
+                          ? 'var(--accent-color, #005C48)' 
+                          : 'var(--hover-bg, #f3f4f6)',
+                        color: fontSize === sizeId
+                          ? '#ffffff' 
+                          : 'var(--text-color, #111827)'
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
