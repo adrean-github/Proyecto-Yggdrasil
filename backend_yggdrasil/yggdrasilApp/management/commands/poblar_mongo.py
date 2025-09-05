@@ -183,117 +183,365 @@ class Command(BaseCommand):
             )
     
     def generar_agendas_extendidas(self, num_agendas=50):
-        """Genera agendas extendidas ficticias"""
-        self.stdout.write('📅 Generando agendas extendidas...')
+        """Genera agendas extendidas ficticias basadas en datos reales"""
+        self.stdout.write('📅 Generando agendas extendidas para TODAS las agendas...')
         
         try:
-            # Obtener agendas médicas recientes de SQL
-            agendas_medicas = Agendabox.objects.filter(
-                esMedica=1,
-                fechaagenda__gte=datetime.now().date() - timedelta(days=30)
-            ).order_by('-fechaagenda')[:num_agendas]
+            # Obtener TODAS las agendas disponibles (no solo médicas)
+            todas_agendas = Agendabox.objects.all().order_by('-fechaagenda')
+            
+            # Debug: mostrar cuántas agendas encontramos
+            self.stdout.write(f'🔍 Encontradas {todas_agendas.count()} agendas en total')
             
             medicos = list(Medico.objects.all())
+            self.stdout.write(f'👨‍⚕️ Encontrados {len(medicos)} médicos en la base de datos')
             
-            tipos_procedimiento = [
-                'Consulta General',
-                'Cirugía Menor',
-                'Endoscopia',
-                'Ecografía',
-                'Electrocardiograma',
-                'Radiografía',
-                'Tomografía',
-                'Resonancia Magnética',
-                'Biopsia',
-                'Quimioterapia'
+            # Ya no calculamos probabilidad - procesamos TODAS las agendas
+            self.stdout.write(f'🎯 Objetivo: Poblar TODAS las {todas_agendas.count()} agendas con datos extendidos')
+            
+            tipos_procedimiento_por_especialidad = {
+                'CIRUGIA': [
+                    'Cirugía General', 'Cirugía Laparoscópica', 'Cirugía de Emergencia',
+                    'Cirugía Cardiovascular', 'Cirugía Traumatológica', 'Cirugía Plástica',
+                    'Cirugía Neurológica', 'Cirugía Urológica'
+                ],
+                'CONSULTA': [
+                    'Consulta General', 'Consulta Especializada', 'Control Post-operatorio',
+                    'Evaluación Pre-quirúrgica', 'Consulta de Urgencia', 'Segunda Opinión'
+                ],
+                'DIAGNOSTICO': [
+                    'Ecografía', 'Endoscopia', 'Colonoscopia', 'Biopsia',
+                    'Electrocardiograma', 'Holter', 'Pruebas de Función Pulmonar'
+                ],
+                'IMAGENOLOGIA': [
+                    'Radiografía', 'Tomografía', 'Resonancia Magnética',
+                    'Angiografía', 'Mamografía', 'Densitometría'
+                ],
+                'TERAPIA': [
+                    'Quimioterapia', 'Radioterapia', 'Hemodiálisis',
+                    'Fisioterapia', 'Terapia Respiratoria', 'Rehabilitación'
+                ]
+            }
+            
+            roles_medicos_especializados = [
+                'Cirujano Principal', 'Cirujano Asistente', 'Anestesista',
+                'Enfermero Instrumentista', 'Residente', 'Interno',
+                'Supervisor', 'Especialista Consultor', 'Médico Tratante',
+                'Jefe de Servicio', 'Médico de Apoyo'
             ]
             
-            roles_medicos = ['titular', 'residente', 'supervisor', 'especialista', 'consultor']
+            equipamiento_por_tipo = {
+                'CIRUGIA': [
+                    'Mesa Quirúrgica', 'Lámpara Quirúrgica', 'Electrocauterio',
+                    'Aspirador Quirúrgico', 'Monitor de Anestesia', 'Ventilador',
+                    'Desfibrilador', 'Instrumental Especializado'
+                ],
+                'CONSULTA': [
+                    'Camilla de Examen', 'Tensiómetro', 'Fonendoscopio',
+                    'Otoscopio', 'Oftalmoscopio', 'Báscula', 'Tallímetro'
+                ],
+                'DIAGNOSTICO': [
+                    'Ecógrafo', 'Endoscopio', 'Monitor de Signos Vitales',
+                    'Electrocardiógrafo', 'Equipo de Biopsia'
+                ],
+                'IMAGENOLOGIA': [
+                    'Equipo de Rayos X', 'Tomógrafo', 'Resonador',
+                    'Mamógrafo', 'Contraste', 'Protección Radiológica'
+                ],
+                'TERAPIA': [
+                    'Bomba de Infusión', 'Monitor Cardiaco', 'Equipo de Diálisis',
+                    'Ventilador', 'Oxígeno', 'Medicamentos Especializados'
+                ]
+            }
             
             agendas_creadas = 0
+            agendas_procesadas = 0
+            agendas_saltadas_existentes = 0
             
-            for agenda in agendas_medicas:
+            for agenda in todas_agendas:
+                agendas_procesadas += 1
+                
+                # NO usar probabilidad - procesar TODAS las agendas
+                
                 # Verificar si ya existe agenda extendida
                 agenda_ext_existente = AgendaExtendida.objects(agenda_id=agenda.id).first()
                 if agenda_ext_existente:
+                    agendas_saltadas_existentes += 1
+                    if agendas_saltadas_existentes % 1000 == 0:
+                        self.stdout.write(f'⚠️ {agendas_saltadas_existentes} agendas ya tienen extensión...')
                     continue
+                
+                # Debug: mostrar progreso cada 2000 agendas
+                if agendas_creadas % 2000 == 0 and agendas_creadas > 0:
+                    porcentaje = (agendas_procesadas / todas_agendas.count()) * 100
+                    self.stdout.write(f'🔄 Progreso: {agendas_creadas} creadas, {agendas_procesadas} procesadas ({porcentaje:.1f}%)')
+                
+                # Determinar tipo de procedimiento basado en el box
+                tipo_box = 'CONSULTA'  # Default
+                try:
+                    if agenda.idbox:
+                        # Intentar determinar el tipo de box
+                        box_tipos = BoxTipoBox.objects.filter(idbox=agenda.idbox)
+                        if box_tipos.exists():
+                            # Corregir el nombre del campo - podría ser nombretipobox, nombre, o descripcion
+                            tipo_box_obj = box_tipos.first().idtipobox
+                            primer_tipo = ""
+                            
+                            # Intentar diferentes nombres de campo
+                            if hasattr(tipo_box_obj, 'nombretipobox'):
+                                primer_tipo = tipo_box_obj.nombretipobox.upper()
+                            elif hasattr(tipo_box_obj, 'nombre'):
+                                primer_tipo = tipo_box_obj.nombre.upper()
+                            elif hasattr(tipo_box_obj, 'descripcion'):
+                                primer_tipo = tipo_box_obj.descripcion.upper()
+                            elif hasattr(tipo_box_obj, 'tipo'):
+                                primer_tipo = tipo_box_obj.tipo.upper()
+                            else:
+                                # Si no encontramos el campo, usar string representation
+                                primer_tipo = str(tipo_box_obj).upper()
+                            
+                            if any(keyword in primer_tipo for keyword in ['CIRUG', 'QUIROF']):
+                                tipo_box = 'CIRUGIA'
+                            elif any(keyword in primer_tipo for keyword in ['IMAGEN', 'RADIO', 'TOMO']):
+                                tipo_box = 'IMAGENOLOGIA'
+                            elif any(keyword in primer_tipo for keyword in ['DIAG', 'ENDO', 'ECO']):
+                                tipo_box = 'DIAGNOSTICO'
+                            elif any(keyword in primer_tipo for keyword in ['TERAP', 'QUIMIO', 'DIALISIS']):
+                                tipo_box = 'TERAPIA'
+                except Exception as e:
+                    # Silenciar el error ya que no afecta la funcionalidad
+                    pass  # Mantener default
                 
                 agenda_ext = AgendaExtendida(
                     agenda_id=agenda.id,
-                    tipo_procedimiento=random.choice(tipos_procedimiento),
+                    tipo_procedimiento=random.choice(tipos_procedimiento_por_especialidad[tipo_box]),
                     updated_by='sistema_poblado'
                 )
                 
                 # Agregar médico principal (el que ya está en la agenda)
                 if agenda.idmedico:
+                    # Determinar rol principal basado en el tipo de procedimiento
+                    rol_principal = 'Médico Tratante'
+                    if tipo_box == 'CIRUGIA':
+                        rol_principal = 'Cirujano Principal'
+                    elif tipo_box == 'CONSULTA':
+                        rol_principal = 'Médico Especialista'
+                    
+                    # Manejo seguro de horarios
+                    hora_inicio = None
+                    hora_fin = None
+                    try:
+                        if agenda.horainicioagenda and agenda.fechaagenda:
+                            hora_inicio = datetime.combine(agenda.fechaagenda, agenda.horainicioagenda)
+                        if agenda.horafinagenda and agenda.fechaagenda:
+                            hora_fin = datetime.combine(agenda.fechaagenda, agenda.horafinagenda)
+                    except Exception as e:
+                        self.stdout.write(f'⚠️ Error procesando horarios para agenda {agenda.id}: {str(e)}')
+                    
                     agenda_ext.agregar_medico(
                         medico_id=agenda.idmedico.idmedico,
                         es_principal=True,
-                        rol='titular',
-                        hora_inicio=datetime.combine(agenda.fechaagenda, agenda.horainicioagenda) if agenda.horainicioagenda else None,
-                        hora_fin=datetime.combine(agenda.fechaagenda, agenda.horafinagenda) if agenda.horafinagenda else None
+                        rol=rol_principal,
+                        hora_inicio=hora_inicio,
+                        hora_fin=hora_fin,
+                        observaciones="Médico responsable principal del procedimiento"
                     )
                 
-                # 40% probabilidad de tener médicos adicionales
-                if random.random() < 0.4 and len(medicos) > 1:
-                    num_medicos_adicionales = random.randint(1, 2)
+                # MODIFICAR: Agregar médicos adicionales con 40% de probabilidad
+                if random.random() < 0.4 and len(medicos) > 1:  # 40% de probabilidad para TODAS las agendas
+                    # Determinar número de médicos adicionales
+                    if tipo_box == 'CIRUGIA':
+                        num_medicos_adicionales = random.randint(1, 3)  # Cirugías pueden tener más médicos
+                    elif tipo_box == 'DIAGNOSTICO' or tipo_box == 'TERAPIA':
+                        num_medicos_adicionales = random.randint(1, 2)  # Procedimientos especializados
+                    else:  # CONSULTA, IMAGENOLOGIA
+                        num_medicos_adicionales = random.randint(1, 2)  # Consultas y estudios
+                    
                     medicos_disponibles = [m for m in medicos if not agenda.idmedico or m.idmedico != agenda.idmedico.idmedico]
                     
-                    for _ in range(min(num_medicos_adicionales, len(medicos_disponibles))):
+                    for i in range(min(num_medicos_adicionales, len(medicos_disponibles))):
                         medico_adicional = random.choice(medicos_disponibles)
                         medicos_disponibles.remove(medico_adicional)
+                        
+                        # Roles específicos por tipo
+                        roles_disponibles = roles_medicos_especializados[1:]  # Excluir principal
+                        if tipo_box == 'CIRUGIA':
+                            roles_disponibles = ['Cirujano Asistente', 'Anestesista', 'Enfermero Instrumentista', 'Residente']
+                        elif tipo_box == 'CONSULTA':
+                            roles_disponibles = ['Residente', 'Interno', 'Médico de Apoyo', 'Especialista Consultor']
+                        elif tipo_box == 'DIAGNOSTICO':
+                            roles_disponibles = ['Especialista Consultor', 'Residente', 'Médico de Apoyo']
+                        elif tipo_box == 'IMAGENOLOGIA':
+                            roles_disponibles = ['Radiólogo', 'Técnico Especializado', 'Residente']
+                        elif tipo_box == 'TERAPIA':
+                            roles_disponibles = ['Especialista en Terapia', 'Enfermero Especializado', 'Residente']
+                        
+                        # Calcular horarios para médicos adicionales
+                        hora_inicio_adicional = None
+                        hora_fin_adicional = None
+                        if agenda.horainicioagenda and agenda.horafinagenda:
+                            base_inicio = datetime.combine(agenda.fechaagenda, agenda.horainicioagenda)
+                            base_fin = datetime.combine(agenda.fechaagenda, agenda.horafinagenda)
+                            
+                            # Algunos médicos llegan antes, otros durante el procedimiento
+                            if random.random() < 0.3:  # 30% llega antes
+                                hora_inicio_adicional = base_inicio - timedelta(minutes=random.randint(15, 60))
+                                hora_fin_adicional = base_fin
+                            else:  # Llega durante o justo a tiempo
+                                hora_inicio_adicional = base_inicio + timedelta(minutes=random.randint(0, 30))
+                                hora_fin_adicional = base_fin - timedelta(minutes=random.randint(0, 30))
+                        
+                        observaciones_especificas = [
+                            "Médico de apoyo especializado",
+                            "Supervisión de procedimiento",
+                            "Entrenamiento y seguimiento",
+                            "Consulta especializada requerida",
+                            "Apoyo en técnica específica",
+                            "Supervisión de residentes",
+                            "Colaboración interdisciplinaria",
+                            "Segunda opinión médica"
+                        ]
                         
                         agenda_ext.agregar_medico(
                             medico_id=medico_adicional.idmedico,
                             es_principal=False,
-                            rol=random.choice(roles_medicos[1:]),  # No titular
-                            observaciones=f"Médico de apoyo - {random.choice(['Supervisión', 'Asistencia', 'Entrenamiento'])}"
+                            rol=random.choice(roles_disponibles),
+                            hora_inicio=hora_inicio_adicional,
+                            hora_fin=hora_fin_adicional,
+                            observaciones=random.choice(observaciones_especificas)
                         )
                 
-                # Equipamiento requerido
-                if agenda_ext.tipo_procedimiento in ['Cirugía Menor', 'Endoscopia', 'Biopsia']:
-                    agenda_ext.equipamiento_requerido = [
-                        'Instrumental quirúrgico',
-                        'Monitor de signos vitales',
-                        'Anestesia local'
-                    ]
-                elif agenda_ext.tipo_procedimiento in ['Ecografía', 'Radiografía']:
-                    agenda_ext.equipamiento_requerido = [
-                        'Equipo de imagenología',
-                        'Gel conductor',
-                        'Protección radiológica'
-                    ]
+                # Equipamiento requerido específico por tipo
+                if tipo_box in equipamiento_por_tipo:
+                    num_equipos = random.randint(2, min(6, len(equipamiento_por_tipo[tipo_box])))
+                    agenda_ext.equipamiento_requerido = random.sample(
+                        equipamiento_por_tipo[tipo_box], 
+                        num_equipos
+                    )
                 
-                # Notas adicionales
-                agenda_ext.notas_adicionales = f"Procedimiento: {agenda_ext.tipo_procedimiento}. " + \
-                    random.choice([
-                        "Paciente en ayunas.",
-                        "Revisar alergias previas.",
-                        "Consentimiento informado firmado.",
-                        "Preparación especial requerida."
-                    ])
+                # Preparación especial más específica
+                preparaciones_especiales = {
+                    'CIRUGIA': [
+                        "Ayuno de 8 horas previo",
+                        "Preparación intestinal completa",
+                        "Suspensión de anticoagulantes",
+                        "Profilaxis antibiótica pre-quirúrgica",
+                        "Marcaje de sitio quirúrgico"
+                    ],
+                    'DIAGNOSTICO': [
+                        "Ayuno de 4 horas",
+                        "Suspensión de medicamentos específicos",
+                        "Preparación intestinal parcial",
+                        "Sedación consciente programada"
+                    ],
+                    'IMAGENOLOGIA': [
+                        "Contraste oral programado",
+                        "Ayuno para contraste endovenoso",
+                        "Retirar objetos metálicos",
+                        "Verificar alergias a contraste"
+                    ],
+                    'TERAPIA': [
+                        "Acceso vascular confirmado",
+                        "Laboratorios pre-tratamiento",
+                        "Medicación pre-terapia",
+                        "Monitoreo especializado"
+                    ]
+                }
                 
-                # Registrar cambio inicial
+                if random.random() < 0.6:  # 60% tiene preparación especial
+                    agenda_ext.preparacion_especial = random.choice(
+                        preparaciones_especiales.get(tipo_box, ["Preparación estándar"])
+                    )
+                
+                # Notas adicionales más detalladas
+                notas_base = f"Procedimiento: {agenda_ext.tipo_procedimiento}. "
+                
+                notas_adicionales = {
+                    'CIRUGIA': [
+                        "Consentimiento informado firmado. Riesgo quirúrgico evaluado.",
+                        "Interconsulta anestésica completada. Paciente estable.",
+                        "Estudios pre-operatorios completos y vigentes.",
+                        "Reserva de sangre confirmada. Familiares notificados."
+                    ],
+                    'CONSULTA': [
+                        "Historia clínica completa disponible.",
+                        "Estudios complementarios solicitados.",
+                        "Seguimiento de tratamiento previo.",
+                        "Evaluación para nuevo tratamiento."
+                    ],
+                    'DIAGNOSTICO': [
+                        "Indicación médica clara y específica.",
+                        "Consentimiento para procedimiento firmado.",
+                        "Alergias verificadas y documentadas.",
+                        "Preparación del paciente confirmada."
+                    ]
+                }
+                
+                agenda_ext.notas_adicionales = notas_base + random.choice(
+                    notas_adicionales.get(tipo_box, ["Procedimiento estándar programado."])
+                )
+                
+                # Registrar cambio inicial con más detalle
                 agenda_ext.registrar_cambio(
                     usuario='sistema_poblado',
                     accion='creacion_automatica',
-                    detalle='Agenda extendida generada automáticamente'
+                    detalle=f'Agenda extendida generada para {tipo_box}: {agenda_ext.tipo_procedimiento}'
                 )
                 
-                agenda_ext.save()
-                agendas_creadas += 1
+                # Intentar guardar la agenda extendida
+                try:
+                    agenda_ext.save()
+                    agendas_creadas += 1
+                    
+                    # Mostrar progreso cada 5000 agendas creadas
+                    if agendas_creadas % 5000 == 0:
+                        porcentaje = (agendas_procesadas / todas_agendas.count()) * 100
+                        self.stdout.write(f'✅ {agendas_creadas} agendas extendidas creadas ({porcentaje:.1f}% completado)')
                 
-                if agendas_creadas % 10 == 0:
-                    self.stdout.write(f'📅 {agendas_creadas} agendas extendidas creadas...')
+                except Exception as e:
+                    self.stdout.write(f'❌ Error guardando agenda extendida {agenda.id}: {str(e)}')
+                    continue
+                
+                # Mostrar progreso cada 10000 agendas procesadas
+                if agendas_procesadas % 10000 == 0:
+                    porcentaje_completado = (agendas_procesadas / todas_agendas.count()) * 100
+                    tiempo_estimado = "Calculando..." if agendas_procesadas < 1000 else f"~{int((todas_agendas.count() - agendas_procesadas) / 1000)} min restantes"
+                    self.stdout.write(f'📊 Procesadas {agendas_procesadas}/{todas_agendas.count()} ({porcentaje_completado:.1f}%) - Creadas: {agendas_creadas} - {tiempo_estimado}')
             
             self.stdout.write(
-                self.style.SUCCESS(f'✅ {agendas_creadas} agendas extendidas creadas')
+                self.style.SUCCESS(f'✅ {agendas_creadas} agendas extendidas creadas de {agendas_procesadas} agendas procesadas')
             )
+            self.stdout.write(f'📊 Agendas saltadas (ya existían): {agendas_saltadas_existentes}')
+            self.stdout.write(f'📊 Total de agendas en el sistema: {todas_agendas.count()}')
+            self.stdout.write(f'📊 Porcentaje de cobertura: {((agendas_creadas + agendas_saltadas_existentes) / todas_agendas.count()) * 100:.1f}%')
+            
+            # Estadísticas de médicos múltiples
+            agendas_con_multiples_medicos = 0
+            total_medicos_adicionales = 0
+            for agenda_ext in AgendaExtendida.objects.all():
+                if len(agenda_ext.medicos) > 1:
+                    agendas_con_multiples_medicos += 1
+                    total_medicos_adicionales += len(agenda_ext.medicos) - 1
+            
+            if agendas_creadas > 0:
+                porcentaje_multiples = (agendas_con_multiples_medicos / (agendas_creadas + agendas_saltadas_existentes)) * 100
+                self.stdout.write(f'📊 Agendas con múltiples médicos: {agendas_con_multiples_medicos} ({porcentaje_multiples:.1f}%)')
+                self.stdout.write(f'📊 Total de médicos adicionales agregados: {total_medicos_adicionales}')
+            
+            tipos_generados = {}
+            for agenda_ext in AgendaExtendida.objects.all():
+                tipo = agenda_ext.tipo_procedimiento
+                tipos_generados[tipo] = tipos_generados.get(tipo, 0) + 1
+            
+            self.stdout.write('📊 Tipos de procedimientos generados:')
+            for tipo, cantidad in sorted(tipos_generados.items(), key=lambda x: x[1], reverse=True)[:5]:
+                self.stdout.write(f'   • {tipo}: {cantidad}')
             
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'❌ Error generando agendas extendidas: {str(e)}')
             )
+            logger.error(f'Error en generar_agendas_extendidas: {str(e)}', exc_info=True)
     
     def generar_estadisticas_historicas(self):
         """Genera estadísticas históricas por box"""
@@ -410,6 +658,10 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f'✅ {alertas_creadas} alertas ficticias creadas')
             )
             
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'❌ Error generando alertas: {str(e)}')
+            )
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'❌ Error generando alertas: {str(e)}')

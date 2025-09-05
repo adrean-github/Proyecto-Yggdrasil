@@ -86,6 +86,7 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
         },
         body: JSON.stringify({
           nombre: nombreImplemento,
+          accion: 'actualizar_estado',
           operacional: nuevoEstado,
           observaciones: observacionesPersonalizadas || (nuevoEstado ? 'Implemento habilitado desde interfaz' : 'Implemento deshabilitado desde interfaz')
         }),
