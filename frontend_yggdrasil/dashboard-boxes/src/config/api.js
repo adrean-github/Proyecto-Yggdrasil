@@ -2,12 +2,12 @@
 // Cambia estas URLs según necesites:
 
 // Para desarrollo local:
-// export const API_BASE_URL = 'http://localhost:8000';
-// export const WS_BASE_URL = 'ws://localhost:8000';
+export const API_BASE_URL = 'http://localhost:8000';
+export const WS_BASE_URL = 'ws://localhost:8000';
 
 // Para Cloudflare Tunnel (cambia por tu URL real):
-export const API_BASE_URL = 'https://ct-suites-brake-devon.trycloudflare.com';
-export const WS_BASE_URL = 'wss://ct-suites-brake-devon.trycloudflare.com';
+//export const API_BASE_URL = 'https://ct-suites-brake-devon.trycloudflare.com';
+//export const WS_BASE_URL = 'wss://ct-suites-brake-devon.trycloudflare.com';
 
 // Helper functions para construir URLs
 export const buildApiUrl = (endpoint) => {
