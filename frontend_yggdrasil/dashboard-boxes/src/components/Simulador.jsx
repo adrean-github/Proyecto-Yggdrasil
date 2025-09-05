@@ -12,7 +12,7 @@ function UploadForm() {
   const [activeTab, setActiveTab] = useState("conflictos");
   const [showInstructions, setShowInstructions] = useState(true);
   
-  // Estados de paginación separados
+  // Estados de paginación separados para cada tabla
   const [currentPageConflictos, setCurrentPageConflictos] = useState(1);
   const [currentPageAprobados, setCurrentPageAprobados] = useState(1);
 
@@ -95,8 +95,7 @@ function UploadForm() {
     }
   };
 
-  const renderTableWithPagination = (data, headerColorType = "default") => {
-    const [currentPage, setCurrentPage] = useState(1);
+  const renderTableWithPagination = (data, headerColorType = "default", currentPage, setCurrentPage) => {
     const rowsPerPage = 10;
 
     if (!data || data.length === 0) {
@@ -172,71 +171,73 @@ function UploadForm() {
           </table>
         </div>
 
-        {/* Paginación */}
-        <div className="flex items-center justify-between px-2">
-          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Mostrando <span className="font-medium">{startIdx + 1}</span> a{' '}
-            <span className="font-medium">{Math.min(endIdx, data.length)}</span> de{' '}
-            <span className="font-medium">{data.length}</span> registros
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md text-sm font-medium"
-              style={{
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)',
-                opacity: currentPage === 1 ? 0.5 : 1
-              }}
-            >
-              Anterior
-            </button>
-            
-            <div className="flex space-x-1">
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === i + 1 
-                      ? "text-white" 
-                      : "border"
-                  }`}
-                  style={{
-                    backgroundColor: currentPage === i + 1 
-                      ? 'var(--accent-color, #005C48)' 
-                      : 'var(--bg-color)',
-                    borderColor: currentPage === i + 1 
-                      ? 'var(--accent-color, #005C48)' 
-                      : 'var(--border-color)',
-                    color: currentPage === i + 1 
-                      ? 'white' 
-                      : 'var(--text-color)'
-                  }}
-                >
-                  {i + 1}
-                </button>
-              ))}
+        {/* Paginación - solo mostrar si hay más de una página */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Mostrando <span className="font-medium">{startIdx + 1}</span> a{' '}
+              <span className="font-medium">{Math.min(endIdx, data.length)}</span> de{' '}
+              <span className="font-medium">{data.length}</span> registros
             </div>
             
-            <button
-              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-md text-sm font-medium"
-              style={{
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-color)',
-                color: 'var(--text-color)',
-                opacity: currentPage === totalPages ? 0.5 : 1
-              }}
-            >
-              Siguiente
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md text-sm font-medium"
+                style={{
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-color)',
+                  color: 'var(--text-color)',
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                Anterior
+              </button>
+              
+              <div className="flex space-x-1">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                      currentPage === i + 1 
+                        ? "text-white" 
+                        : "border"
+                    }`}
+                    style={{
+                      backgroundColor: currentPage === i + 1 
+                        ? 'var(--accent-color, #005C48)' 
+                        : 'var(--bg-color)',
+                      borderColor: currentPage === i + 1 
+                        ? 'var(--accent-color, #005C48)' 
+                        : 'var(--border-color)',
+                      color: currentPage === i + 1 
+                        ? 'white' 
+                        : 'var(--text-color)'
+                    }}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md text-sm font-medium"
+                style={{
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-color)',
+                  color: 'var(--text-color)',
+                  opacity: currentPage === totalPages ? 0.5 : 1
+                }}
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -495,7 +496,7 @@ function UploadForm() {
                           <AlertTriangle className="mr-2" style={{ color: 'var(--danger-text)' }} />
                           {desaprobados.length} conflictos detectados
                         </h3>
-                        {renderTableWithPagination(desaprobados, "error")}
+                        {renderTableWithPagination(desaprobados, "error", currentPageConflictos, setCurrentPageConflictos)}
                       </>
                     )
                   : (
@@ -505,7 +506,7 @@ function UploadForm() {
                           <CheckCircle className="mr-2" style={{ color: 'var(--success-text)' }} />
                           {aprobados.length} agendas válidas
                         </h3>
-                        {renderTableWithPagination(aprobados)}
+                        {renderTableWithPagination(aprobados, "default", currentPageAprobados, setCurrentPageAprobados)}
                       </>
                     )
                 }
