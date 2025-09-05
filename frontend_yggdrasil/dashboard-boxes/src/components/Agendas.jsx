@@ -21,6 +21,7 @@ import { addMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { es } from "date-fns/locale";
 import "react-date-range/dist/styles.css"; 
 import "react-date-range/dist/theme/default.css"; 
+import MimirResolver from '../components/MimirResolver';
 
 export default function Agenda() {
   const pasillos = [
@@ -1488,7 +1489,7 @@ const parseYYYYMMDD = (str) => {
               backgroundColor: loading ? 'var(--disabled-bg)' : 'var(--accent-color)',
               color: loading ? 'var(--disabled-text)' : 'white'
             }}
-            onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--accent-hover)')}
+            onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--accent-color-dark)')}
             onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = 'var(--accent-color)')}
           >
             <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
@@ -1503,10 +1504,20 @@ const parseYYYYMMDD = (str) => {
             </button>
           )}
         </div>
-  
+
         {/* Tabla agendas */}
         {agendas.length > 0 ? (
           <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+            {/* Botón global Mimir */}
+            {agendas.some(ag => ag.tope) && (
+              <div className="flex justify-end p-2">
+                <MimirResolver 
+                  conflictos={agendas.filter(ag => ag.tope)} 
+                  onResolver={() => fetchAgendas(true)} 
+                />
+              </div>
+            )}
+
             <p className="text-sm text-center py-2 md:hidden" style={{ color: 'var(--text-muted)' }}>
               Desliza horizontalmente para ver más columnas
             </p>
@@ -1514,7 +1525,13 @@ const parseYYYYMMDD = (str) => {
               <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <tr>
                   {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-2 border text-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}>{h}</th>
+                    <th 
+                      key={h} 
+                      className="px-4 py-2 border text-center" 
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -1535,7 +1552,7 @@ const parseYYYYMMDD = (str) => {
                   rowStyle.backgroundColor = 'var(--bg-table-alternative-ii)';
                   rowStyle.color = 'var(--text-color)';
                 }
-  
+
                 return (
                   <tr 
                     key={i} 
@@ -1583,6 +1600,14 @@ const parseYYYYMMDD = (str) => {
                     </td>
                     <td className="px-4 py-2 border text-center" style={{ borderColor: 'var(--border-color)' }}>
                       <div className="flex justify-center space-x-2">
+                        {/* Botón individual Mimir */}
+                        {a.tope && (
+                          <MimirResolver 
+                            conflictos={[a]} 
+                            onResolver={() => fetchAgendas(true)}
+                          />
+                        )}
+
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
@@ -1625,7 +1650,13 @@ const parseYYYYMMDD = (str) => {
               <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <tr>
                   {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-3 border text-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}>{h}</th>
+                    <th 
+                      key={h} 
+                      className="px-4 py-3 border text-center" 
+                      style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -1654,6 +1685,7 @@ const parseYYYYMMDD = (str) => {
             </table>
           </div>
         )}
+
         
         {/* Estadísticas, pag navegación */}
         {agendas.length > 0 && (
@@ -1697,7 +1729,7 @@ const parseYYYYMMDD = (str) => {
                 onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
                 className="flex items-center gap-1 px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium"
                 style={{ backgroundColor: 'var(--accent-color)' }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-color-dark)'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--accent-color)'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

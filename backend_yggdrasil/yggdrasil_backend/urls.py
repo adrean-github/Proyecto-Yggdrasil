@@ -48,7 +48,7 @@ from yggdrasilApp.views import (
     HistorialModificacionesBoxView, RegistrarModificacionBoxView,
     
     # Mimir views
-    ResolverTopeView, AplicarSolucionView,
+    ResolverTopeView, AplicarSolucionView, SolucionesAlternativasView,EstadisticasConflictosView,ListarEspecialidadesView,
     
     # Simulador views
     upload_file, confirmar_guardado_agendas
@@ -89,8 +89,11 @@ urlpatterns = [
     path('api/reservas/<int:reserva_id>/modificar/', UpdateReservaView.as_view(), name='modificar-reserva'),
     path('api/dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
     path('api/check_disponibilidad/', CheckDisponibilidadView.as_view(), name='check-disponibilidad'),
-    path("api/resolver-tope/", ResolverTopeView.as_view(), name="resolver-topes"),
-    path("api/aplicar-solucion/", AplicarSolucionView.as_view(), name="aplicar-solucion"),
+    path('api/resolver-tope/', ResolverTopeView.as_view(), name='resolver-tope'),
+    path('api/aplicar-solucion/', AplicarSolucionView.as_view(), name='aplicar-solucion'),
+    path('api/soluciones-alternativas/', SolucionesAlternativasView.as_view(), name='soluciones-alternativas'),
+    path('especialidades/', ListarEspecialidadesView.as_view(), name='listar-especialidades'),
+    path('estadisticas-conflictos/', EstadisticasConflictosView.as_view(), name='estadisticas-conflictos'),
     path('api/boxes-inhabilitados/', BoxesInhabilitadosView.as_view(), name='boxes-inhabilitados'), 
     path('api/agendas-con-tope/', AgendasConTopeView.as_view(), name='agendas-con-tope'),
     path('api/todas-las-agendas/', TodasAgendasView.as_view(), name='todas-las-agendas'),

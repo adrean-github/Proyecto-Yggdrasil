@@ -66,7 +66,10 @@ from .historial_views import (
 # Mimir views (resolución de topes)
 from .mimir_views import (
     ResolverTopeView,
-    AplicarSolucionView
+    AplicarSolucionView,
+    SolucionesAlternativasView,
+    EstadisticasConflictosView,
+    ListarEspecialidadesView
 )
 
 # Simulador views

@@ -53,6 +53,18 @@ html {
 }
 
 
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.mimir-loading {
+  background: linear-gradient(90deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+
 @media (max-width: 640px) {
   /* Cabecera más compacta */
   .fc .fc-toolbar-title {
@@ -113,6 +125,7 @@ html {
   --border-color: #e5e7eb;
   --text-muted: #6b7280;
   --accent-color: #1B5D52;
+  --accent-color-dark: #14543f;
   
   /* Colores para estados */
   --ocupado-bg: #2E8B57;
@@ -199,6 +212,7 @@ html.dark {
   --border-color: #374151;
   --text-muted: #9ca3af;
   --accent-color: #4ECDC4;
+  --accent-color-dark: #2e816f;
   
   /* Colores para estados */
   --ocupado-bg: #2E8B57;

@@ -1,13 +1,12 @@
-# Views especiales - Mimir (resolución de topes y optimización)
-
+# yggdrasilApp/views/mimir_views.py
 import traceback
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from ..models import Box, Agendabox
 from rest_framework import status
-from django.db.models import Q
 from django.utils import timezone
-
+from datetime import datetime
+from ..utils.resolutor_agendas import ResolutorConflictosAgenda
+from ..models import Tipobox, Agendabox
 
 class ResolverTopeView(APIView):
     def post(self, request):
@@ -18,96 +17,53 @@ class ResolverTopeView(APIView):
                     {"error": "Se requieren al menos 2 reservas en conflicto"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            reservas = Agendabox.objects.filter(
-                id__in=reservas_ids
-            ).select_related("idbox", "idmedico").prefetch_related("idbox__tipoboxes")
             
-            if reservas.count() < 2:
+            resolutor = ResolutorConflictosAgenda()
+            resultado = resolutor.resolver_conflicto_agendas(reservas_ids)
+            
+            if 'error' in resultado:
                 return Response(
-                    {"error": "No se encontraron todas las reservas especificadas"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": resultado['error']},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-
-            primera_reserva = reservas.first()
-            fecha = primera_reserva.fechaagenda
-            hora_inicio = min(r.horainicioagenda for r in reservas)
-            hora_fin = max(r.horafinagenda for r in reservas)
-            box_original = primera_reserva.idbox.idbox if primera_reserva.idbox else None
-            pasillo_original = primera_reserva.idbox.pasillobox if primera_reserva.idbox else None
-
-            boxes_ocupados = Agendabox.objects.filter(
-                fechaagenda=fecha,
-                horainicioagenda__lt=hora_fin,
-                horafinagenda__gt=hora_inicio
-            ).values_list('idbox', flat=True)
             
-            boxes_libres = Box.objects.exclude(
-                idbox__in=boxes_ocupados
-            ).filter(
-                habilitado=True
-            ).prefetch_related('tipoboxes')
-            
-            boxes_con_score = []
-            for box in boxes_libres:
-                score = 0
-                razones = []
-                
-                carga = Agendabox.objects.filter(
-                    idbox=box.idbox,
-                    fechaagenda=fecha
-                ).count()
-                score += (10 - min(carga, 10)) * 3
-                razones.append(f"Carga diaria: {carga} reservas")
-                
-                if box.pasillobox == pasillo_original:
-                    score += 15
-                    razones.append("Mismo pasillo que el box original")
-                
-                medicos_involucrados = [r.idmedico.idmedico for r in reservas if r.idmedico]
-                if medicos_involucrados:
-                    # Buscar historial de uso de este box por los médicos
-                    uso_historico = Agendabox.objects.filter(
-                        idbox=box.idbox,
-                        idmedico__idmedico__in=medicos_involucrados
-                    ).count()
-                    score += min(uso_historico, 10) * 2
-                    razones.append(f"Uso histórico por médicos: {uso_historico} veces")
-                
-                boxes_con_score.append({
-                    'idbox': box.idbox,
-                    'nombre': f"Box {box.idbox}",
-                    'pasillo': box.pasillobox,
-                    'score_total': score,
-                    'criterios': [{'criterio': 'Carga', 'detalle': r} for r in razones]
-                })
-
-            boxes_con_score.sort(key=lambda x: x['score_total'], reverse=True)
-            
-            medicos_data = []
-            for r in reservas:
-                if r.idmedico:
-                    medicos_data.append({
-                        'id': r.idmedico.idmedico,
-                        'nombre': r.idmedico.nombre
+            # Obtener información básica de cada reserva (adaptado al modelo real)
+            reservas_detalladas = []
+            for reserva_id in reservas_ids:
+                try:
+                    reserva = Agendabox.objects.get(id=reserva_id)
+                    reservas_detalladas.append({
+                        'id': reserva.id,
+                        'fecha': reserva.fechaagenda.strftime('%Y-%m-%d') if reserva.fechaagenda else None,
+                        'hora_inicio': str(reserva.horainicioagenda) if reserva.horainicioagenda else None,
+                        'hora_fin': str(reserva.horafinagenda) if reserva.horafinagenda else None,
+                        'medico': reserva.idmedico.nombre if reserva.idmedico else 'N/A',
+                        'medico_id': reserva.idmedico.idmedico if reserva.idmedico else None,
+                        'box_actual': reserva.idbox.idbox if reserva.idbox else 'N/A',
+                        'box_actual_id': reserva.idbox.idbox if reserva.idbox else None,
+                        'pasillo_actual': reserva.idbox.pasillobox if reserva.idbox else 'N/A',
+                        # Campos que no existen en el modelo real - los omitimos o manejamos diferente
+                        'paciente': 'N/A',  # No existe idpaciente en el modelo
+                        'paciente_id': None,
+                        'estado': 'N/A',    # No existe estadoagenda
+                        'observaciones': reserva.observaciones if reserva.observaciones else ''
+                    })
+                except Agendabox.DoesNotExist:
+                    reservas_detalladas.append({
+                        'id': reserva_id,
+                        'error': 'Reserva no encontrada'
+                    })
+                except Exception as e:
+                    reservas_detalladas.append({
+                        'id': reserva_id,
+                        'error': str(e)
                     })
             
-            return Response({
-                'conflicto': {
-                    'fecha': str(fecha),
-                    'inicio': str(hora_inicio),
-                    'fin': str(hora_fin),
-                    'boxes_involucrados': [{
-                        'id': box_original,
-                        'nombre': f"Box {box_original}",
-                        'pasillo': pasillo_original
-                    }],
-                    'medicos_involucrados': medicos_data
-                },
-                'recomendaciones': boxes_con_score,
-                'recomendacion_principal': boxes_con_score[0] if boxes_con_score else None
-            })
-
+            # Agregar la información detallada al resultado
+            resultado['reservas_detalladas'] = reservas_detalladas
+            
+            return Response(resultado)
+            
         except Exception as e:
             traceback.print_exc()
             return Response(
@@ -115,14 +71,7 @@ class ResolverTopeView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
 class AplicarSolucionView(APIView):
-    """
-    API para aplicar una solución previamente aprobada
-    URL: /api/agenda/aplicar-solucion/
-    Método: POST
-    """
-    
     def post(self, request):
         try:
             reserva_id = request.data.get("reserva_id")
@@ -135,75 +84,227 @@ class AplicarSolucionView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            reserva = Agendabox.objects.get(id=reserva_id)
-            box_destino = Box.objects.get(idbox=box_destino_id)
+            # Obtener información del usuario de manera segura
+            usuario_info = f"{request.user.username}" if hasattr(request.user, 'username') else "Sistema"
             
-            conflicto = Agendabox.objects.filter(
-                idbox=box_destino_id,
-                fechaagenda=reserva.fechaagenda,
-                horainicioagenda__lt=reserva.horafinagenda,
-                horafinagenda__gt=reserva.horainicioagenda
-            ).exclude(id=reserva_id).exists()
+            resolutor = ResolutorConflictosAgenda()
+            resultado = resolutor.aplicar_cambio_box(
+                reserva_id, box_destino_id, usuario_info, comentario
+            )
             
-            if conflicto:
+            if 'error' in resultado:
                 return Response(
-                    {"error": "El box destino tiene conflictos de horario"},
+                    {"error": resultado['error']},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            box_original = reserva.idbox
-            reserva.idbox = box_destino
-            reserva.observaciones = self._actualizar_observaciones(reserva.observaciones, comentario, request.user)
-            reserva.save()
+            # Obtener información actualizada de la reserva
+            try:
+                reserva_actualizada = Agendabox.objects.get(id=reserva_id)
+                resultado['reserva_actualizada'] = {
+                    'id': reserva_actualizada.id,
+                    'box_actual': reserva_actualizada.idbox.idbox if reserva_actualizada.idbox else 'N/A',
+                    'observaciones': reserva_actualizada.observaciones if reserva_actualizada.observaciones else ''
+                }
+            except Exception as e:
+                resultado['advertencia'] = f"No se pudo obtener información actualizada: {str(e)}"
             
-            return Response(
-                {
-                    "mensaje": "Cambio aplicado exitosamente",
-                    "reserva": {
-                        "id": reserva.id,
-                        "fecha": reserva.fechaagenda,
-                        "hora_inicio": reserva.horainicioagenda,
-                        "hora_fin": reserva.horafinagenda,
-                        "responsable": reserva.nombre_responsable
-                    },
-                    "box_anterior": {
-                        "id": box_original.idbox if box_original else None,
-                        "nombre": f"Box {box_original.idbox}" if box_original else None
-                    },
-                    "box_nuevo": {
-                        "id": box_destino.idbox,
-                        "nombre": f"Box {box_destino.idbox}"
-                    },
-                    "usuario": str(request.user),
-                    "fecha_cambio": timezone.now().isoformat(),
-                    "comentario": comentario
-                },
-                status=status.HTTP_200_OK
-            )
+            return Response({
+                "mensaje": "Cambio aplicado exitosamente",
+                "detalles": resultado
+            })
             
-        except Agendabox.DoesNotExist:
-            return Response(
-                {"error": "Reserva no encontrada"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Box.DoesNotExist:
-            return Response(
-                {"error": "Box destino no encontrado"},
-                status=status.HTTP_404_NOT_FOUND
-            )
         except Exception as e:
+            traceback.print_exc()
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
-    def _actualizar_observaciones(self, observaciones_actuales, comentario, usuario):
-        """Actualiza el campo observaciones con el cambio realizado"""
-        cambio = f"\n\n--- CAMBIO DE BOX ---\n"
-        cambio += f"Fecha: {timezone.now().strftime('%Y-%m-%d %H:%M')}\n"
-        cambio += f"Usuario: {usuario}\n"
-        cambio += f"Comentario: {comentario}\n"
-        
-        if observaciones_actuales:
-            return observaciones_actuales + cambio
-        return cambio.strip()
+
+class SolucionesAlternativasView(APIView):
+    def post(self, request):
+        try:
+            fecha = request.data.get("fecha")
+            hora_inicio = request.data.get("hora_inicio")
+            hora_fin = request.data.get("hora_fin")
+            duracion = request.data.get("duracion")  # en minutos
+            especialidades = request.data.get("especialidades", [])
+            
+            if not all([fecha, hora_inicio, hora_fin]):
+                return Response(
+                    {"error": "fecha, hora_inicio y hora_fin son requeridos"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Convertir especialidades (nombres) a IDs de Tipobox
+            tipos_requeridos = []
+            if especialidades:
+                tipos_requeridos = list(
+                    Tipobox.objects.filter(tipo__in=especialidades)
+                    .values_list('idtipobox', flat=True)
+                )
+            
+            resolutor = ResolutorConflictosAgenda()
+            
+            # Convertir strings a objetos datetime si es necesario
+            if isinstance(fecha, str):
+                fecha = datetime.strptime(fecha, '%Y-%m-%d').date()
+            if isinstance(hora_inicio, str):
+                hora_inicio = datetime.strptime(hora_inicio, '%H:%M:%S').time()
+            if isinstance(hora_fin, str):
+                hora_fin = datetime.strptime(hora_fin, '%H:%M:%S').time()
+            
+            # Obtener boxes libres con filtrado por especialidades
+            boxes_libres = resolutor.obtener_boxes_libres(
+                fecha, hora_inicio, hora_fin, 
+                tipos_requeridos=tipos_requeridos
+            )
+            
+            # Preparar respuesta con información detallada
+            soluciones = []
+            for box in boxes_libres:
+                # Obtener tipos del box con indicador de principal
+                box_tipos = BoxTipoBox.objects.filter(idbox=box.idbox)
+                
+                tipos_box = []
+                for bt in box_tipos:
+                    tipos_box.append({
+                        'id': bt.idtipobox.idtipobox,
+                        'nombre': bt.idtipobox.tipo,
+                        'principal': bt.tipoprincipal
+                    })
+                
+                # Calcular compatibilidad real
+                tipos_box_ids = {bt.idtipobox.idtipobox for bt in box_tipos}
+                compatibilidad = len(set(tipos_requeridos) & tipos_box_ids) if tipos_requeridos else len(tipos_box_ids)
+                
+                soluciones.append({
+                    'idbox': box.idbox,
+                    'nombre': f"Box {box.idbox}",
+                    'pasillo': box.pasillobox,
+                    'estado': box.estadobox,
+                    'tipos': tipos_box,
+                    'compatibilidad_especialidades': compatibilidad,
+                    'porcentaje_compatibilidad': f"{(compatibilidad / len(tipos_requeridos) * 100):.1f}%" if tipos_requeridos else '100%'
+                })
+            
+            # Ordenar por compatibilidad
+            soluciones.sort(key=lambda x: x['compatibilidad_especialidades'], reverse=True)
+            
+            return Response({
+                "soluciones_alternativas": soluciones,
+                "total_alternativas": len(soluciones),
+                "parametros_busqueda": {
+                    "fecha": str(fecha),
+                    "hora_inicio": str(hora_inicio),
+                    "hora_fin": str(hora_fin),
+                    "duracion_minutos": duracion,
+                    "especialidades_solicitadas": especialidades,
+                    "tipos_ids_requeridos": tipos_requeridos
+                }
+            })
+            
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ListarEspecialidadesView(APIView):
+    """Vista para listar todas las especialidades disponibles"""
+    def get(self, request):
+        try:
+            especialidades = Tipobox.objects.all().values('idtipobox', 'tipo').order_by('tipo')
+            
+            return Response({
+                "especialidades": list(especialidades),
+                "total": especialidades.count()
+            })
+            
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class EstadisticasConflictosView(APIView):
+    """Vista para obtener estadísticas de conflictos"""
+    def post(self, request):
+        try:
+            fecha_inicio = request.data.get("fecha_inicio")
+            fecha_fin = request.data.get("fecha_fin", fecha_inicio)
+            
+            if not fecha_inicio:
+                return Response(
+                    {"error": "fecha_inicio es requerida"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Convertir strings a objetos date si es necesario
+            if isinstance(fecha_inicio, str):
+                fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+            if isinstance(fecha_fin, str):
+                fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+            
+            resolutor = ResolutorConflictosAgenda()
+            estadisticas = resolutor.obtener_estadisticas_conflictos(fecha_inicio, fecha_fin)
+            
+            return Response(estadisticas)
+            
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class InfoReservaView(APIView):
+    """Vista para obtener información detallada de una reserva específica"""
+    def get(self, request, reserva_id):
+        try:
+            reserva = Agendabox.objects.get(id=reserva_id)
+            
+            data = {
+                'id': reserva.id,
+                'fecha': reserva.fechaagenda.strftime('%Y-%m-%d') if reserva.fechaagenda else None,
+                'hora_inicio': str(reserva.horainicioagenda) if reserva.horainicioagenda else None,
+                'hora_fin': str(reserva.horafinagenda) if reserva.horafinagenda else None,
+                'medico': {
+                    'id': reserva.idmedico.idmedico if reserva.idmedico else None,
+                    'nombre': reserva.idmedico.nombre if reserva.idmedico else 'N/A',
+                    'especialidad': getattr(reserva.idmedico, 'especialidad', 'N/A') if reserva.idmedico else 'N/A'
+                },
+                'box_actual': {
+                    'id': reserva.idbox.idbox if reserva.idbox else None,
+                    'nombre': f"Box {reserva.idbox.idbox}" if reserva.idbox else 'N/A',
+                    'pasillo': reserva.idbox.pasillobox if reserva.idbox else 'N/A',
+                    'estado': reserva.idbox.estadobox if reserva.idbox else 'N/A'
+                },
+                # Campos que no existen en el modelo real
+                'paciente': {
+                    'id': None,
+                    'nombre': 'N/A',
+                    'rut': 'N/A'
+                },
+                'estado': 'N/A',
+                'observaciones': reserva.observaciones if reserva.observaciones else '',
+                # Campos de timestamp que no existen
+                'creado_en': None,
+                'actualizado_en': None
+            }
+            
+            return Response(data)
+            
+        except Agendabox.DoesNotExist:
+            return Response(
+                {"error": f"Reserva con ID {reserva_id} no encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
