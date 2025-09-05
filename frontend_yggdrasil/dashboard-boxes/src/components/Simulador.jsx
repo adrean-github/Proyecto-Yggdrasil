@@ -11,6 +11,10 @@ function UploadForm() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("conflictos");
   const [showInstructions, setShowInstructions] = useState(true);
+  
+  // Estados de paginación separados
+  const [currentPageConflictos, setCurrentPageConflictos] = useState(1);
+  const [currentPageAprobados, setCurrentPageAprobados] = useState(1);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -76,6 +80,9 @@ function UploadForm() {
         const data = await response.json();
         setAprobados(data.aprobados || []);
         setDesaprobados(data.desaprobados || []);
+        // Resetear paginación cuando se cargan nuevos datos
+        setCurrentPageConflictos(1);
+        setCurrentPageAprobados(1);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Error al subir el archivo');
@@ -88,8 +95,7 @@ function UploadForm() {
     }
   };
 
-  const renderTableWithPagination = (data) => {
-    const [currentPage, setCurrentPage] = useState(1);
+  const renderTableWithPagination = (data, headerColor, currentPage, setCurrentPage) => {
     const rowsPerPage = 10;
 
     if (!data || data.length === 0) {
@@ -149,47 +155,49 @@ function UploadForm() {
         </div>
 
         {/* Paginación */}
-        <div className="flex items-center justify-between px-2">
-          <div className="text-sm text-gray-700">
-            Mostrando <span className="font-medium">{startIdx + 1}</span> a{' '}
-            <span className="font-medium">{Math.min(endIdx, data.length)}</span> de{' '}
-            <span className="font-medium">{data.length}</span> registros
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            
-            <div className="flex space-x-1">
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    currentPage === i + 1 
-                      ? "bg-[#005C48] text-white" 
-                      : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2">
+            <div className="text-sm text-gray-700">
+              Mostrando <span className="font-medium">{startIdx + 1}</span> a{' '}
+              <span className="font-medium">{Math.min(endIdx, data.length)}</span> de{' '}
+              <span className="font-medium">{data.length}</span> registros
             </div>
             
-            <button
-              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Anterior
+              </button>
+              
+              <div className="flex space-x-1">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                      currentPage === i + 1 
+                        ? "bg-[#005C48] text-white" 
+                        : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -414,7 +422,7 @@ function UploadForm() {
                           <AlertTriangle className="text-red-500 mr-2" />
                           {desaprobados.length} conflictos detectados
                         </h3>
-                        {renderTableWithPagination(desaprobados, "red-900")}
+                        {renderTableWithPagination(desaprobados, "red-900", currentPageConflictos, setCurrentPageConflictos)}
                       </>
                     )
                   : (
@@ -423,7 +431,7 @@ function UploadForm() {
                           <CheckCircle className="text-green-500 mr-2" />
                           {aprobados.length} agendas válidas
                         </h3>
-                        {renderTableWithPagination(aprobados, "[#005C48]")}
+                        {renderTableWithPagination(aprobados, "[#005C48]", currentPageAprobados, setCurrentPageAprobados)}
                       </>
                     )
                 }
