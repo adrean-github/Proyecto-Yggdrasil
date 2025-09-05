@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO, isBefore } from 'date-fns';
 import { buildApiUrl } from "../config/api";
+import { formatInTimeZone } from "date-fns-tz";
 
 export default function AgendarNoMedica() {
   const navigate = useNavigate();

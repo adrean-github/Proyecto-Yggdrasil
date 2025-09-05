@@ -20,6 +20,7 @@ import {
   Package,
   Activity,
   ClipboardList,
+  Info,
   FileText,
   Users
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { useBoxesWebSocket } from "../hooks/useBoxesWebSocket";
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import InventarioModal from './InventarioModal';
+import { useLocation } from 'react-router-dom';
 
 export default function BoxDetalle() {
   const { id } = useParams();
@@ -45,9 +47,116 @@ export default function BoxDetalle() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [activeTab, setActiveTab] = useState('basico'); // 'basico' o 'extendido'
+  const [activeTab, setActiveTab] = useState('basico'); 
   const [razonInhabilitacion, setRazonInhabilitacion] = useState("");
   const [showInventarioModal, setShowInventarioModal] = useState(false);
+  const location = useLocation();
+    
+  const calendarStyles = `
+    /* Texto de eventos en negro */
+    .fc-event {
+      color: #000000 !important;
+      font-weight: 500;
+    }
+    
+    /* Encabezados de días (Mar 2) en negro */
+    .fc .fc-col-header-cell-cushion,
+    .fc .fc-daygrid-day-number {
+      color: #000000 !important;
+    }
+    
+    /* Horas en la primera columna */
+    .fc .fc-timegrid-slot-label-cushion {
+      color: var(--fc-timegrid-slot-label-color) !important;
+    }
+    
+    /* Título de la semana */
+    .fc .fc-toolbar-title {
+      color: var(--fc-toolbar-title-color) !important;
+    }
+    
+    /* Botones del calendario con estilo verde */
+    .fc .fc-button {
+      background-color: var(--accent-color, #005C48) !important;
+      background-image: none !important;
+      border: 1px solid var(--accent-color, #005C48) !important;
+      color: white !important;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .fc .fc-button:hover {
+      background-color: var(--accent-hover, #009B77) !important;
+      border-color: var(--accent-hover, #009B77) !important;
+      transform: translateY(-1px);
+    }
+
+    /* Botón activo (seleccionado) */
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+      background-color: white !important;
+      color: var(--accent-color, #005C48) !important;
+      border-color: var(--accent-color, #005C48) !important;
+      box-shadow: 0 0 0 2px rgba(0, 92, 72, 0.2);
+    }
+
+    /* Estados de los botones */
+    .fc .fc-button:focus {
+      box-shadow: 0 0 0 3px rgba(0, 92, 72, 0.3) !important;
+    }
+
+    .fc .fc-button:disabled {
+      background-color: #cbd5e1 !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+      cursor: not-allowed;
+    }
+
+    /* Iconos dentro de los botones */
+    .fc .fc-button .fc-icon {
+      color: inherit !important;
+    }
+
+    /* Botones de navegación (prev/next) */
+    .fc .fc-prev-button,
+    .fc .fc-next-button {
+      padding: 0.4em 0.6em !important;
+    }
+
+    /* Botones de vista (semana/mes) */
+    .fc .fc-timeGridWeek-button,
+    .fc .fc-dayGridMonth-button {
+      padding: 0.4em 0.8em !important;
+    }
+
+    /* Ajustes responsivos para móviles */
+    @media (max-width: 640px) {
+      .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .fc .fc-toolbar-title {
+        font-size: 1.1rem;
+        margin: 0.5rem 0;
+        text-align: center;
+      }
+      
+      .fc .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
+      
+      .fc .fc-button {
+        font-size: 0.8rem;
+        padding: 0.3em 0.6em !important;
+      }
+    }
+  `;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]); 
 
   // Función auxiliar para verificar si existen datos extendidos válidos
   const tieneDatosExtendidos = (datosExtendidos) => {
@@ -322,15 +431,16 @@ export default function BoxDetalle() {
   };
 
   const navigateToHistorialCompleto = () => {
+    window.scrollTo(0, 0);
     navigate(`/boxes/${id}/historial`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="text-center">
-          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
-          <p className="text-gray-600">Cargando información del Box...</p>
+          <RefreshCw className="animate-spin h-12 w-12 mx-auto mb-4" style={{ color: 'var(--accent-color)' }} />
+          <p style={{ color: 'var(--text-muted)' }}>Cargando información del Box...</p>
         </div>
       </div>
     );
@@ -338,15 +448,16 @@ export default function BoxDetalle() {
 
   if (!boxData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-500" />
           <p className="text-red-500 text-lg">No se pudo cargar la información del Box.</p>
           <button 
             onClick={() => navigate("/boxes")}
-            className="mt-4 px-4 py-2 bg-[#1B5D52] text-white rounded-lg hover:bg-[#14463d] transition-colors"
+            className="mt-4 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--accent-color)', color: '#fff' }}
           >
-            Volver al listado de Boxes
+            Volver a panel de boxes
           </button>
         </div>
       </div>
@@ -354,13 +465,34 @@ export default function BoxDetalle() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <style>{calendarStyles}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 sm:gap-0">
+        <button
+          onClick={() => navigate("/boxes")}
+          className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-lg transition-colors text-sm sm:text-base"
+          style={{ 
+            backgroundColor: 'var(--bg-color)',
+            color: 'var(--text-color)',
+            border: '1px solid var(--border-color)'
+          }}
+        >
+          <ArrowLeft size={18} className="sm:size-5" />
+          <span className="hidden sm:inline">Volver a panel de boxes</span>
+          <span className="sm:hidden">Volver</span>
+        </button>
         
-        <div className="text-sm text-gray-500 flex items-center gap-2">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Última actualización: {lastUpdated}
+        <div className="text-xs sm:text-sm flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+          <RefreshCw size={12} className={`sm:size-3.5 ${loading ? "animate-spin" : ""}`} />
+          <span className="hidden sm:inline">Última actualización: {lastUpdated}</span>
+          <span className="sm:hidden">
+            {lastUpdated.split(' ').length > 2 
+              ? `${lastUpdated.split(' ')[0]} ${lastUpdated.split(' ')[1]}`
+              : lastUpdated
+            }
+          </span>
         </div>
       </div>
 
@@ -368,64 +500,72 @@ export default function BoxDetalle() {
         {/*Panel de información del box */}
         <div className="lg:col-span-1 space-y-6">
           <motion.div
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+            className="rounded-xl shadow-sm border p-6"
+            style={{
+              backgroundColor: 'var(--bg-color)',
+              borderColor: 'var(--border-color)'
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <h1 className="text-3xl font-bold text-gray-800">Detalle de Box #{id}</h1>
-              <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                boxData.estadobox === "Habilitado" 
-                  ? "bg-green-100 text-green-800" 
-                  : "bg-yellow-100 text-yellow-800"
-              }`}>
-                {boxData.estadobox}
+            <div className="flex flex-col gap-4 mb-6">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--text-color)' }}>
+                Detalle de Box #{id}
+              </h1>
+              <div className="flex justify-start">
+                <div className={`px-3 py-2 rounded-full text-xs font-semibold inline-block ${
+                  boxData.estadobox === "Habilitado" 
+                    ? "bg-green-100 text-green-800" 
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {boxData.estadobox}
+                </div>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <Building className="text-gray-500" size={18} />
+                <Building size={18} style={{ color: 'var(--text-muted)' }} />
                 <div>
-                  <p className="text-sm text-gray-600">Pasillo</p>
-                  <p className="font-medium">{boxData.pasillobox}</p>
-                </div>
-              </div>
-
-
-              <div className="flex items-center gap-3">
-                <Clock className="text-gray-500" size={18} />
-                <div>
-                  <p className="text-sm text-gray-600">Última agenda</p>
-                  <p className="font-medium">{boxData.ult || "Sin registros"}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Pasillo</p>
+                  <p className="font-medium" style={{ color: 'var(--text-color)' }}>{boxData.pasillobox}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <Clock className="text-gray-500" size={18} />
+                <Clock size={18} style={{ color: 'var(--text-muted)' }} />
                 <div>
-                  <p className="text-sm text-gray-600">Próxima agenda</p>
-                  <p className="font-medium">{boxData.prox || "Sin programar"}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Última agenda</p>
+                  <p className="font-medium" style={{ color: 'var(--text-color)' }}>{boxData.ult || "Sin registros"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Clock size={18} style={{ color: 'var(--text-muted)' }} />
+                <div>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Próxima agenda</p>
+                  <p className="font-medium" style={{ color: 'var(--text-color)' }}>{boxData.prox || "Sin programar"}</p>
                 </div>
               </div>
 
               {boxData.estadobox === "Inhabilitado" && (
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
                       <AlertCircle size={16} />
                       <span>Motivo de deshabilitación</span>
                     </div>
                     <button
                       onClick={navigateToHistorialCompleto}
-                      className="flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 transition-colors"
+                      className="flex items-center gap-1 text-xs transition-colors"
+                      style={{ color: 'var(--accent-color)' }}
                     >
                       <ExternalLink size={12} />
                       Ver historial
                     </button>
                   </div>
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-3">
-                    <p className="text-red-900 text-sm font-medium">
+                  <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--danger-bg)', border: '1px solid var(--danger-border)' }}>
+                    <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>
                       {getUltimoMotivo()}
                     </p>
                   </div>
@@ -436,7 +576,11 @@ export default function BoxDetalle() {
             {/* Botón de Inventario */}
             <button
               onClick={() => setShowInventarioModal(true)}
-              className="w-full mt-4 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200"
+              className="w-full mt-4 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              style={{ 
+                backgroundColor: 'var(--info-bg)',
+                color: 'var(--info-text)'
+              }}
             >
               <Package size={16} />
               Ver Inventario
@@ -472,38 +616,49 @@ export default function BoxDetalle() {
 
           {/* Panel de especialidades */}
           <motion.div
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+            className="rounded-xl shadow-sm border p-6"
+            style={{
+              backgroundColor: 'var(--bg-color)',
+              borderColor: 'var(--border-color)'
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
               <Star size={18} />
               Especialidades
             </h3>
 
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Principal</p>
-                <p className="font-medium bg-green-50 px-3 py-2 rounded-lg">
+                <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Principal</p>
+                <p className="font-medium px-3 py-2 rounded-lg" style={{ 
+                  backgroundColor: 'var(--success-bg)',
+                  color: 'var(--success-text)'
+                }}>
                   {boxData.especialidad_principal || 'No definida'}
                 </p>
               </div>
               
               <div>
-                <p className="text-sm text-gray-600 mb-1">También puede usarse para</p>
+                <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>También puede usarse para</p>
                 <div className="flex flex-wrap gap-2">
                   {boxData.especialidades && boxData.especialidades.length > 0 ? (
                     boxData.especialidades.map((especialidad, index) => (
                       <span 
                         key={index}
-                        className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                        className="px-3 py-1 rounded-full text-sm"
+                        style={{
+                          backgroundColor: 'var(--tag-bg)',
+                          color: 'var(--tag-text)'
+                        }}
                       >
                         {especialidad}
                       </span>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-sm">Ninguna especialidad adicional</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ninguna especialidad adicional</p>
                   )}
                 </div>
               </div>
@@ -512,7 +667,11 @@ export default function BoxDetalle() {
 
           {/* Tarjeta de acceso rápido al historial */}
           <motion.div
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow"
+            className="rounded-xl shadow-sm border p-6 cursor-pointer hover:shadow-md transition-shadow"
+            style={{
+              backgroundColor: 'var(--bg-color)',
+              borderColor: 'var(--border-color)'
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -520,25 +679,28 @@ export default function BoxDetalle() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <History className="text-blue-900" size={20} />
+                <History size={20} style={{ color: 'var(--accent-color)' }} />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Historial Completo</h3>
-                  <p className="text-sm text-gray-600">Ver todas las modificaciones del box</p>
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>Historial Completo</h3>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Ver todas las modificaciones del box</p>
                 </div>
               </div>
-              <ExternalLink className="text-gray-400" size={18} />
+              <ExternalLink size={18} style={{ color: 'var(--text-muted)' }} />
             </div>
             
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--info-bg)' }}>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-blue-900 font-medium">Total de registros</span>
-                <span className="bg-blue-100 text-blue-900 px-2 py-1 rounded-full text-xs font-semibold">
+                <span className="font-medium" style={{ color: 'var(--info-text)' }}>Total de registros</span>
+                <span className="px-2 py-1 rounded-full text-xs font-semibold" style={{ 
+                  backgroundColor: 'var(--info-light)',
+                  color: 'var(--info-text)'
+                }}>
                   {historialModificaciones.length}
                 </span>
               </div>
               
               {historialModificaciones.length > 0 && (
-                <div className="mt-2 text-xs text-gray-600">
+                <div className="mt-2 text-xs" style={{ color: 'var(--info-text)' }}>
                   <p>Última modificación: {new Date(historialModificaciones[0].fecha).toLocaleDateString('es-ES')}</p>
                 </div>
               )}
@@ -548,88 +710,129 @@ export default function BoxDetalle() {
 
         {/* Calendario */}
         <motion.div
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-2"
+          className="rounded-xl shadow-sm border p-4 md:p-6 lg:col-span-2"
+          style={{
+            backgroundColor: 'var(--bg-color)',
+            borderColor: 'var(--border-color)'
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <Calendar size={18} />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-2 sm:gap-0">
+            <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
+              <Calendar size={30} />
               Agenda del Box
             </h3>
-            
-            <div className="flex items-center gap-4 text-sm">
+              
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#d8b4fe]"></div>
-                <span>No médica</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#d8b4fe]"></div>
+                <span style={{ color: 'var(--text-color)' }}>No médica</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#cfe4ff]"></div>
-                <span>Médica</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#cfe4ff]"></div>
+                <span style={{ color: 'var(--text-color)' }}>Médica</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-[#ff6b6b]"></div>
-                <span>Tope</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 rounded bg-[#ff6b6b]"></div>
+                <span style={{ color: 'var(--text-color)' }}>Tope</span>
               </div>
             </div>
           </div>
 
-          <div className="border-t pt-4">
+          {/* Texto informativo agregado */}
+          <div className="mb-3 rounded-lg p-3 text-center" style={{ 
+            backgroundColor: 'var(--info-bg)',
+            border: '1px solid var(--accent-color)'
+          }}>
+            <div className="flex items-center justify-center gap-2">
+              <Info size={16} style={{ color: 'var(--accent-color)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--accent-color)' }}>
+                Presione sobre cualquier agenda para ver sus detalles completos
+              </p>
+            </div>
+          </div>
+          <div className="border-t pt-3 sm:pt-4" style={{borderColor: 'var(--border-color)' }}>
           <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "timeGridWeek,dayGridMonth"
-            }}
-            events={agendaboxData.map(event => {
-              const esTope = isTope(event, agendaboxData);
-              
-              return {
-                id: event.id,
-                title: "",
-                start: event.start || `${event.fecha}T${event.hora_inicio}`,
-                end: event.end || `${event.fecha}T${event.hora_fin}`,
-                color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
-                textColor: esTope ? '#ffffff' : '#000000',
-                borderColor: esTope ? '#dc2626' : 'transparent',
-                extendedProps: {
-                  esMedica: event.esMedica,
-                  tipo: (event.esMedica === 0 ? 'No médica' : 'Médica'),
-                  observaciones: event.observaciones || 'Sin observaciones',
-                  esTope: esTope,
-                  medico: event.medico || 'No asignado'
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              headerToolbar={{
+                left: "prev,next",
+                center: "title",
+                right: "timeGridWeek,dayGridMonth"
+              }}
+              events={agendaboxData.map(event => {
+                const esTope = isTope(event, agendaboxData);
+                
+                return {
+                  id: event.id,
+                  title: "", 
+                  start: event.start || `${event.fecha}T${event.hora_inicio}`,
+                  end: event.end || `${event.fecha}T${event.hora_fin}`,
+                  color: esTope ? '#ff6b6b' : (event.esMedica === 0 ? '#d8b4fe' : '#cfe4ff'),
+                  textColor: '#000000',
+                  borderColor: esTope ? '#dc2626' : 'transparent',
+                  extendedProps: {
+                    esMedica: event.esMedica,
+                    tipo: (event.esMedica === 0 ? 'No médica' : 'Médica'),
+                    observaciones: event.observaciones || 'Sin observaciones',
+                    esTope: esTope,
+                    medico: event.medico || 'No asignado'
+                  }
                 }
-              }
-            })}
-            locale={esLocale}
-            buttonText={{
-              today: 'Hoy',
-              week: 'Semana',
-              month: 'Mes'
-            }}
-            allDaySlot={false}
-            slotMinTime="08:00:00"
-            slotMaxTime="20:00:00" 
-            editable={false}
-            selectable={false}
-            nowIndicator={true}
-            eventClick={handleEventClick}
-            slotLabelFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }}
-            eventTimeFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }}
-            height="auto"
-            dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-          />
+              })}
+              locale={esLocale}
+              buttonText={{
+                week: 'Semana',
+                month: 'Mes'
+              }}
+              allDaySlot={false}
+              slotMinTime="08:00:00"
+              slotMaxTime="20:00:00" 
+              editable={false}
+              selectable={false}
+              nowIndicator={true}
+              eventClick={handleEventClick}
+              slotLabelFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              }}
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              }}
+              height="auto"
+              dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
+              // Configuraciones responsivas
+              views={{
+                timeGridWeek: {
+                  dayHeaderFormat: { weekday: 'short', day: 'numeric' },
+                  slotLabelFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  }
+                }
+              }}
+              // Ocultar botones en móviles
+              responsiveOptions={[
+                {
+                  breakpoint: 640, // breakpoint para sm
+                  buttonText: {
+                    week: 'Sem',
+                    month: 'Mes'
+                  },
+                  headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title',
+                    right: ''
+                  }
+                }
+              ]}
+            />
           </div>
         </motion.div>
       </div>
@@ -645,7 +848,11 @@ export default function BoxDetalle() {
             }}
           >
             <motion.div
-              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+              className="rounded-xl shadow-lg p-6 w-full max-w-md"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
+              }}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -654,20 +861,20 @@ export default function BoxDetalle() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="text-yellow-500" size={24} />
-                  <h3 className="text-lg font-semibold text-gray-800">Deshabilitar Box</h3>
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>Deshabilitar Box</h3>
                 </div>
                 <button 
                   onClick={() => {
                     setShowConfirmDialog(false);
                     setRazonInhabilitacion("");
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   <X size={20} />
                 </button>
               </div>
               
-              <p className="text-gray-600 mb-4">
+              <p className="mb-4" style={{ color: 'var(--text-muted)' }}>
                 ¿Está seguro de que desea deshabilitar este box? Por favor, indique la razón:
               </p>
               
@@ -675,7 +882,12 @@ export default function BoxDetalle() {
                 value={razonInhabilitacion}
                 onChange={(e) => setRazonInhabilitacion(e.target.value)}
                 placeholder="Ej: Reparación de equipos, mantenimiento preventivo, etc."
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#1B5D52] focus:border-transparent resize-none"
+                className="w-full rounded-lg p-3 focus:ring-2 focus:border-transparent resize-none"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)'
+                }}
                 rows={3}
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
@@ -687,18 +899,23 @@ export default function BoxDetalle() {
                     setShowConfirmDialog(false);
                     setRazonInhabilitacion("");
                   }}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-2 px-4 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-color)',
+                    border: '1px solid var(--border-color)'
+                  }}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={toggleEstado}
                   disabled={!razonInhabilitacion.trim()}
-                  className={`flex-1 py-2 px-4 rounded-lg text-white font-semibold transition-colors ${
-                    !razonInhabilitacion.trim() 
-                      ? "bg-gray-400 cursor-not-allowed" 
-                      : "bg-red-700 hover:bg-red-900"
-                  }`}
+                  className="flex-1 py-2 px-4 rounded-lg text-white font-semibold transition-colors"
+                  style={{
+                    backgroundColor: !razonInhabilitacion.trim() ? 'var(--disabled-bg)' : 'var(--danger-bg)',
+                    color: !razonInhabilitacion.trim() ? 'var(--disabled-text)' : '#fff'
+                  }}
                 >
                   Confirmar
                 </button>
@@ -713,7 +930,11 @@ export default function BoxDetalle() {
         {showEventDetails && selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
             <motion.div
-              className="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden"
+              className="rounded-xl shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-hidden"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)'
+              }}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -721,18 +942,18 @@ export default function BoxDetalle() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <CalendarDays className="text-blue-500" size={24} />
-                  <h3 className="text-lg font-semibold text-gray-800">Detalles de la agenda</h3>
+                  <h3 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>Detalles de la agenda</h3>
                 </div>
                 <button 
                   onClick={cerrarModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-gray-200 mb-4">
+              <div className="flex border-b mb-4" style={{ borderColor: 'var(--border-color)' }}>
                 <button
                   onClick={() => setActiveTab('basico')}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -762,28 +983,31 @@ export default function BoxDetalle() {
                 {activeTab === 'basico' && (
                   <div className="space-y-4">
                     {selectedEvent.esTope && (
-                      <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                      <div className="rounded-lg p-3" style={{ 
+                        backgroundColor: 'var(--danger-bg)',
+                        border: '1px solid var(--danger-border)'
+                      }}>
                         <div className="flex items-center gap-2">
-                          <AlertCircle className="text-red-800" size={20} />
-                          <span className="text-red-900 font-semibold">CONFLICTO DE HORARIO</span>
+                          <AlertCircle size={20} style={{ color: 'var(--danger-text)' }} />
+                          <span className="font-semibold" style={{ color: 'var(--danger-text)' }}>CONFLICTO DE HORARIO</span>
                         </div>
-                        <p className="text-red-800 text-sm mt-1">
+                        <p className="text-sm mt-1" style={{ color: 'var(--danger-text)' }}>
                           Este evento se superpone con otra agenda en el mismo box.
                         </p>
                       </div>
                     )}
 
                     <div>
-                      <p className="text-sm text-gray-600">ID agenda</p>
-                      <p className="font-medium">
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>ID agenda</p>
+                      <p className="font-medium" style={{ color: 'var(--text-color)' }}>
                         #{selectedEvent.id.toString()}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600">Inicio</p>
-                        <p className="font-medium">
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Inicio</p>
+                        <p className="font-medium" style={{ color: 'var(--text-color)' }}>
                           {selectedEvent.start.toLocaleString('es-ES', {
                             day: '2-digit',
                             month: '2-digit',
@@ -795,8 +1019,8 @@ export default function BoxDetalle() {
                       </div>
                       
                       <div>
-                        <p className="text-sm text-gray-600">Fin</p>
-                        <p className="font-medium">
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Fin</p>
+                        <p className="font-medium" style={{ color: 'var(--text-color)' }}>
                           {selectedEvent.end ? selectedEvent.end.toLocaleString('es-ES', {
                             day: '2-digit',
                             month: '2-digit',
@@ -809,7 +1033,7 @@ export default function BoxDetalle() {
                     </div>
                     
                     <div>
-                      <p className="text-sm text-gray-600">Tipo</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tipo</p>
                       <p className="font-medium">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           selectedEvent.extendedProps.tipo === 'Médica' 
@@ -824,16 +1048,19 @@ export default function BoxDetalle() {
                     </div>
                     
                     <div>
-                      <p className="text-sm text-gray-600">Médico / Responsable</p>
-                      <p className="font-medium flex items-center gap-2">
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Médico / Responsable</p>
+                      <p className="font-medium flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
                         <UserCheck size={16} />
                         {selectedEvent.medico}
                       </p>
                     </div>
                     
                     <div>
-                      <p className="text-sm text-gray-600">Observaciones</p>
-                      <p className="font-medium bg-gray-50 p-3 rounded-lg">
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Observaciones</p>
+                      <p className="font-medium p-3 rounded-lg" style={{ 
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-color)'
+                      }}>
                         {selectedEvent.observaciones}
                       </p>
                     </div>
@@ -846,28 +1073,33 @@ export default function BoxDetalle() {
                     {selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento && 
                      typeof selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento === 'string' && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                           <Activity size={16} />
                           Tipo de Procedimiento
                         </p>
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                          <p className="font-medium text-blue-800">
+                        <div className="border-l-4 p-4 rounded-r-lg" style={{ 
+                          backgroundColor: 'var(--info-bg)',
+                          borderColor: 'var(--info-border)'
+                        }}>
+                          <p className="font-medium" style={{ color: 'var(--info-text)' }}>
                             {selectedEvent.datosExtendidos.datos_mongo.tipo_procedimiento}
                           </p>
                         </div>
                       </div>
                     )}
 
-
                     {selectedEvent.datosExtendidos.datos_mongo.medicos && 
                      Array.isArray(selectedEvent.datosExtendidos.datos_mongo.medicos) && 
                      selectedEvent.datosExtendidos.datos_mongo.medicos.length > 0 && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                           <Users size={16} />
                           Médicos Participantes
                         </p>
-                        <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg">
+                        <div className="border-l-4 p-4 rounded-r-lg" style={{ 
+                          backgroundColor: 'var(--info-bg)',
+                          borderColor: 'var(--info-border)'
+                        }}>
                           <div className="space-y-2">
                             {selectedEvent.datosExtendidos.datos_mongo.medicos.map((medico, index) => {
                               try {
@@ -878,7 +1110,9 @@ export default function BoxDetalle() {
                                 const esPrincipal = Boolean(medico.es_principal);
                                 
                                 return (
-                                  <div key={index} className={`p-3 rounded-lg ${esPrincipal ? 'bg-blue-100 border border-blue-300' : 'bg-blue-100'}`}>
+                                  <div key={index} className={`p-3 rounded-lg ${esPrincipal ? 'border border-blue-300' : ''}`} style={{ 
+                                    backgroundColor: esPrincipal ? 'var(--success-bg)' : 'var(--info-bg)'
+                                  }}>
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="flex items-center gap-2">
@@ -887,7 +1121,10 @@ export default function BoxDetalle() {
                                             {nombreMedico}
                                           </span>
                                           {esPrincipal && (
-                                            <span className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full">
+                                            <span className="px-2 py-1 text-xs rounded-full" style={{ 
+                                              backgroundColor: 'var(--success-light)',
+                                              color: 'var(--success-text)'
+                                            }}>
                                               Principal
                                             </span>
                                           )}
@@ -904,9 +1141,9 @@ export default function BoxDetalle() {
                               } catch (error) {
                                 console.error('Error renderizando médico:', error, medico);
                                 return (
-                                  <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded">
+                                  <div key={index} className="flex items-center gap-2 p-2 rounded" style={{ backgroundColor: 'var(--danger-bg)' }}>
                                     <UserCheck size={14} className="text-red-600" />
-                                    <span className="font-medium text-red-600">Error cargando médico</span>
+                                    <span className="font-medium" style={{ color: 'var(--danger-text)' }}>Error cargando médico</span>
                                   </div>
                                 );
                               }
@@ -916,21 +1153,23 @@ export default function BoxDetalle() {
                       </div>
                     )}
 
-
                     {selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido && 
                      Array.isArray(selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido) &&
                      selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido.length > 0 && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                           <Package size={16} />
                           Equipamiento Requerido
                         </p>
-                        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                        <div className="border-l-4 p-4 rounded-r-lg" style={{ 
+                          backgroundColor: 'var(--success-bg)',
+                          borderColor: 'var(--success-border)'
+                        }}>
                           <div className="space-y-1">
                             {selectedEvent.datosExtendidos.datos_mongo.equipamiento_requerido.map((item, index) => (
                               <div key={index} className="flex items-start gap-2">
-                                <span className="text-green-600 mt-1">°</span>
-                                <span className="font-medium text-green-800">{item}</span>
+                                <span className="mt-1" style={{ color: 'var(--success-text)' }}>°</span>
+                                <span className="font-medium" style={{ color: 'var(--success-text)' }}>{item}</span>
                               </div>
                             ))}
                           </div>
@@ -941,12 +1180,15 @@ export default function BoxDetalle() {
                     {selectedEvent.datosExtendidos.datos_mongo.preparacion_especial && 
                      typeof selectedEvent.datosExtendidos.datos_mongo.preparacion_especial === 'string' && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                           <ClipboardList size={16} />
                           Preparación Especial
                         </p>
-                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                          <p className="font-medium text-yellow-800">
+                        <div className="border-l-4 p-4 rounded-r-lg" style={{ 
+                          backgroundColor: 'var(--warning-bg)',
+                          borderColor: 'var(--warning-border)'
+                        }}>
+                          <p className="font-medium" style={{ color: 'var(--warning-text)' }}>
                             {selectedEvent.datosExtendidos.datos_mongo.preparacion_especial}
                           </p>
                         </div>
@@ -956,19 +1198,20 @@ export default function BoxDetalle() {
                     {selectedEvent.datosExtendidos.datos_mongo.notas_adicionales && 
                      typeof selectedEvent.datosExtendidos.datos_mongo.notas_adicionales === 'string' && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                        <p className="text-sm mb-2 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
                           <FileText size={16} />
                           Notas Adicionales
                         </p>
-                        <div className="bg-purple-50 border-l-4 border-purple-400 p-4 rounded-r-lg">
-                          <p className="font-medium text-purple-800 whitespace-pre-wrap">
+                        <div className="border-l-4 p-4 rounded-r-lg" style={{ 
+                          backgroundColor: 'var(--info-bg)',
+                          borderColor: 'var(--info-border)'
+                        }}>
+                          <p className="font-medium whitespace-pre-wrap" style={{ color: 'var(--info-text)' }}>
                             {selectedEvent.datosExtendidos.datos_mongo.notas_adicionales}
                           </p>
                         </div>
                       </div>
                     )}
-
-                  
 
                     {/* Mensaje si no hay datos extendidos */}
                     {selectedEvent.datosExtendidos?.datos_mongo && 
@@ -978,16 +1221,16 @@ export default function BoxDetalle() {
                      !selectedEvent.datosExtendidos.datos_mongo.notas_adicionales && 
                      (!selectedEvent.datosExtendidos.datos_mongo.medicos || selectedEvent.datosExtendidos.datos_mongo.medicos.length === 0) && (
                       <div className="text-center py-8">
-                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500">No hay información extendida disponible para esta agenda</p>
+                        <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+                        <p style={{ color: 'var(--text-muted)' }}>No hay información extendida disponible para esta agenda</p>
                       </div>
                     )}
 
                     {/* Mensaje si no hay datos de MongoDB */}
                     {!selectedEvent.datosExtendidos?.datos_mongo && (
                       <div className="text-center py-8">
-                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500">No hay información extendida disponible para esta agenda</p>
+                        <FileText className="h-16 w-16 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+                        <p style={{ color: 'var(--text-muted)' }}>No hay información extendida disponible para esta agenda</p>
                       </div>
                     )}
                   </div>
@@ -997,7 +1240,11 @@ export default function BoxDetalle() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={cerrarModal}
-                  className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 py-2 px-4 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-color)'
+                  }}
                 >
                   Cerrar
                 </button>

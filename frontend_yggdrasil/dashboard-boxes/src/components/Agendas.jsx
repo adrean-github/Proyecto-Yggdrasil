@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import { buildApiUrl } from "../config/api";
 import {
@@ -12,9 +11,16 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  Check,   
+  Check,
+  ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { DateRange } from "react-date-range";
+import { addMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { es } from "date-fns/locale";
+import "react-date-range/dist/styles.css"; 
+import "react-date-range/dist/theme/default.css"; 
 
 export default function Agenda() {
   const pasillos = [
@@ -33,13 +39,12 @@ export default function Agenda() {
   ];
 
   const [tipoAgendamiento, setTipoAgendamiento] = useState(null);
-  const [vista, setVista] = useState("todas"); 
-  const [desde, setDesde] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [hasta, setHasta] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [vista, setVista] = useState("todas");
   const [filtroId, setFiltroId] = useState("");
   const [filtroNombre, setFiltroNombre] = useState("");
   const [pasilloSeleccionado, setPasilloSeleccionado] = useState("");
   const [agendas, setAgendas] = useState([]);
+  const [agendasSinFiltrar, setAgendasSinFiltrar] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sugerencias, setSugerencias] = useState([]);
   const [modal, setModal] = useState({ tipo: null, data: null, mensaje: null });
@@ -54,27 +59,173 @@ export default function Agenda() {
   const [filtroTopes, setFiltroTopes] = useState(false);
   const [filtroInhabilitados, setFiltroInhabilitados] = useState(false);
   const [todosLosTopes, setTodosLosTopes] = useState({});
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const motivosCache = useRef(new Map());
   const gestionRef = useRef(null);
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(150);
+  const [tempStartDate, setTempStartDate] = useState(null);
+  const [tempEndDate, setTempEndDate] = useState(null); 
 
-  // Cargar boxes inhabilitados al iniciar
+  const formatDateToYYYYMMDD = (date) => {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseYYYYMMDD = (str) => {
+  if (!str) return new Date();
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d); // fecha local sin corrimiento
+};
+
+  // Cerrar selector de fecha al hacer clic fuera
   useEffect(() => {
-    const fetchBoxesInhabilitados = async () => {
+    const handleClickOutside = (event) => {
+      if (dateRangeRef.current && !dateRangeRef.current.contains(event.target)) {
+        setShowDateRangePicker(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Mostrar/ocultar botón de scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollButton(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Cargar datos iniciales de forma paralela
+  useEffect(() => {
+    const loadInitialData = async () => {
       try {
-        const res = await fetch(buildApiUrl('/api/boxes-inhabilitados/'));
-        if (res.ok) {
-          const data = await res.json();
-          setBoxesInhabilitados(data.map(box => box.idbox));
+        setLoading(true);
+        
+        const [boxesResponse, agendasResponse, topesResponse] = await Promise.all([
+          fetch(buildApiUrl('/api/boxes-inhabilitados/')),
+          fetch(buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`)),
+          fetch(buildApiUrl(`/api/agendas-con-tope/?desde=${desde}&hasta=${hasta}`))
+        ]);
+
+        const boxesInhabilitados = [];
+        if (boxesResponse.ok) {
+          const boxesData = await boxesResponse.json();
+          boxesInhabilitados.push(...boxesData.map(box => box.idbox));
+          setBoxesInhabilitados(boxesInhabilitados);
         }
+
+        const mapaTopes = {};
+        if (topesResponse.ok) {
+          const topesData = await topesResponse.json();
+          if (Array.isArray(topesData)) {
+            topesData.forEach(tope => {
+              if (!mapaTopes[tope.idbox]) {
+                mapaTopes[tope.idbox] = [];
+              }
+              mapaTopes[tope.idbox].push(tope);
+            });
+          }
+          setTodosLosTopes(mapaTopes);
+        }
+
+        if (agendasResponse.ok) {
+          const fetchedData = await agendasResponse.json();
+          
+          const limpiarDato = (valor, defecto = "-") => {
+            return valor !== null && valor !== undefined ? valor : defecto;
+          };
+
+          const agendasProcesadas = fetchedData.map(a => ({
+            id: limpiarDato(a.id),
+            box_id: limpiarDato(a.box_id),
+            fecha: limpiarDato(a.fecha),
+            hora_inicio: limpiarDato(a.hora_inicio?.slice(0, 5)),
+            hora_fin: limpiarDato(a.hora_fin?.slice(0, 5)),
+            tipo: limpiarDato(a.tipo),
+            responsable: limpiarDato(a.responsable),
+            observaciones: limpiarDato(a.observaciones)
+          }));
+
+          const agendasConTopes = await Promise.all(
+            agendasProcesadas.map(async agenda => {
+              const topesEnBox = mapaTopes[agenda.box_id] || [];
+              const topeCon = topesEnBox.find(
+                tope =>
+                  tope.fechaagenda === agenda.fecha &&
+                  tope.horainicioagenda < agenda.hora_fin &&
+                  tope.horafinagenda > agenda.hora_inicio &&
+                  tope.id !== agenda.id 
+              );
+
+              const boxInhabilitado = boxesInhabilitados.includes(parseInt(agenda.box_id));
+              let motivoInhabilitacion = null;
+              
+              if (boxInhabilitado) {
+                try {
+                  motivoInhabilitacion = await obtenerMotivoInhabilitacion(agenda.box_id);
+                } catch (err) {
+                  motivoInhabilitacion = "Error al obtener motivo";
+                }
+              }
+              
+              return {
+                ...agenda,
+                tope: topeCon ? topeCon.id : false,
+                boxInhabilitado,
+                motivoInhabilitacion: boxInhabilitado ? motivoInhabilitacion : null,
+              };
+            })
+          );
+
+          setAgendasSinFiltrar(agendasConTopes);
+        }
+        
       } catch (err) {
-        console.error("Error fetching boxes inhabilitados:", err);
+        console.error("Error loading initial data:", err);
+        setAgendasSinFiltrar([]);
+      } finally {
+        setLoading(false);
       }
     };
     
-    fetchBoxesInhabilitados();
+    if (vista === "todas") {
+      loadInitialData();
+    }
   }, []);
 
-  // Autocomplete médico
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtroTopes, filtroInhabilitados, agendas]);
+
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtroTopes, filtroInhabilitados, agendasSinFiltrar]);
+
+  const aplicarFiltros = () => {
+    let agendasFiltradas = [...agendasSinFiltrar];
+
+    if (filtroTopes) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
+    }
+
+    if (filtroInhabilitados) {
+      agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
+    }
+
+    setAgendas(agendasFiltradas);
+  };
+
   useEffect(() => {
     if (!filtroNombre.trim()) {
       setSugerencias([]);
@@ -112,7 +263,6 @@ export default function Agenda() {
     return () => clearTimeout(timeout);
   }, [filtroNombre, vista]);
 
-  // Autocomplete para el modal de modificación
   useEffect(() => {
     if (!modal.data?.responsable || modal.data.responsable.length < 2) {
       setSugerenciasMedico([]);
@@ -210,11 +360,50 @@ export default function Agenda() {
     }
   };
 
+  const abrirModalEdicion = async (agenda) => {
+    console.log("Abriendo modal para agenda:", agenda);
+    
+    let agendaConId = { ...agenda };
+    
+    if ((agenda.tipo === "Médica" || agenda.tipo === "Medica" || agenda.tipo === "médica") && 
+        !agenda.idmedico && agenda.responsable && agenda.responsable.trim() !== "-") {
+      
+      console.log("Buscando idmedico para médico:", agenda.responsable);
+      
+      try {
+        const res = await fetch(
+          buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(agenda.responsable.trim())}`)
+        );
+        
+        if (res.ok) {
+          const medicos = await res.json();
+          console.log("Sugerencias de médicos obtenidas:", medicos);
+          
+          const medicoEncontrado = medicos.find(m => 
+            m.nombre.toLowerCase().trim() === agenda.responsable.toLowerCase().trim()
+          );
+          
+          if (medicoEncontrado) {
+            agendaConId.idmedico = medicoEncontrado.idMedico || medicoEncontrado.id;
+            console.log("ID del médico cargado al abrir modal:", agendaConId.idmedico);
+          } else {
+            console.log("No se encontró médico exacto para:", agenda.responsable);
+          }
+        }
+      } catch (err) {
+        console.warn("Error buscando médico al abrir modal:", err);
+      }
+    }
+    
+    console.log("Datos finales del modal:", agendaConId);
+    setModal({ tipo: "editar", data: agendaConId });
+  };
+
   const validarModificacion = async (nuevaAgenda, agendas) => {
     if (!nuevaAgenda.hora_inicio || !nuevaAgenda.hora_fin) {
       return { valido: false, mensaje: "Debe completar horas de inicio y fin" };
     }
-    
+
     const start = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_inicio);
     const end = parseDateTime(nuevaAgenda.fecha, nuevaAgenda.hora_fin);
     
@@ -222,28 +411,129 @@ export default function Agenda() {
       return { valido: false, mensaje: "La hora fin debe ser posterior a la hora inicio" };
     }
     
-    const bloquesLibres = await generarHorasLibres(
+    // 1. Validar que el box esté disponible
+    const bloquesLibresBox = await generarHorasLibres(
       nuevaAgenda.fecha, 
       nuevaAgenda.box_id
     );
     
-    const horarioValido = bloquesLibres.some(bloque => {
+    const boxDisponible = bloquesLibresBox.some(bloque => {
       const bloqueInicio = parseDateTime(nuevaAgenda.fecha, bloque.inicio);
       const bloqueFin = parseDateTime(nuevaAgenda.fecha, bloque.fin);
       return start >= bloqueInicio && end <= bloqueFin;
     });
     
-    if (!horarioValido) {
+    if (!boxDisponible) {
       return { 
         valido: false, 
-        mensaje: "El horario seleccionado no está disponible"
+        mensaje: "El box no está disponible en el horario seleccionado"
       };
+    }
+    
+    // 2. Validar que el médico esté disponible (si es agenda médica)
+    if ((nuevaAgenda.tipo === "Médica" || nuevaAgenda.tipo === "Medica" || nuevaAgenda.tipo === "médica") && 
+        nuevaAgenda.responsable && nuevaAgenda.responsable.trim() !== "-") {
+      
+      try {
+        console.log("Validando disponibilidad para médico:", nuevaAgenda.responsable);
+        
+        // Usar el nombre del médico en lugar del ID
+        const res = await fetch(
+          buildApiUrl(`/api/medico/disponibilidad/?medico_id=${nuevaAgenda.idmedico}&fecha=${nuevaAgenda.fecha}`)
+        );
+
+        if (!res.ok) {
+          console.warn("Error en API de disponibilidad médica:", res.status, res.statusText);
+          // Si la API falla, continuar sin validación médica
+          return { valido: true };
+        }
+        
+        const data = await res.json();
+        console.log("Datos de disponibilidad recibidos:", data);
+        
+        if (!data.agendas || !Array.isArray(data.agendas)) {
+          console.warn("Formato inesperado de respuesta de disponibilidad:", data);
+          return { valido: true }; // Continuar si el formato es inesperado
+        }
+        
+        // Verificar conflictos de horario (excluyendo la agenda actual que se está modificando)
+        const conflictos = data.agendas.filter(agenda => {
+          // Excluir la agenda actual
+          if (agenda.id === nuevaAgenda.id) {
+            return false;
+          }
+          
+          // Verificar que tenga horarios válidos
+          if (!agenda.hora_inicio || !agenda.hora_fin) {
+            return false;
+          }
+          
+          // Parsear las horas de la agenda existente
+          let agendaInicio, agendaFin;
+          
+          try {
+            // Manejar diferentes formatos de hora
+            const horaInicioStr = agenda.hora_inicio.includes(':') ? 
+              agenda.hora_inicio.slice(0, 5) : agenda.hora_inicio;
+            const horaFinStr = agenda.hora_fin.includes(':') ? 
+              agenda.hora_fin.slice(0, 5) : agenda.hora_fin;
+            
+            agendaInicio = parseDateTime(nuevaAgenda.fecha, horaInicioStr);
+            agendaFin = parseDateTime(nuevaAgenda.fecha, horaFinStr);
+          } catch (error) {
+            console.warn("Error parseando horarios de agenda existente:", agenda, error);
+            return false; // Ignorar agendas con horarios mal formateados
+          }
+          
+          // Verificar si hay solapamiento de horarios
+          const hayConflicto = agendaInicio < end && agendaFin > start;
+          
+          if (hayConflicto) {
+            console.log("Conflicto detectado:", {
+              agendaExistente: agenda,
+              nuevaAgenda: {
+                inicio: start,
+                fin: end
+              }
+            });
+          }
+          
+          return hayConflicto;
+        });
+        
+        if (conflictos.length > 0) {
+          console.log("Conflictos encontrados:", conflictos);
+          
+          const conflictosInfo = conflictos.map(c => {
+            const horaInicio = c.hora_inicio.includes(':') ? 
+              c.hora_inicio.slice(0, 5) : c.hora_inicio;
+            const horaFin = c.hora_fin.includes(':') ? 
+              c.hora_fin.slice(0, 5) : c.hora_fin;
+            
+            return `Box ${c.box_id} (${horaInicio}-${horaFin})`;
+          }).join(', ');
+          
+          return { 
+            valido: false, 
+            mensaje: `El médico ${nuevaAgenda.responsable} ya tiene ${conflictos.length} cita(s) programada(s) en ese horario: ${conflictosInfo}` 
+          };
+        }
+        
+        console.log("No se encontraron conflictos de horario para el médico");
+        
+      } catch (err) {
+        console.error("Error verificando disponibilidad médica:", err);
+        // Si hay error en la validación médica, mostrar advertencia pero permitir continuar
+        return { 
+          valido: true,
+          advertencia: "No se pudo verificar la disponibilidad del médico. Procediendo sin validación médica."
+        };
+      }
     }
     
     return { valido: true };
   };
   
-  // Para obtener bloques libres completos
   const generarHorasLibres = async (fecha, box_id) => {
     try {
       const res = await fetch(
@@ -251,7 +541,11 @@ export default function Agenda() {
       );
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      return data.bloques_libres || [];
+      
+      return data.bloques_libres.map(bloque => ({
+        inicio: bloque.hora_inicio,
+        fin: bloque.hora_fin
+      })) || [];
     } catch (err) {
       console.error("Error obteniendo bloques libres:", err);
       return [];
@@ -269,10 +563,19 @@ export default function Agenda() {
       const data = await res.json();
       const bloquesLibres = data.bloques_libres || [];
       
+      const bloquesValidos = bloquesLibres
+        .filter(bloque => bloque && bloque.hora_inicio && bloque.hora_fin)
+        .map(bloque => ({
+          inicio: bloque.hora_inicio,
+          fin: bloque.hora_fin
+        }));
+  
+      console.log("Bloques libres procesados:", bloquesValidos);
+  
       if (!horaInicioSeleccionada) {
         const horasDisponibles = [];
         
-        bloquesLibres.forEach(bloque => {
+        bloquesValidos.forEach(bloque => {
           const [inicioH, inicioM] = bloque.inicio.split(':').map(Number);
           const [finH, finM] = bloque.fin.split(':').map(Number);
           
@@ -290,22 +593,20 @@ export default function Agenda() {
           }
         });
         
+        console.log("Horas inicio disponibles:", horasDisponibles);
         return horasDisponibles;
       } else {
-        // Generar horas de fin disponibles basadas en la hora de inicio seleccionada
         const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
         
         const horasFinDisponibles = [];
         
-        bloquesLibres.forEach(bloque => {
+        bloquesValidos.forEach(bloque => {
           const [bloqueH, bloqueM] = bloque.inicio.split(':').map(Number);
           const [bloqueFinH, bloqueFinM] = bloque.fin.split(':').map(Number);
           
-          // Verificar si la hora de inicio está dentro de este bloque
           if ((horaH > bloqueH || (horaH === bloqueH && horaM >= bloqueM)) &&
               (horaH < bloqueFinH || (horaH === bloqueFinH && horaM < bloqueFinM))) {
             
-            // Calcular la primera hora de fin posible (30 minutos después)
             let h = horaH;
             let m = horaM + 30;
             
@@ -314,7 +615,6 @@ export default function Agenda() {
               m -= 60;
             }
             
-            // Generar horas hasta el fin del bloque
             while (h < bloqueFinH || (h === bloqueFinH && m <= bloqueFinM)) {
               horasFinDisponibles.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
               
@@ -327,12 +627,12 @@ export default function Agenda() {
           }
         });
         
+        console.log("Horas fin disponibles:", horasFinDisponibles);
         return horasFinDisponibles;
       }
     } catch (err) {
       console.error("Error generando horas disponibles:", err);
       
-      // Fallback en caso de error
       const horas = [];
       const inicioDia = 8;
       const finDia = 18;
@@ -345,19 +645,22 @@ export default function Agenda() {
         }
       }
       
-      return !horaInicioSeleccionada ? horas : horas.filter(h => {
-        const [hh, mm] = h.split(':').map(Number);
-        return hh > horaH || (hh === horaH && mm > horaM);
-      });
+      if (!horaInicioSeleccionada) {
+        return horas;
+      } else {
+        const [horaH, horaM] = horaInicioSeleccionada.split(':').map(Number);
+        return horas.filter(h => {
+          const [hh, mm] = h.split(':').map(Number);
+          return hh > horaH || (hh === horaH && mm > horaM);
+        });
+      }
     }
   };
   
-  // Actualización del useEffect para manejar las horas disponibles
   useEffect(() => {
     if (modal.tipo === "editar" && modal.data) {
       const cargarHoras = async () => {
         try {
-          // Cargar horas de inicio
           const horasInicio = await generarHorasDisponibles(
             modal.data.fecha, 
             modal.data.box_id
@@ -368,7 +671,6 @@ export default function Agenda() {
             inicio: Array.isArray(horasInicio) ? horasInicio : []
           }));
           
-          // Si hay hora de inicio seleccionada, cargar horas de fin
           if (modal.data.hora_inicio) {
             const horasFin = await generarHorasDisponibles(
               modal.data.fecha, 
@@ -405,7 +707,7 @@ export default function Agenda() {
     try {
       setLoading(true);
       let url = "";
-
+  
       if (vista === "todas") {
         url = buildApiUrl(`/api/todas-las-agendas/?desde=${desde}&hasta=${hasta}`);
       } else if (vista === "box") {
@@ -425,11 +727,11 @@ export default function Agenda() {
         throw new Error(errorText);
       }
       const fetchedData = await res.json();
-
+  
       const limpiarDato = (valor, defecto = "-") => {
         return valor !== null && valor !== undefined ? valor : defecto;
       };
-
+  
       const agendasProcesadas = fetchedData.map(a => {
         if (vista === "todas") {
           return {
@@ -441,8 +743,8 @@ export default function Agenda() {
             tipo: limpiarDato(a.tipo),
             responsable: limpiarDato(a.responsable),
             observaciones: limpiarDato(a.observaciones)
-        };
-        }else if (vista === "box") {
+          };
+        } else if (vista === "box") {
           return {
             id: limpiarDato(a.id),
             box_id: limpiarDato(a.box_id || filtroId),
@@ -476,22 +778,16 @@ export default function Agenda() {
             observaciones: limpiarDato(a.observaciones)
           };
         }
-      });
+        return null;
+      }).filter(Boolean);
+      
       const agendasConTopes = await marcarTopesYInhabilitados(agendasProcesadas);
-      let agendasFiltradas = agendasConTopes;
-      
-      if (filtroTopes) {
-        agendasFiltradas = agendasFiltradas.filter(a => a.tope !== false);
-      }
-      
-      if (filtroInhabilitados) {
-        agendasFiltradas = agendasFiltradas.filter(a => a.boxInhabilitado);
-      }
-      
-      setAgendas(agendasFiltradas);
 
+      setAgendasSinFiltrar(agendasConTopes);
+      
     } catch (err) {
       console.error("Error fetching agendas:", err);
+      setAgendasSinFiltrar([]);
       setAgendas([]);
       if (manual) {
         setModal({ tipo: "alerta", mensaje: "Error al cargar las agendas. Verifica los filtros." });
@@ -515,12 +811,33 @@ export default function Agenda() {
 
   const eliminarAgenda = async (id) => {
     try {
-      const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
-      setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
-      fetchAgendas();
+      const res = await fetch(buildApiUrl(`/api/reservas/${id}/liberar/`), { 
+        method: "DELETE",
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.mensaje || 'Error eliminando reserva');
+        setModal({ tipo: "alerta", mensaje: "Agenda eliminada correctamente" });
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta inesperada del servidor: ${text.substring(0, 100)}...`);
+      }
+      
+      setTimeout(() => {
+        fetchAgendas(true);
+      }, 1000);
+      
     } catch (err) {
-      setModal({ tipo: "alerta", mensaje: "Error eliminando: " + err.message });
+      console.error("Error eliminando agenda:", err);
+      setModal({ 
+        tipo: "alerta", 
+        mensaje: `Error eliminando: ${err.message || 'Error desconocido'}` 
+      });
     }
   };
 
@@ -529,12 +846,11 @@ export default function Agenda() {
     const newData = { 
       ...modal.data, 
       hora_inicio: nuevaHoraInicio,
-      hora_fin: "" // Resetear hora fin al cambiar inicio
+      hora_fin: ""
     };
     
     setModal({ ...modal, data: newData, mensaje: null });
     
-    // Cargar nuevas horas fin
     if (nuevaHoraInicio) {
       const horasFin = await generarHorasDisponibles(
         newData.fecha, 
@@ -548,8 +864,12 @@ export default function Agenda() {
       }));
     }
   };
-  
+    
   const obtenerMotivoInhabilitacion = async (boxId) => {
+    if (motivosCache.current.has(boxId)) {
+      return motivosCache.current.get(boxId);
+    }
+
     try {
       const response = await fetch(buildApiUrl(`/api/boxes/${boxId}/`), {
         credentials: 'include'
@@ -560,98 +880,204 @@ export default function Agenda() {
       const boxData = await response.json();
       
       if (boxData.estadobox === 'Inhabilitado') {
-        const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
-          credentials: 'include'
-        });
+        let motivo = boxData.comentario || "Sin especificar";
         
-        if (historialResponse.ok) {
-          const historialData = await historialResponse.json();
-          const historialModificaciones = Array.isArray(historialData) ? historialData : [];
-          
-          const inhabilitaciones = historialModificaciones
-            .filter(item => item.accion === 'INHABILITACION' && item.comentario)
-            .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-          
-          if (inhabilitaciones.length > 0) {
-            return inhabilitaciones[0].comentario;
+        if (!boxData.comentario || boxData.comentario === "Sin especificar") {
+          try {
+            const historialResponse = await fetch(buildApiUrl(`/api/boxes/${boxId}/historial-modificaciones/`), {
+              credentials: 'include'
+            });
+            
+            if (historialResponse.ok) {
+              const historialData = await historialResponse.json();
+              const historialModificaciones = Array.isArray(historialData) ? historialData : [];
+              
+              const inhabilitaciones = historialModificaciones
+                .filter(item => item.accion === 'INHABILITACION' && item.comentario)
+                .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+              
+              if (inhabilitaciones.length > 0) {
+                motivo = inhabilitaciones[0].comentario;
+              }
+            }
+          } catch (historialErr) {
+            console.warn("No se pudo obtener historial para box", boxId, historialErr);
           }
-          
-          return boxData.comentario || "Sin especificar";
         }
         
-        return boxData.comentario || "Sin especificar";
+        motivosCache.current.set(boxId, motivo);
+        return motivo;
       }
       
       return null; 
     } catch (error) {
       console.error("Error obteniendo motivo de inhabilitación:", error);
-      return "Error al obtener motivo";
+      const errorMsg = "Error al obtener motivo";
+      motivosCache.current.set(boxId, errorMsg);
+      return errorMsg;
     }
   };
 
   const modificarAgenda = async (e) => {
     e.preventDefault();
-    
-    // Validación adicional
+  
     if (!modal.data.hora_inicio || !modal.data.hora_fin) {
       return setModal({
         ...modal,
-        mensaje: "Debes seleccionar tanto hora de inicio como de fin"
+        mensaje: "Debes seleccionar tanto hora de inicio como de fin",
       });
     }
   
-    // Verificar que la hora fin sea posterior a la hora inicio
-    const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(':').map(Number);
-    const [horaFinH, horaFinM] = modal.data.hora_fin.split(':').map(Number);
-    
+    const [horaInicioH, horaInicioM] = modal.data.hora_inicio.split(":").map(Number);
+    const [horaFinH, horaFinM] = modal.data.hora_fin.split(":").map(Number);
+  
     if (horaFinH < horaInicioH || (horaFinH === horaInicioH && horaFinM <= horaInicioM)) {
       return setModal({
         ...modal,
-        mensaje: "La hora de fin debe ser posterior a la hora de inicio"
+        mensaje: "La hora de fin debe ser posterior a la hora de inicio",
       });
     }
   
+    const validacion = await validarModificacion(modal.data, agendas);
+    
+    if (!validacion.valido) {
+      return setModal({
+        ...modal,
+        mensaje: validacion.mensaje,
+      });
+    }
+    
+    if (validacion.advertencia) {
+      console.warn("Advertencia en validación:", validacion.advertencia);
+    }
+  
     try {
+      let idmedicoParaEnviar = modal.data.idmedico;
+      let nombreResponsable = modal.data.responsable;
+  
+      if ((modal.data.tipo === "Médica" || modal.data.tipo === "Medica" || modal.data.tipo === "médica") && 
+          !idmedicoParaEnviar && nombreResponsable) {
+        
+        console.log("Buscando ID médico para:", nombreResponsable);
+        
+        try {
+          const res = await fetch(
+            buildApiUrl(`/api/medico/sugerencias/?nombre=${encodeURIComponent(nombreResponsable.trim())}`)
+          );
+          
+          if (res.ok) {
+            const medicos = await res.json();
+            console.log("Médicos disponibles:", medicos);
+            
+            const medicoEncontrado = medicos.find(m => 
+              m.nombre.toLowerCase().trim() === nombreResponsable.toLowerCase().trim()
+            );
+            
+            if (medicoEncontrado) {
+              idmedicoParaEnviar = medicoEncontrado.idMedico;
+              console.log("ID médico encontrado para validación:", idmedicoParaEnviar);
+            } else {
+              console.log("No se encontró médico con nombre exacto:", nombreResponsable);
+              const medicosSimilares = medicos.filter(m => 
+                m.nombre.toLowerCase().includes(nombreResponsable.toLowerCase().trim())
+              );
+              
+              if (medicosSimilares.length > 0) {
+                const sugerencias = medicosSimilares.map(m => m.nombre).join(', ');
+                return setModal({
+                  ...modal,
+                  mensaje: `No se encontró el médico "${nombreResponsable}". ¿Quisiste decir: ${sugerencias}?`
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Error buscando médico:", err);
+          return setModal({
+            ...modal,
+            mensaje: "Error al verificar la información del médico. Inténtalo nuevamente."
+          });
+        }
+      }
+  
+      const payload = {
+        idbox: modal.data.box_id,
+        fechaagenda: modal.data.fecha,
+        horainicioagenda: modal.data.hora_inicio + ":00",
+        horafinagenda: modal.data.hora_fin + ":00",
+        nombre_responsable: nombreResponsable,
+        observaciones: modal.data.observaciones || "",
+      };
+  
+      if (idmedicoParaEnviar) {
+        payload.idmedico = idmedicoParaEnviar;
+        console.log("ID médico incluido en payload:", idmedicoParaEnviar);
+      } else if (modal.data.tipo === "Médica" || modal.data.tipo === "Medica" || modal.data.tipo === "médica") {
+        console.warn("Agenda médica sin ID de médico válido");
+      }
+  
+      console.log("Payload FINAL enviado:", payload);
+  
       const res = await fetch(
         buildApiUrl(`/api/reservas/${modal.data.id}/modificar/`),
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idbox: modal.data.box_id,
-            fechaagenda: modal.data.fecha,
-            horainicioagenda: modal.data.hora_inicio + ":00",
-            horafinagenda: modal.data.hora_fin + ":00",
-            nombre_responsable: modal.data.responsable,
-            observaciones: modal.data.observaciones,
-          }),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
         }
       );
-      
-      if (!res.ok) throw new Error(await res.text());
-      
-      // Actualizar el estado y cerrar el modal
-      fetchAgendas(); // Recargar las agendas
-      setModal({ tipo: null, data: null, mensaje: null });
+    
+      const contentType = res.headers.get("content-type");
+      let responseData;
+  
+      if (contentType && contentType.includes("application/json")) {
+        responseData = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Respuesta inesperada: ${text.substring(0, 100)}...`);
+      }
+  
+      if (!res.ok) {
+        throw new Error(
+          responseData.error || responseData.mensaje || "Error modificando reserva"
+        );
+      }
+  
+      setModal({ tipo: "success", mensaje: "Agenda modificada correctamente" });
+  
+      setTimeout(() => {
+        fetchAgendas(true);
+        setModal({ tipo: null, data: null, mensaje: null });
+      }, 1500);
       
     } catch (err) {
+      console.error("Error modificando agenda:", err);
       setModal({
         ...modal,
-        mensaje: `Error al guardar: ${err.message}`
+        mensaje: `Error al guardar: ${err.message || "Error desconocido"}`,
       });
     }
   };
 
-  const aplicarFiltros = () => {
-    fetchAgendas(true);
-  };
+  const totalPages = Math.ceil(agendas.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const agendasPaginadas = agendas.slice(startIndex, endIndex);
 
-  // Cargar agendas automáticamente al cambiar a vista "todas"
-  useEffect(() => {
-    if (vista === "todas") {
-      fetchAgendas();
-    }
-  }, [vista]);
+  const [desde, setDesde] = useState(formatDateToYYYYMMDD(new Date()));
+  const [hasta, setHasta] = useState(formatDateToYYYYMMDD(new Date()));
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const dateRangeRef = useRef(null);
+
+
+  const handleDateRangeSelect = (start, end) => {
+    setDesde(start);
+    setHasta(end);
+    setShowDateRangePicker(false);
+  };
 
   return (
     <>
@@ -731,7 +1157,10 @@ export default function Agenda() {
                 key={v}
                 onClick={() => {
                   setVista(v);
-                  if (v === "todas") fetchAgendas();
+                  if (v !== "todas") {
+                    setAgendas([]);
+                    setAgendasSinFiltrar([]);
+                  }
                 }}
                 className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
                   vista === v ? "text-white" : "text-gray-600"
@@ -749,14 +1178,14 @@ export default function Agenda() {
             ))}
           </div>
         </div>
-          <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
+        <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
 
-            {/* Filtros adicionales */}
-            <div className="flex items-center gap-6 flex-wrap mt-4">
-              {/* Mostrar solo topes */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
+          {/* Filtros adicionales */}
+          <div className="flex items-center gap-6 flex-wrap mt-4">
+            {/* Mostrar solo topes */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
                   className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
                     filtroTopes
                       ? "bg-[#005C48] border-[#005C48]"
@@ -765,427 +1194,742 @@ export default function Agenda() {
                 >
                   {filtroTopes && <Check className="w-4 h-4 text-white" />}
                 </div>
-                <input
-                  type="checkbox"
-                  checked={filtroTopes}
-                  onChange={() => {
-                    setFiltroTopes(!filtroTopes);
-                    aplicarFiltros();
-                  }}
-                  className="hidden"
-                />
-                <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
-              </label>
-
-              {/* Mostrar solo inhabilitados */}
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <div
-                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                    filtroInhabilitados
-                      ? "bg-orange-500 border-orange-500"
-                      : "border-gray-400 bg-white"
-                  }`}
-                >
-                  {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={filtroInhabilitados}
-                  onChange={() => {
-                    setFiltroInhabilitados(!filtroInhabilitados);
-                    aplicarFiltros();
-                  }}
-                  className="hidden"
-                />
-                <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
-              </label>
-            </div>
-
-
-            {vista === "box" && (
-              <>
-                <input 
-            type="number" 
-            placeholder="ID de box" 
-            value={filtroId} 
-            onChange={(e) => setFiltroId(e.target.value)}
-            className="border rounded px-3 py-2 w-full sm:w-auto" 
-                />
+                    <input
+                    type="checkbox"
+                    checked={filtroTopes}
+                    onChange={(e) => setFiltroTopes(e.target.checked)}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
+                </label>
+    
+                {/* Mostrar solo inhabilitados */}
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <div
+                    className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
+                      filtroInhabilitados
+                        ? "bg-orange-500 border-orange-500"
+                        : "border-gray-400 bg-white"
+                    }`}
+                  >
+                    {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={filtroInhabilitados}
+                    onChange={(e) => setFiltroInhabilitados(e.target.checked)}
+                    className="hidden"
+                  />
+                  <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
+                </label>
+              </div>
+    
+                {vista === "box" && (
+                  <>
+                    <input 
+                type="number" 
+                placeholder="ID de box" 
+                value={filtroId} 
+                onChange={(e) => setFiltroId(e.target.value)}
+                className="border rounded px-3 py-2 w-full sm:w-auto" 
+                    />
+                    
+                  </>
+                )}
                 
-              </>
-            )}
-            
-            {vista === "medico" && (
-              <div className="relative w-full sm:w-auto">
-                <input
-            type="text"
-            placeholder="Nombre de médico (mínimo 2 caracteres)"
-            value={filtroNombre}
-            onChange={(e) => {
-                  setFiltroNombre(e.target.value);
-                  setActiveIndex(-1);
-                  if (e.target.value.length < 2) setSugerencias([]);
-                }}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setTimeout(() => {
-                  if (!document.activeElement?.closest('.sugerencias-container')) {
-                    setInputFocused(false);
-                  }
-                }, 200)}
-                onKeyDown={(e) => {
-                  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-                    e.preventDefault();
-                    if (e.key === 'ArrowDown') {
-                      setActiveIndex((prev) => (prev + 1) % sugerencias.length);
-                    } else if (e.key === 'ArrowUp') {
-                      setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
-                    } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
-                      setFiltroNombre(sugerencias[activeIndex].nombre);
-                      setSugerencias([]);
-                      setInputFocused(false);
-                    }
-                  }
-                }}
-                className="border rounded px-3 py-2 w-full"
-              />
-              
-              {cargandoSugerencias && (
-                <div className="absolute right-3 top-2.5">
-                  <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              )}
-              
-              {(inputFocused && sugerencias.length > 0) && (
-                <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {sugerencias.map((medico, index) => (
-                    <li
-                      key={medico.id}
-                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                        index === activeIndex ? 'bg-blue-50' : ''
-                      }`}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setFiltroNombre(medico.nombre);
-                        setSugerencias([]);
-                        setInputFocused(false);
+                {vista === "medico" && (
+                  <div className="relative w-full sm:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Nombre de médico (mínimo 2 caracteres)"
+                      value={filtroNombre}
+                      onChange={(e) => {
+                        setFiltroNombre(e.target.value);
+                        setActiveIndex(-1);
+                        if (e.target.value.length < 2) setSugerencias([]);
                       }}
-                      onMouseEnter={() => setActiveIndex(index)}
-                    >
-                      {medico.nombre}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                      onFocus={() => setInputFocused(true)}
+                      onBlur={() => setTimeout(() => {
+                        if (!document.activeElement?.closest('.sugerencias-container')) {
+                          setInputFocused(false);
+                        }
+                      }, 200)}
+                      onKeyDown={(e) => {
+                        if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                          e.preventDefault();
+                          if (e.key === 'ArrowDown') {
+                            setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                          } else if (e.key === 'ArrowUp') {
+                            setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                          } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                            setFiltroNombre(sugerencias[activeIndex].nombre);
+                            setSugerencias([]);
+                            setInputFocused(false);
+                          }
+                        }
+                      }}
+                      className="border rounded px-3 py-2 w-full"
+                    />
+                    
+                    {cargandoSugerencias && (
+                      <div className="absolute right-3 top-2.5">
+                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {(inputFocused && sugerencias.length > 0) && (
+                      <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {sugerencias.map((medico, index) => (
+                          <li
+                            key={medico.id}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                              index === activeIndex ? 'bg-gray-100' : ''
+                            }`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setFiltroNombre(medico.nombre);
+                              setSugerencias([]);
+                              setInputFocused(false);
+                            }}
+                            onMouseEnter={() => setActiveIndex(index)}
+                          >
+                            {medico.nombre}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    
+                    {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
+                        {errorSugerencias || "No se encontraron médicos"}
+                      </div>
+                    )}
+                  </div>
+                )}
               
-              {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
-                  {errorSugerencias || "No se encontraron médicos"}
-                </div>
+              {vista === "pasillo" && (
+                <select 
+                  value={pasilloSeleccionado} 
+                  onChange={(e) => setPasilloSeleccionado(e.target.value)}
+                  className="border rounded px-3 py-2 w-full sm:w-auto"
+                >
+                  <option value="">Selecciona un pasillo</option>
+                  {pasillos.map((p, i) => (
+                    <option key={i} value={p}>{p}</option>
+                  ))}
+                </select>
+              )}
+    
+              {/* Selector de rango de fechas mejorado */}
+              <div className="relative" ref={dateRangeRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowDateRangePicker(!showDateRangePicker)}
+                  className="flex items-center gap-2 border rounded px-3 py-2 w-full sm:w-auto bg-white hover:bg-gray-50"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  <span>{desde} a {hasta}</span>
+                </button>
+
+                {showDateRangePicker && (
+  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-white border rounded-lg shadow-lg z-10 p-3 w-[98vw] max-w-sm sm:w-[400px] sm:max-w-[98vw]">                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium text-sm">Seleccionar rango de fechas</h3>
+                      <button
+                        onClick={() => setShowDateRangePicker(false)}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Tarjetas de visualización del rango seleccionado */}
+                    {tempStartDate && tempEndDate && (
+                      <div className="mb-3 p-2 bg-gray-50 rounded border">
+                        <p className="text-xs text-gray-600 mb-1">Rango seleccionado:</p>
+                        <div className="flex gap-2 text-xs">
+                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
+                            {formatDateToYYYYMMDD(tempStartDate)}
+                          </span>
+                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
+                            {formatDateToYYYYMMDD(tempEndDate)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Opciones rápidas - más compactas */}
+                    <div className="mb-3">
+                      <p className="text-sm font-medium mb-2">Rangos rápidos:</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            setTempStartDate(today);
+                            setTempEndDate(today);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Hoy
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const nextWeek = new Date(today);
+                            nextWeek.setDate(today.getDate() + 7);
+                            setTempStartDate(today);
+                            setTempEndDate(nextWeek);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          +1 Semana
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(today);
+                            setTempStartDate(start);
+                            setTempEndDate(end);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Este mes
+                        </button>
+
+                        {/* Opciones de bimestre y trimestre */}
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(addMonths(today, 1));
+                            setTempStartDate(start);
+                            setTempEndDate(end);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Bimestre
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const today = new Date();
+                            const start = startOfMonth(today);
+                            const end = endOfMonth(addMonths(today, 2));
+                            setTempStartDate(start);
+                            setTempEndDate(end);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                        >
+                          Trimestre
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contenedor del calendario con scroll único */}
+                    <div className="max-h-[280px] overflow-y-auto border rounded">
+                      <DateRange
+                        ranges={[{
+                          startDate: tempStartDate || parseYYYYMMDD(desde),
+                          endDate: tempEndDate || parseYYYYMMDD(hasta),
+                          key: "selection"
+                        }]}
+                        onChange={(item) => {
+                          setTempStartDate(item.selection.startDate);
+                          setTempEndDate(item.selection.endDate);
+                        }}
+                        moveRangeOnFirstSelection={false}
+                        locale={es}
+                        showDateDisplay={false}
+                        rangeColors={["#005C48"]}
+                        months={12}             // Mostrar todos los meses del año
+                        direction="vertical"    // Dirección vertical
+                        scroll={{ enabled: false }} // Deshabilitamos el scroll del DateRange
+                        // Limitar al año actual
+                        minDate={new Date(new Date().getFullYear(), 0, 1)}  // 1 enero del año actual
+                        maxDate={new Date(new Date().getFullYear(), 11, 31)} // 31 diciembre del año actual
+                      />
+                    </div>
+
+                    {/* Botones - dentro del contenedor principal */}
+                    <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+                      <button
+                        onClick={() => {
+                          setTempStartDate(null);
+                          setTempEndDate(null);
+                          setShowDateRangePicker(false);
+                        }}
+                        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (tempStartDate && tempEndDate) {
+                            setDesde(formatDateToYYYYMMDD(tempStartDate));
+                            setHasta(formatDateToYYYYMMDD(tempEndDate));
+                          }
+                          setTempStartDate(null);
+                          setTempEndDate(null);
+                          setShowDateRangePicker(false);
+                        }}
+                        disabled={!tempStartDate || !tempEndDate}
+                        className="px-3 py-1 bg-[#005C48] text-white rounded hover:bg-[#004335] disabled:opacity-50"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+
+              <button
+                onClick={() => fetchAgendas(true)}
+                disabled={loading}
+                className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
+              >
+                <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
+              </button>
+    
+              {agendas.length > 0 && (
+                <button 
+                  onClick={exportExcel} 
+                  className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
+                >
+                  <Download className="w-4 h-4"/> Exportar a Excel
+                </button>
               )}
             </div>
-          )}
-          
-          {vista === "pasillo" && (
-            <select 
-              value={pasilloSeleccionado} 
-              onChange={(e) => setPasilloSeleccionado(e.target.value)}
-              className="border rounded px-3 py-2 w-full sm:w-auto"
-            >
-              <option value="">Selecciona un pasillo</option>
-              {pasillos.map((p, i) => (
-                <option key={i} value={p}>{p}</option>
-              ))}
-            </select>
-          )}
+    
+            {/* Tabla agendas */}
+            {agendas.length > 0 ? (
+              <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+                <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+                  Desliza horizontalmente para ver más columnas
+                </p>
+                <table className="min-w-full border border-gray-200 rounded-lg">
 
-          <input 
-            type="date" 
-            value={desde} 
-            onChange={(e) => setDesde(e.target.value)} 
-            className="border rounded px-3 py-2 w-full sm:w-auto"
-          />
-          
-          <input 
-            type="date" 
-            value={hasta} 
-            onChange={(e) => setHasta(e.target.value)} 
-            min={desde} 
-            className="border rounded px-3 py-2 w-full sm:w-auto"
-          />
 
-          <button 
-            onClick={() => fetchAgendas(true)}
-            disabled={loading}
-            className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
-          >
-            <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
-          </button>
-
-          {agendas.length > 0 && (
-            <button 
-              onClick={exportExcel} 
-              className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4"/> Exportar a Excel
-            </button>
-          )}
-        </div>
-
-        {/* Tabla agendas */}
-        {agendas.length > 0 ? (
-          <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
-            <p className="text-sm text-gray-500 text-center py-2 md:hidden">
-              Desliza horizontalmente para ver más columnas
-            </p>
-            <table className="min-w-full border border-gray-200 rounded-lg">
-              <thead className="bg-gray-100">
-                <tr>
-                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-2 border text-center">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-              {agendas.map((a, i) => {
-                console.log("Agenda:", a.id, "Tope:", a.tope, "BoxInhabilitado:", a.boxInhabilitado);
-                
-                let rowClass = "hover:bg-gray-100 ";
-                
-                if (a.tope) {
-                  rowClass += "bg-red-200 ";
-                  console.log("AGENDA CON TOPE:", a.id, "Tope con:", a.tope);
-                } else if (a.boxInhabilitado) {
-                  rowClass += "bg-orange-200 ";
-                } else if (i % 2 === 0) {
-                  rowClass += "bg-gray-50 ";
-                } else {
-                  rowClass += "bg-white ";
-                }
-  
-                  return (
-                    <tr key={i} className={rowClass}>
-                      <td className="px-4 py-2 border">{a.id}</td>
-                      <td 
-                          className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
-                          onClick={() => navigate(`/agendas/${a.box_id}`)}
-                        >
-                          <div className="flex items-center justify-center gap-1">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                        <th key={h} className="px-4 py-2 border text-center">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {agendasPaginadas.map((a, i) => {
+                    let rowClass = "hover:bg-gray-100 ";
+                    
+                    if (a.tope) {
+                      rowClass += "bg-red-200 ";
+                    } else if (a.boxInhabilitado) {
+                      rowClass += "bg-orange-200 ";
+                    } else if (i % 2 === 0) {
+                      rowClass += "bg-gray-50 ";
+                    } else {
+                      rowClass += "bg-white ";
+                    }
+    
+                        return (
+                        <tr key={i} className={rowClass}>
+                          <td className="px-4 py-2 border">{a.id}</td>
+                          <td 
+                            className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
+                            onClick={() => {
+                              window.scrollTo(0, 0);
+                              navigate(`/agendas/${a.box_id}`);
+                            }}
+                          >
+                            <div className="flex items-center justify-center gap-1">
                             {a.box_id}
                             {a.boxInhabilitado && (
                               <span className="text-xs text-orange-600 flex items-center">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                Inhabilitado
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Inhabilitado
                               </span>
                             )}
-                          </div>
-                        </td>
-                      <td className="px-4 py-2 border">{a.fecha}</td>
-                      <td className="px-4 py-2 border">{a.hora_inicio}</td>
-                      <td className="px-4 py-2 border">{a.hora_fin}</td>
-                      <td className="px-4 py-2 border">{a.tipo}</td>
-                      <td className="px-4 py-2 border">{a.responsable}</td>
-                      <td className="px-4 py-2 border">
-                      {a.tope 
-                        ? `Tope con agenda #${a.tope}` 
-                        : a.boxInhabilitado 
-                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
-                          : a.observaciones || "-"
-                      }
-                      </td>
-                      <td className="px-4 py-2 border text-center">
-                        <div className="flex justify-center space-x-2">
-                          <motion.button
+                            </div>
+                          </td>
+                          <td className="px-4 py-2 border">{a.fecha}</td>
+                          <td className="px-4 py-2 border">{a.hora_inicio}</td>
+                          <td className="px-4 py-2 border">{a.hora_fin}</td>
+                          <td className="px-4 py-2 border">{a.tipo}</td>
+                          <td className="px-4 py-2 border">{a.responsable}</td>
+                          <td className="px-4 py-2 border">
+                          {a.tope 
+                          ? `Tope con agenda #${a.tope}` 
+                          : a.boxInhabilitado 
+                            ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                            : a.observaciones || "-"
+                          }
+                          </td>
+                          <td className="px-4 py-2 border text-center">
+                          <div className="flex justify-center space-x-2">
+                            <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
-                            onClick={() => setModal({ tipo: "editar", data: a })}
+                            onClick={() => abrirModalEdicion(a)}
                             title="Editar agenda"
-                          >
+                            >
                             <Edit2 className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button
+                            </motion.button>
+                            <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
                             onClick={() => setModal({ tipo: "eliminar", data: a })}
                             title="Eliminar agenda"
-                          >
+                            >
                             <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
-            <table className="min-w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                    <th key={h} className="px-4 py-3 border text-center">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colSpan="9" className="px-4 py-32 text-center bg-white">
-                    <div className="flex flex-col items-center justify-center">
-                      <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium text-gray-500 mb-1">
-                        No hay agendas buscadas
-                      </h3>
-                      <p className="text-gray-400">
-                        Haz uso de los filtros superiores para buscar agendas
-                      </p>
+                            </motion.button>
+                          </div>
+                          </td>
+                        </tr>
+                        );
+                      })}
+                      </tbody>
+                    </table>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Modal */}
-        {modal.tipo && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className={`bg-white rounded-lg p-6 shadow-lg ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"}`}>
-              {modal.tipo === "alerta" ? (
-                <>
-                  <h2 className="text-xl font-bold mb-4">Aviso</h2>
-                  <p className="mb-6">{modal.mensaje}</p>
-                  <div className="flex justify-end">
-                    <button 
-                      className="px-4 py-2 bg-[#005C48] text-white rounded" 
-                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                    >
-                      Cerrar
-                    </button>
-                  </div>
-                </>
-              ) : modal.tipo === "eliminar" ? (
-                <>
-                  <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
-                  <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
-                  <div className="flex justify-end gap-3">
-                    <button 
-                      className="px-4 py-2 bg-gray-200 rounded" 
-                      onClick={() => setModal({ tipo: null, data: null })}
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      className="px-4 py-2 bg-red-500 text-white rounded" 
-                      onClick={() => eliminarAgenda(modal.data.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </>
-              ) : modal.tipo === "editar" ? (
-                <>
-                  <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
-                    {modal.mensaje && <p className="text-red-500 text-sm">{modal.mensaje}</p>}
-                  </div>
-                  
-                  <form 
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const validacion = await validarModificacion(modal.data, agendas);
-                      if (validacion.valido) {
-                        modificarAgenda(e);
-                      } else {
-                        setModal({...modal, mensaje: validacion.mensaje});
-                      }
-                    }} 
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                  >
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        value={modal.data.box_id}
-                        onChange={async (e) => {
-                          const newData = { ...modal.data, box_id: e.target.value };
-                          const validacion = await validarModificacion(newData, agendas);
-                          setModal({ 
-                            ...modal, 
-                            data: newData,
-                            mensaje: validacion.valido ? null : validacion.mensaje
-                          });
-                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                          setHorasDisponibles({
-                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                            fin: []
-                          });
-                        }}
-                        className={`border rounded px-3 py-2 w-full ${
-                          boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
-                            ? 'border-orange-500 bg-orange-50' 
-                            : 'border-gray-300'
-                        }`}
-                        required
-                      />
-                      {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
-                        <p className="text-orange-600 text-sm flex items-center">
-                          <AlertTriangle className="w-4 h-4 mr-1" />
-                          Este box está actualmente inhabilitado
-                        </p>
+                  ) : (
+                    <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
+                    <table className="min-w-full">
+                      <thead className="bg-gray-100">
+                      <tr>
+                        {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                        <th key={h} className="px-4 py-3 border text-center">{h}</th>
+                        ))}
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr>
+                        <td colSpan="9" className="px-4 py-32 text-center bg-white">
+                        {loading ? (
+                          <div className="flex flex-col items-center justify-center">
+                          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
+                          <p className="text-gray-600">Cargando agendas...</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center">
+                          <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
+                          <h3 className="text-lg font-medium text-gray-500 mb-1">
+                            No hay agendas buscadas
+                          </h3>
+                          <p className="text-gray-400">
+                            Haz uso de los filtros superiores para buscar agendas
+                          </p>
+                          </div>
+                        )}
+                        </td>
+                      </tr>
+                      </tbody>
+                    </table>
+                    </div>
+                  )}
+              
+              
+            {/* Estadísticas, pag navegación */}
+            {agendas.length > 0 && (
+              <div className="mt-6 space-y-4">
+                {/* Información y estadísticas */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <p className="text-sm text-gray-600 font-medium">
+                      Mostrando <span className="text-[#005C48] font-bold">{agendas.length}</span> agendas
+                    </p>
+                    
+                    {/* Contadores de estados */}
+                    <div className="flex items-center gap-3 text-xs">
+                      {filtroTopes && (
+                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                          {agendas.filter(a => a.tope).length} con tope
+                        </span>
+                      )}
+                      {filtroInhabilitados && (
+                        <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                          {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                        </span>
+                      )}
+                      {!filtroTopes && !filtroInhabilitados && (
+                        <>
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => a.tope).length} con tope
+                          </span>
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                          </span>
+                          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                            {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
+                          </span>
+                        </>
                       )}
                     </div>
-
-                    {/* Campo Fecha */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
-                      <input
-                        type="date"
-                        value={modal.data.fecha}
-                        onChange={async (e) => {
-                          const newData = { ...modal.data, fecha: e.target.value };
-                          const validacion = await validarModificacion(newData, agendas);
-                          setModal({ 
-                            ...modal, 
-                            data: newData,
-                            mensaje: validacion.valido ? null : validacion.mensaje
-                          });
-                          const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                          setHorasDisponibles({
-                            inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                            fin: []
-                          });
-                        }}
-                        className="border rounded px-3 py-2 w-full"
-                        required
-                      />
+                  </div>
+                  
+                  <button
+                    onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
+                    className="flex items-center gap-1 px-4 py-2 bg-[#005C48] text-white rounded-lg hover:bg-[#004335] transition-colors text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                    </svg>
+                    Volver arriba
+                  </button>
+                </div>
+    
+                {/* Paginación */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>Filas por página:</span>
+                    <select 
+                      value={rowsPerPage}
+                      onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                      className="border rounded px-2 py-1 text-sm"
+                    >
+                      <option value={150}>150</option>
+                      <option value={100}>100</option>
+                      <option value={50}>50</option>
+                      <option value={10}>10</option>
+                      <option value={1000}>1000</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      ← Anterior
+                    </button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-8 h-8 rounded ${
+                              currentPage === pageNum
+                                ? 'bg-[#005C48] text-white'
+                                : 'border hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      
+                      {totalPages > 5 && (
+                        <>
+                          <span className="px-1">...</span>
+                          <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            className={`w-8 h-8 rounded ${
+                              currentPage === totalPages
+                                ? 'bg-[#005C48] text-white'
+                                : 'border hover:bg-gray-100'
+                            }`}
+                          >
+                            {totalPages}
+                          </button>
+                        </>
+                      )}
                     </div>
-
-                    {/* Campo Hora Inicio */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
-                      <select
-                        value={modal.data.hora_inicio}
-                        onChange={handleHoraInicioChange}
-                        className="border rounded px-3 py-2 w-full"
-                        required
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+    
+            {/* Modal */}
+            {modal.tipo && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className={`bg-white rounded-lg p-6 shadow-lg max-h-[90vh] overflow-y-auto ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"} mt-24 sm:mt-12`}>
+                {modal.tipo === "success" ? (
+                  <>
+                    <h2 className="text-xl font-bold mb-4">Éxito</h2>
+                    <p className="mb-6 text-green-600">{modal.mensaje}</p>
+                    <div className="flex justify-end">
+                      <button 
+                        className="px-4 py-2 bg-[#005C48] text-white rounded" 
+                        onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
                       >
-                        <option value="">Seleccione hora</option>
-                        {horasDisponibles.inicio.map((hora, i) => (
-                          <option key={i} value={hora}>{hora}</option>
-                        ))}
-                      </select>
+                        Cerrar
+                      </button>
                     </div>
-
-                    {/* Campo Hora Fin */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
-                      <select
+                  </>
+                ) : modal.tipo === "alerta" ? (
+                    <>
+                      <h2 className="text-xl font-bold mb-4">Aviso</h2>
+                      <p className="mb-6">{modal.mensaje}</p>
+                      <div className="flex justify-end">
+                        <button 
+                          className="px-4 py-2 bg-[#005C48] text-white rounded" 
+                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </>
+                  ) : modal.tipo === "eliminar" ? (
+                    <>
+                      <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
+                      <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
+                      <div className="flex justify-end gap-3">
+                        <button 
+                          className="px-4 py-2 bg-gray-200 rounded" 
+                          onClick={() => setModal({ tipo: null, data: null })}
+                        >
+                          Cancelar
+                        </button>
+                        <button 
+                          className="px-4 py-2 bg-red-500 text-white rounded" 
+                          onClick={() => eliminarAgenda(modal.data.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </>
+                  ) : modal.tipo === "editar" ? (
+                    <>
+                      <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
+                        <button 
+                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      
+                      {modal.mensaje && (
+                        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                          {modal.mensaje}
+                        </div>
+                      )}
+                      
+                      <form 
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const validacion = await validarModificacion(modal.data, agendas);
+                          if (validacion.valido) {
+                            modificarAgenda(e);
+                          } else {
+                            setModal({...modal, mensaje: validacion.mensaje});
+                          }
+                        }} 
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      >
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
+                          <input
+                            type="number"
+                            value={modal.data.box_id}
+                            onChange={async (e) => {
+                              const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
+                              setModal({ 
+                                ...modal, 
+                                data: newData,
+                                mensaje: null
+                              });
+                              
+                              setHorasDisponibles({
+                                inicio: [],
+                                fin: []
+                              });
+                              
+                              if (newData.fecha && newData.box_id) {
+                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                                setHorasDisponibles({
+                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                                  fin: []
+                                });
+                              }
+                            }}
+                            
+                            className={`border rounded px-3 py-2 w-full ${
+                              boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
+                                ? 'border-orange-500 bg-orange-50' 
+                                : 'border-gray-300'
+                            }`}
+                            required
+                          />
+                          {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
+                            <p className="text-orange-600 text-sm flex items-center">
+                              <AlertTriangle className="w-4 h-4 mr-1" />
+                              Este box está actualmente inhabilitado
+                            </p>
+                          )}
+                        </div>
+    
+                        {/* Campo Fecha */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
+                          <input
+                            type="date"
+                            value={modal.data.fecha}
+                            onChange={async (e) => {
+                              const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
+                              setModal({ 
+                                ...modal, 
+                                data: newData,
+                                mensaje: null
+                              });
+                              
+                              setHorasDisponibles({
+                                inicio: [],
+                                fin: []
+                              });
+                              
+                              if (newData.box_id && newData.fecha) {
+                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                                setHorasDisponibles({
+                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                                  fin: []
+                                });
+                              }
+                            }}
+                            className="border rounded px-3 py-2 w-full"
+                            required
+                          />
+                        </div>
+    
+                        {/* Campo Hora Inicio */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
+                          <select
+                            value={modal.data.hora_inicio}
+                            onChange={handleHoraInicioChange}
+                            className="border rounded px-3 py-2 w-full"
+                            required
+                          >
+                            <option value="">Seleccione hora</option>
+                            {horasDisponibles.inicio.map((hora, i) => (
+                              <option key={i} value={hora}>{hora}</option>
+                            ))}
+                          </select>
+                        </div>
+    
+                        {/* Campo Hora Fin */}
+                        <div className="space-y-2">
+                        <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
+                        <select
                         value={modal.data.hora_fin}
                         onChange={(e) => {
                           const newData = { ...modal.data, hora_fin: e.target.value };
@@ -1211,7 +1955,11 @@ export default function Agenda() {
                           onChange={(e) => {
                             setModal({ 
                               ...modal, 
-                              data: { ...modal.data, responsable: e.target.value } 
+                              data: { 
+                                ...modal.data, 
+                                responsable: e.target.value,
+                                idmedico: modal.data.responsable !== e.target.value ? null : modal.data.idmedico
+                              } 
                             });
                             setMostrarSugerencias(true);
                           }}
@@ -1221,8 +1969,8 @@ export default function Agenda() {
                           required
                         />
                         {mostrarSugerencias && sugerenciasMedico.length > 0 && (
-                          <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                            {sugerenciasMedico.map((medico) => (
+                          <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            {sugerenciasMedico.map((medico, index) => (
                               <li
                                 key={medico.id}
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
@@ -1230,7 +1978,11 @@ export default function Agenda() {
                                 onClick={() => {
                                   setModal({
                                     ...modal,
-                                    data: { ...modal.data, responsable: medico.nombre }
+                                    data: { 
+                                      ...modal.data, 
+                                      responsable: medico.nombre,
+                                      idmedico: medico.idMedico || medico.id 
+                                    }
                                   });
                                   setMostrarSugerencias(false);
                                 }}
@@ -1276,6 +2028,25 @@ export default function Agenda() {
               ) : null}
             </div>
           </div>
+        )}
+
+        {/* Botón flotante para subir */}
+        {showScrollButton && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            const isMobile = window.innerWidth < 640; 
+            window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
+          }}
+          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#005C48] text-white shadow-lg flex items-center justify-center"
+          aria-label="Volver arriba"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </motion.button>
         )}
       </div>
     </>

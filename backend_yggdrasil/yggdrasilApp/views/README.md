@@ -29,6 +29,7 @@ Este directorio contiene la refactorización de las views organizadas por funcio
 **Funcionalidad**: Gestión de médicos
 - `SugerenciasMedicoView` - Autocompletado de médicos
 - `MedicosDisponiblesView` - Médicos disponibles en un horario
+- `MedicoDisponibilidadView` - Disponibilidad de un médico específico en un rango de fechas
 
 ### 📋 `reserva_views.py`
 **Funcionalidad**: Gestión de reservas médicas y no médicas

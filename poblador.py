@@ -1,6 +1,7 @@
 import random
 from datetime import datetime, timedelta
 import mysql.connector
+from mysql.connector import Error
 
 # --- CONFIGURACIÓN ---
 db_config = {
@@ -10,64 +11,98 @@ db_config = {
     "database": "yggdrasil2"
 }
 
-start_date = datetime(2025, 8, 1)
-end_date = datetime(2025, 8, 31)
-min_hora = 9  
-max_hora = 20 
-registros_por_dia = 5  
+start_date = datetime(2025, 9, 1)
+end_date = datetime(2025, 9, 30)
+min_hora = 9
+max_hora = 20
+registros_por_dia = 5
 
-conn = mysql.connector.connect(**db_config)
-cursor = conn.cursor()
-
-cursor.execute("SELECT idMedico FROM medico")
-medicos = [row[0] for row in cursor.fetchall()]
-
-cursor.execute("SELECT idBox FROM box")
-boxes = [row[0] for row in cursor.fetchall()]
-
-delta_days = (end_date - start_date).days + 1
-for day_offset in range(delta_days):
-    fecha = start_date + timedelta(days=day_offset)
+try:
+    # Establecer conexión
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
     
-    for box in boxes:
-        n_agendas = random.randint(3 , registros_por_dia)  
+    # Verificar si las tablas existen
+    cursor.execute("SHOW TABLES LIKE 'agendabox'")
+    if not cursor.fetchone():
+        print("ERROR: La tabla 'agendabox' no existe en la base de datos")
+        exit()
         
-        horas_usadas = []
-        for _ in range(n_agendas):
-            while True:
-                hora_inicio = random.randint(min_hora, max_hora-1)
-                if hora_inicio not in horas_usadas:
-                    horas_usadas.append(hora_inicio)
-                    break
-            hora_inicio_str = f"{hora_inicio:02}:00:00"
+    cursor.execute("SHOW TABLES LIKE 'atenamb'")
+    if not cursor.fetchone():
+        print("ERROR: La tabla 'atenamb' no existe en la base de datos")
+        exit()
+    
+    # Obtener médicos y boxes
+    cursor.execute("SELECT idMedico FROM medico")
+    medicos = [row[0] for row in cursor.fetchall()]
+    
+    if not medicos:
+        print("ERROR: No hay médicos en la tabla 'medico'")
+        exit()
+    
+    cursor.execute("SELECT idBox FROM box")
+    boxes = [row[0] for row in cursor.fetchall()]
+    
+    if not boxes:
+        print("ERROR: No hay boxes en la tabla 'box'")
+        exit()
+    
+    # Generar datos
+    delta_days = (end_date - start_date).days + 1
+    total_inserts = 0
+    
+    for day_offset in range(delta_days):
+        fecha = start_date + timedelta(days=day_offset)
+        
+        for box in boxes:
+            n_agendas = random.randint(3, registros_por_dia)  
             
-            duracion = random.randint(1 , 2) 
-            hora_fin = min(hora_inicio + duracion, max_hora)
-            hora_fin_str = f"{hora_fin:02}:00:00"
-            
-            medico = random.choice(medicos)  
-            esmedicapesos = 0.9
-            if random.random() < esmedicapesos:
-                esmedica = 1
-            else:   
-                esmedica = 0
+            horas_usadas = []
+            for _ in range(n_agendas):
+                while True:
+                    hora_inicio = random.randint(min_hora, max_hora-1)
+                    if hora_inicio not in horas_usadas:
+                        horas_usadas.append(hora_inicio)
+                        break
+                hora_inicio_str = f"{hora_inicio:02}:00:00"
+                
+                duracion = random.randint(1, 2) 
+                hora_fin = min(hora_inicio + duracion, max_hora)
+                hora_fin_str = f"{hora_fin:02}:00:00"
+                
+                medico = random.choice(medicos)  
+                esmedicapesos = 0.9
+                if random.random() < esmedicapesos:
+                    esmedica = 1
+                else:   
+                    esmedica = 0
 
-            #Insert para agendabox
-            sql_agenda = """
-            INSERT INTO agendabox (fechaAgenda, horaInicioAgenda, idBox, idMedico, horaFinAgenda, Habilitada, esMedica)
-            VALUES (%s, %s, %s, %s, %s, 1, %s)
-            """
-            cursor.execute(sql_agenda, (fecha.strftime("%Y-%m-%d"), hora_inicio_str, box, medico, hora_fin_str, esmedica))
-            
-            #Insert para atenamb
-            sql_atenamb = """
-            INSERT INTO atenamb (idMedico, idBox, fecha, horaInicio, horaFin)
-            VALUES (%s, %s, %s, %s, %s)
-            """
-            cursor.execute(sql_atenamb, (medico, str(box), fecha.strftime("%Y-%m-%d"), hora_inicio_str, hora_fin_str))
+                # Insert para agendabox
+                sql_agenda = """
+                INSERT INTO agendabox (fechaAgenda, horaInicioAgenda, idBox, idMedico, horaFinAgenda, Habilitada, esMedica)
+                VALUES (%s, %s, %s, %s, %s, 1, %s)
+                """
+                cursor.execute(sql_agenda, (fecha.strftime("%Y-%m-%d"), hora_inicio_str, box, medico, hora_fin_str, esmedica))
+                
+                # Insert para atenamb
+                sql_atenamb = """
+                INSERT INTO atenamb (idMedico, idBox, fecha, horaInicio, horaFin)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql_atenamb, (medico, str(box), fecha.strftime("%Y-%m-%d"), hora_inicio_str, hora_fin_str))
+                
+                total_inserts += 2
+    
+    conn.commit()
+    print(f"¡Datos generados correctamente! Se insertaron {total_inserts} registros.")
 
-conn.commit()
-cursor.close()
-conn.close()
+except Error as e:
+    print(f"Error de MySQL: {e}")
+    if conn:
+        conn.rollback()
 
-print("¡Datos de agendas generados correctamente!")
+finally:
+    if conn.is_connected():
+        cursor.close()
+        conn.close()

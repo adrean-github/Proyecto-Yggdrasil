@@ -3,13 +3,17 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Configuración para Redis Docker (versión moderna)
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("127.0.0.1", 6379)]},
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+            "capacity": 1000,  #Agregado para compatibilidad
+            "expiry": 10,      #Agregado para compatibilidad
+        },
     }
 }
-
 # WebSocket configuration for Cloudflare Tunnel
 USE_TLS = True  # Para usar WSS en lugar de WS
 
@@ -131,8 +135,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'yggdrasil2',
         'USER': 'root',   
-        'PASSWORD': 'alcoy1136',    
-        # 'PASSWORD': '123456',  
+        #'PASSWORD': 'alcoy1136',    
+        'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },
@@ -140,8 +144,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'simulador_hospital',
         'USER': 'root',   
-        'PASSWORD': 'alcoy1136',    
-        # 'PASSWORD': '123456',  
+        #'PASSWORD': 'alcoy1136',    
+        'PASSWORD': '123456',  
         'HOST': 'localhost',
         'PORT': '3306',
     },

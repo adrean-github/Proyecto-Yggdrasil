@@ -28,7 +28,8 @@ from .agenda_views import (
 # Médico views
 from .medico_views import (
     SugerenciasMedicoView,
-    MedicosDisponiblesView
+    MedicosDisponiblesView,
+    MedicoDisponibilidadView
 )
 
 # Reserva views

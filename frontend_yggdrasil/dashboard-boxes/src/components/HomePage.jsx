@@ -10,8 +10,11 @@ const Homepage = () => {
   useEffect(() => {
     const handleWheel = (e) => {
       if (scrolling) return;
+      const scrollThreshold = 30;
+      if (Math.abs(e.deltaY) < scrollThreshold) return;
+  
       if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
-
+  
       setScrolling(true);
 
       if (e.deltaY > 0) {
@@ -51,8 +54,8 @@ const Homepage = () => {
       image: "/estadisticas.png"
     },
     {
-      title: "Agendamiento de boxes",
-      desc: "Como personal de gestión o jefe de pasillo, puedes reservar boxes para actividades de uso médico o no médico, sin topes de horario.",
+      title: "Gestión de agendas",
+      desc: "Gestiona las agendas existentes y reserva boxes para actividades de uso médico o no médico, sin topes de horario.",
       link: "/agendas",
       image: "/res_no_med.png"
     },
@@ -113,12 +116,12 @@ const Homepage = () => {
         <p className="text-sm text-gray-500 text-center py-2 md:hidden">
                 Pulsa para desplegar opciones
         </p>
-        <div className="accordion-container flex flex-col sm:flex-row w-full max-w-full h-[32rem] overflow-x-auto shadow-xl select-none">
+        <div className="accordion-container flex flex-wrap sm:flex-nowrap w-full max-w-full h-[32rem] shadow-xl select-none">
           {cards.map((card, idx) => (
             <div
               key={idx}
               className={`
-                relative cursor-pointer flex-shrink-0 flex-grow transition-all duration-500 ease-in-out delay-75
+                relative cursor-pointer flex-grow transition-all duration-500 ease-in-out delay-75
                 flex-[1]
                 hover:flex-[5]
                 bg-cover bg-center
@@ -146,11 +149,8 @@ const Homepage = () => {
                   Acceder
                 </a>
               </div>
-              
             </div>
-            
           ))}
-
         </div>
       </section>
 

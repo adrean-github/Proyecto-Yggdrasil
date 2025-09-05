@@ -15,12 +15,22 @@ import {
   Settings,
   RefreshCw,
   X,
+  ChevronUp,
   FileStack
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { buildApiUrl } from "../config/api";
+import { useLocation } from 'react-router-dom';
 
 export default function HistorialBox() {
+
+  const location = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]); 
+
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const [historial, setHistorial] = useState([]);
@@ -42,6 +52,17 @@ export default function HistorialBox() {
   useEffect(() => {
     fetchHistorial();
   }, [id]);
+
+
+    // Mostrar/ocultar botón de scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollButton(window.scrollY > 400);
+    };
+  
+      window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const fetchHistorial = async () => {
     try {
@@ -231,15 +252,19 @@ export default function HistorialBox() {
             <ArrowLeft size={20} />
             Volver al Box
           </button>
-          <div className="w-px h-6 bg-gray-300"></div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-4xl font-bold text-gray-800">Historial de Modificaciones</h1>
-          </div>
-          <span className="bg-green-100 text-[#1B5D52] px-4 py-2 rounded-full text-sm font-semibold">
-            Box #{id}
-          </span>
+          <div className="w-px h-6"></div>
         </div>
+      </div>
 
+      {/* Título y subtítulo centrados */}
+      <div className="flex flex-col items-center space-y-2 mb-8">
+        <h1 className="text-center text-4xl font-bold mt-4">Historial de Modificaciones</h1>
+        <p className="text-center text-gray-600 text-lg">
+          Visualiza el historial de estados y modificaciones del box seleccionado
+        </p>
+        <span className="bg-green-100 text-[#1B5D52] px-4 py-2 rounded-full text-sm font-semibold mt-2">
+          Box #{id}
+        </span>
       </div>
 
       {/* Estadísticas */}
@@ -477,6 +502,28 @@ export default function HistorialBox() {
           </div>
         </div>
       )}
+
+
+      
+    {/* Botón flotante para subir */}
+    {showScrollButton && (
+      <motion.button
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={() => {
+        const isMobile = window.innerWidth < 640; 
+        window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
+      }}
+      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#005C48] text-white shadow-lg flex items-center justify-center"
+      aria-label="Volver arriba"
+      >
+      <ChevronUp className="w-6 h-6" />
+    </motion.button>
+    )}
+              
     </div>
   );
 }
