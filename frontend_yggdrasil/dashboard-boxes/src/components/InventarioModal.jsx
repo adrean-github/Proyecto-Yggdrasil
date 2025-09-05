@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Package, Wrench, CheckCircle, AlertTriangle, Calendar, ExternalLink } from "lucide-react";
+import { X, Package, Wrench, CheckCircle, AlertTriangle, Calendar, ExternalLink, Settings, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildApiUrl } from "../config/api";
 
@@ -7,6 +7,10 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
   const [inventario, setInventario] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [actualizandoEstado, setActualizandoEstado] = useState(null);
+  const [modalEstado, setModalEstado] = useState(false);
+  const [implementoSeleccionado, setImplementoSeleccionado] = useState(null);
+  const [observaciones, setObservaciones] = useState('');
 
   useEffect(() => {
     if (isOpen && boxId) {
@@ -68,6 +72,86 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
         border: "var(--danger-border)",
         label: "Requiere Mantenimiento"
       };
+    }
+  };
+
+  const cambiarEstadoImplemento = async (nombreImplemento, nuevoEstado, observacionesPersonalizadas = '') => {
+    try {
+      setActualizandoEstado(nombreImplemento);
+      
+      const response = await fetch(buildApiUrl(`/api/inventario/${boxId}/`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nombreImplemento,
+          operacional: nuevoEstado,
+          observaciones: observacionesPersonalizadas || (nuevoEstado ? 'Implemento habilitado desde interfaz' : 'Implemento deshabilitado desde interfaz')
+        }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Actualizar el inventario local
+        setInventario(prev => ({
+          ...prev,
+          implementos: prev.implementos.map(impl => 
+            impl.nombre === nombreImplemento 
+              ? { ...impl, operacional: nuevoEstado, observaciones: data.implemento.observaciones }
+              : impl
+          ),
+          implementos_operacionales: prev.implementos_operacionales + (nuevoEstado ? 1 : -1),
+          implementos_no_operacionales: prev.implementos_no_operacionales + (nuevoEstado ? -1 : 1)
+        }));
+
+        setModalEstado(false);
+        setImplementoSeleccionado(null);
+        setObservaciones('');
+      } else {
+        // Manejo mejorado de errores
+        let errorMessage = 'Error al actualizar estado';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // Si no es JSON válido, usar mensaje basado en el status
+          if (response.status === 404) {
+            errorMessage = 'Implemento no encontrado';
+          } else if (response.status === 400) {
+            errorMessage = 'Datos inválidos enviados';
+          } else if (response.status === 403) {
+            errorMessage = 'Sin permisos para realizar esta acción';
+          } else if (response.status >= 500) {
+            errorMessage = 'Error interno del servidor';
+          }
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (err) {
+      console.error('Error al cambiar estado:', err);
+      setError(err.message);
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setActualizandoEstado(null);
+    }
+  };
+
+  const abrirModalEstado = (implemento) => {
+    setImplementoSeleccionado(implemento);
+    setObservaciones('');
+    setModalEstado(true);
+  };
+
+  const confirmarCambioEstado = () => {
+    if (implementoSeleccionado) {
+      cambiarEstadoImplemento(
+        implementoSeleccionado.nombre, 
+        !implementoSeleccionado.operacional, 
+        observaciones
+      );
     }
   };
 
@@ -202,6 +286,7 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
                     {inventario.implementos.map((implemento, index) => {
                       const estado = getEstadoImplemento(implemento);
                       const IconoEstado = estado.icon;
+                      const estaActualizando = actualizandoEstado === implemento.nombre;
                       
                       return (
                         <motion.div
@@ -230,12 +315,34 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
                                 {implemento.descripcion}
                               </p>
                             </div>
-                            <div 
-                              className="flex items-center gap-1 transition-colors duration-300"
-                              style={{ color: estado.color }}
-                            >
-                              <IconoEstado size={16} />
-                              <span className="text-xs font-medium">{estado.label}</span>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="flex items-center gap-1 transition-colors duration-300"
+                                style={{ color: estado.color }}
+                              >
+                                <IconoEstado size={16} />
+                                <span className="text-xs font-medium">{estado.label}</span>
+                              </div>
+                              
+                              {/* Botón para cambiar estado */}
+                              <button
+                                onClick={() => abrirModalEstado(implemento)}
+                                disabled={estaActualizando}
+                                className="p-1.5 rounded-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2"
+                                style={{
+                                  backgroundColor: 'var(--bg-color)',
+                                  color: 'var(--text-color)',
+                                  borderColor: 'var(--border-color)',
+                                  focusRingColor: 'var(--accent-color)'
+                                }}
+                                title={implemento.operacional ? "Deshabilitar implemento" : "Habilitar implemento"}
+                              >
+                                {estaActualizando ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Settings size={14} />
+                                )}
+                              </button>
                             </div>
                           </div>
 
@@ -401,6 +508,126 @@ export default function InventarioModal({ boxId, isOpen, onClose }) {
               </div>
             )}
           </div>
+
+          {/* Modal para cambio de estado */}
+          <AnimatePresence>
+            {modalEstado && implementoSeleccionado && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
+                <motion.div
+                  className="rounded-lg shadow-xl max-w-md w-full p-6"
+                  style={{ backgroundColor: 'var(--bg-color)' }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                >
+                  <div className="mb-4">
+                    <h3 
+                      className="text-lg font-semibold mb-2"
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      {implementoSeleccionado.operacional ? 'Deshabilitar' : 'Habilitar'} Implemento
+                    </h3>
+                    <p 
+                      className="text-sm"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      ¿Deseas {implementoSeleccionado.operacional ? 'deshabilitar' : 'habilitar'} el implemento "{implementoSeleccionado.nombre}"?
+                    </p>
+                  </div>
+
+                  <div className="mb-4">
+                    <label 
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      Observaciones (opcional)
+                    </label>
+                    <textarea
+                      value={observaciones}
+                      onChange={(e) => setObservaciones(e.target.value)}
+                      placeholder="Motivo del cambio de estado..."
+                      className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 transition-all duration-300"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--text-color)',
+                        focusRingColor: 'var(--accent-color)'
+                      }}
+                      rows="3"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => {
+                        setModalEstado(false);
+                        setImplementoSeleccionado(null);
+                        setObservaciones('');
+                      }}
+                      className="px-4 py-2 border rounded-lg transition-all duration-300 hover:brightness-95"
+                      style={{
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--text-color)',
+                        backgroundColor: 'var(--bg-secondary)'
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmarCambioEstado}
+                      disabled={actualizandoEstado}
+                      className="px-4 py-2 text-white rounded-lg transition-all duration-300 hover:brightness-110 disabled:opacity-50 flex items-center gap-2"
+                      style={{ 
+                        backgroundColor: implementoSeleccionado.operacional ? 'var(--danger-bg)' : 'var(--success-bg)',
+                        color: implementoSeleccionado.operacional ? 'var(--danger-text)' : 'var(--success-text)'
+                      }}
+                    >
+                      {actualizandoEstado ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Actualizando...
+                        </>
+                      ) : (
+                        <>
+                          {implementoSeleccionado.operacional ? (
+                            <AlertTriangle size={16} />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          {implementoSeleccionado.operacional ? 'Deshabilitar' : 'Habilitar'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Toast de error */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                className="fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-sm z-50 flex items-center gap-3"
+                style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}
+                initial={{ opacity: 0, y: 50, x: 100 }}
+                animate={{ opacity: 1, y: 0, x: 0 }}
+                exit={{ opacity: 0, y: 50, x: 100 }}
+              >
+                <AlertTriangle size={20} />
+                <div className="flex-1">
+                  <p className="font-medium">Error</p>
+                  <p className="text-sm opacity-90">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="p-1 hover:bg-black hover:bg-opacity-10 rounded"
+                >
+                  <X size={16} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </AnimatePresence>
