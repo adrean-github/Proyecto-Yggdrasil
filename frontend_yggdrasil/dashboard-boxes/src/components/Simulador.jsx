@@ -88,13 +88,13 @@ function UploadForm() {
     }
   };
 
-  const renderTableWithPagination = (data) => {
+  const renderTableWithPagination = (data, headerColorType = "default") => {
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 10;
 
     if (!data || data.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+        <div className="flex flex-col items-center justify-center py-8" style={{ color: 'var(--text-muted)' }}>
           <Info className="w-12 h-12 mb-2" />
           <p>No hay datos para mostrar</p>
         </div>
@@ -115,29 +115,46 @@ function UploadForm() {
     const endIdx = startIdx + rowsPerPage;
     const currentData = data.slice(startIdx, endIdx);
 
+    const headerColors = {
+      default: {
+        bg: 'var(--accent-color, #005C48)',
+        text: 'white'
+      },
+      error: {
+        bg: 'var(--danger-bg)',
+        text: 'var(--danger-text)'
+      }
+    };
+
+    const headerStyle = headerColors[headerColorType] || headerColors.default;
+
     return (
-       <div className="space-y-4">
-        <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className={headerColor === "red-900" ? "bg-red-900" : "bg-[#005C48]"}>
+      <div className="space-y-4">
+        <div className="overflow-x-auto rounded-lg shadow-sm" style={{ border: '1px solid var(--border-color)' }}>
+          <table className="min-w-full divide-y" style={{ borderColor: 'var(--border-color)' }}>
+            <thead style={{ backgroundColor: headerStyle.bg }}>
               <tr>
                 {columnasMostrar.map(({ key, title }) => (
                   <th 
                     key={key} 
-                    className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
+                    style={{ color: headerStyle.text }}
                   >
                     {title}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
               {currentData.map((row, idx) => (
-                <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <tr key={idx} style={{ 
+                  backgroundColor: idx % 2 === 0 ? 'var(--bg-color)' : 'var(--bg-secondary)' 
+                }}>
                   {columnasMostrar.map(({ key, parse }) => (
                     <td 
                       key={key} 
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
+                      className="px-6 py-4 whitespace-nowrap text-sm"
+                      style={{ color: 'var(--text-color)' }}
                     >
                       {parse ? parse(row[key]) : row[key]}
                     </td>
@@ -150,7 +167,7 @@ function UploadForm() {
 
         {/* Paginación */}
         <div className="flex items-center justify-between px-2">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Mostrando <span className="font-medium">{startIdx + 1}</span> a{' '}
             <span className="font-medium">{Math.min(endIdx, data.length)}</span> de{' '}
             <span className="font-medium">{data.length}</span> registros
@@ -160,7 +177,13 @@ function UploadForm() {
             <button
               onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-1 rounded-md text-sm font-medium"
+              style={{
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)',
+                opacity: currentPage === 1 ? 0.5 : 1
+              }}
             >
               Anterior
             </button>
@@ -172,9 +195,20 @@ function UploadForm() {
                   onClick={() => setCurrentPage(i + 1)}
                   className={`px-3 py-1 rounded-md text-sm font-medium ${
                     currentPage === i + 1 
-                      ? "bg-[#005C48] text-white" 
-                      : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      ? "text-white" 
+                      : "border"
                   }`}
+                  style={{
+                    backgroundColor: currentPage === i + 1 
+                      ? 'var(--accent-color, #005C48)' 
+                      : 'var(--bg-color)',
+                    borderColor: currentPage === i + 1 
+                      ? 'var(--accent-color, #005C48)' 
+                      : 'var(--border-color)',
+                    color: currentPage === i + 1 
+                      ? 'white' 
+                      : 'var(--text-color)'
+                  }}
                 >
                   {i + 1}
                 </button>
@@ -184,7 +218,13 @@ function UploadForm() {
             <button
               onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-1 rounded-md text-sm font-medium"
+              style={{
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)',
+                opacity: currentPage === totalPages ? 0.5 : 1
+              }}
             >
               Siguiente
             </button>
@@ -195,13 +235,16 @@ function UploadForm() {
   };
 
   return (
-    <div className="min-h-screen pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen pb-20 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--bg-secondary)' }}>
       {/* Header */}
       <div className="max-w-7xl mx-auto pt-8 pb-6">
         <div className="text-center">
-        <h1 className="text-center text-4xl font-bold mt-8 mb-3">Simulador de agendas</h1>
-        <p className="text-center text-gray-600 text-lg mb-8">Carga y valida tus archivos de agenda para detectar conflictos</p>
-
+          <h1 className="text-center text-4xl font-bold mt-8 mb-3" style={{ color: 'var(--text-color)' }}>
+            Simulador de agendas
+          </h1>
+          <p className="text-center text-lg mb-8" style={{ color: 'var(--text-muted)' }}>
+            Carga y valida tus archivos de agenda para detectar conflictos
+          </p>
         </div>
       </div>
 
@@ -210,22 +253,25 @@ function UploadForm() {
         {/* Panel izquierdo - Formulario */}
         <div className="space-y-6">
           <motion.div 
-            className="bg-white overflow-hidden shadow rounded-lg"
+            className="overflow-hidden shadow rounded-lg"
+            style={{ backgroundColor: 'var(--bg-color)' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-medium text-gray-900">Subir archivo</h2>
+              <h2 className="text-lg font-medium" style={{ color: 'var(--text-color)' }}>Subir archivo</h2>
               
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>
                     Seleccionar archivo
                   </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md" 
+                       style={{ borderColor: 'var(--border-color)' }}>
                     <div className="space-y-1 text-center">
-                      <div className="flex text-sm text-gray-600">
-                        <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#005C48] hover:text-[#118154] focus-within:outline-none">
+                      <div className="flex text-sm" style={{ color: 'var(--text-muted)' }}>
+                        <label className="relative cursor-pointer rounded-md font-medium" 
+                               style={{ color: 'var(--accent-color)' }}>
                           <span>Sube un archivo</span>
                           <input 
                             type="file" 
@@ -236,12 +282,12 @@ function UploadForm() {
                         </label>
                         <p className="pl-1">o arrástralo aquí</p>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         Formatos soportados: CSV, XLSX (Excel)
                       </p>
                       {file && (
-                        <p className="mt-2 text-sm text-gray-900">
-                          <CheckCircle className="inline w-4 h-4 text-green-500 mr-1" />
+                        <p className="mt-2 text-sm" style={{ color: 'var(--text-color)' }}>
+                          <CheckCircle className="inline w-4 h-4 mr-1" style={{ color: 'var(--success-text)' }} />
                           {file.name}
                         </p>
                       )}
@@ -250,13 +296,13 @@ function UploadForm() {
                 </div>
 
                 {error && (
-                  <div className="rounded-md bg-red-50 p-4">
+                  <div className="rounded-md p-4" style={{ backgroundColor: 'var(--danger-bg)' }}>
                     <div className="flex">
                       <div className="flex-shrink-0">
-                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                        <AlertTriangle className="h-5 w-5" style={{ color: 'var(--danger-text)' }} />
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                        <h3 className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{error}</h3>
                       </div>
                     </div>
                   </div>
@@ -265,7 +311,11 @@ function UploadForm() {
                 <button
                   type="submit"
                   disabled={loading || !file}
-                  className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#005C48] hover:bg-[#118154] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#005C48] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: 'var(--accent-color)',
+                    color: 'white'
+                  }}
                 >
                   {loading ? (
                     <>
@@ -285,21 +335,24 @@ function UploadForm() {
 
           {/* Estadísticas */}
           <motion.div 
-            className="bg-white overflow-hidden shadow rounded-lg"
+            className="overflow-hidden shadow rounded-lg"
+            style={{ backgroundColor: 'var(--bg-color)' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-medium text-gray-900">Resumen</h2>
+              <h2 className="text-lg font-medium" style={{ color: 'var(--text-color)' }}>Resumen</h2>
               <dl className="mt-5 grid grid-cols-2 gap-5">
-                <div className="px-4 py-5 bg-green-50 rounded-lg overflow-hidden shadow sm:p-6">
-                  <dt className="text-sm font-medium text-green-800 truncate">Agendas válidas</dt>
-                  <dd className="mt-1 text-3xl font-semibold text-green-900">{aprobados.length}</dd>
+                <div className="px-4 py-5 rounded-lg overflow-hidden shadow sm:p-6" 
+                     style={{ backgroundColor: 'var(--success-bg)' }}>
+                  <dt className="text-sm font-medium truncate" style={{ color: 'var(--success-text)' }}>Agendas válidas</dt>
+                  <dd className="mt-1 text-3xl font-semibold" style={{ color: 'var(--success-text)' }}>{aprobados.length}</dd>
                 </div>
-                <div className="px-4 py-5 bg-red-50 rounded-lg overflow-hidden shadow sm:p-6">
-                  <dt className="text-sm font-medium text-red-800 truncate">Conflictos</dt>
-                  <dd className="mt-1 text-3xl font-semibold text-red-900">{desaprobados.length}</dd>
+                <div className="px-4 py-5 rounded-lg overflow-hidden shadow sm:p-6" 
+                     style={{ backgroundColor: 'var(--danger-bg)' }}>
+                  <dt className="text-sm font-medium truncate" style={{ color: 'var(--danger-text)' }}>Conflictos</dt>
+                  <dd className="mt-1 text-3xl font-semibold" style={{ color: 'var(--danger-text)' }}>{desaprobados.length}</dd>
                 </div>
               </dl>
             </div>
@@ -314,7 +367,11 @@ function UploadForm() {
             <button
               onClick={handleConfirmarGuardar}
               disabled={aprobados.length === 0 || loading}
-              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#005C48] hover:bg-[#118154] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#005C48] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: 'var(--accent-color)',
+                color: 'white'
+              }}
             >
               {loading ? (
                 <>
@@ -333,14 +390,15 @@ function UploadForm() {
           {/* Instrucciones */}
           {showInstructions && (
             <motion.div 
-              className="bg-blue-50 rounded-lg p-4"
+              className="rounded-lg p-4"
+              style={{ backgroundColor: 'var(--info-bg)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-blue-900">¿Cómo usar?</h3>
-                  <div className="mt-2 text-sm text-blue-800">
+                  <h3 className="text-sm font-medium" style={{ color: 'var(--info-text)' }}>¿Cómo usar?</h3>
+                  <div className="mt-2 text-sm" style={{ color: 'var(--info-text)' }}>
                     <p className="mb-2">1. Sube un archivo CSV o Excel con las agendas</p>
                     <p className="mb-2">2. El sistema validará los datos y mostrará conflictos</p>
                     <p>3. Revisa y guarda solo las agendas válidas</p>
@@ -348,7 +406,7 @@ function UploadForm() {
                 </div>
                 <button 
                   onClick={() => setShowInstructions(false)}
-                  className="ml-2 text-blue-500 hover:text-blue-700"
+                  style={{ color: 'var(--info-text)' }}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -361,14 +419,17 @@ function UploadForm() {
 
         {/* Panel derecho - Resultados */}
         <motion.div
-          className="bg-white overflow-hidden shadow rounded-lg lg:col-span-2"
+          className="overflow-hidden shadow rounded-lg lg:col-span-2"
+          style={{ backgroundColor: 'var(--bg-color)' }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+          <div className="px-4 py-5 sm:px-6 border-b" style={{ borderColor: 'var(--border-color)' }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h2 className="text-lg font-medium text-gray-900 text-center sm:text-left">Resultados de validación</h2>
+              <h2 className="text-lg font-medium text-center sm:text-left" style={{ color: 'var(--text-color)' }}>
+                Resultados de validación
+              </h2>
               
               {/* Contenedor de pestañas con diseño responsive */}
               <div className="flex flex-col xs:flex-row gap-2 justify-center sm:justify-end">
@@ -376,10 +437,16 @@ function UploadForm() {
                   <button
                     onClick={() => setActiveTab("conflictos")}
                     className={`px-3 py-2 text-sm font-medium rounded-md w-full xs:w-auto text-center ${
-                      activeTab === "conflictos"
-                        ? "bg-red-900 text-white"
-                        : "text-gray-500 hover:text-gray-700 bg-gray-100"
+                      activeTab === "conflictos" ? "text-white" : ""
                     }`}
+                    style={{
+                      backgroundColor: activeTab === "conflictos" 
+                        ? 'var(--danger-bg)' 
+                        : 'var(--bg-secondary)',
+                      color: activeTab === "conflictos" 
+                        ? 'var(--danger-text)' 
+                        : 'var(--text-color)'
+                    }}
                   >
                     Conflictos {desaprobados.length > 0 && `(${desaprobados.length})`}
                   </button>
@@ -388,10 +455,16 @@ function UploadForm() {
                   <button
                     onClick={() => setActiveTab("aprobados")}
                     className={`px-3 py-2 text-sm font-medium rounded-md w-full xs:w-auto text-center ${
-                      activeTab === "aprobados"
-                        ? "bg-[#005C48] text-white"
-                        : "text-gray-500 hover:text-gray-700 bg-gray-100"
+                      activeTab === "aprobados" ? "text-white" : ""
                     }`}
+                    style={{
+                      backgroundColor: activeTab === "aprobados" 
+                        ? 'var(--accent-color)' 
+                        : 'var(--bg-secondary)',
+                      color: activeTab === "aprobados" 
+                        ? 'white' 
+                        : 'var(--text-color)'
+                    }}
                   >
                     Agendas válidas {aprobados.length > 0 && `(${aprobados.length})`}
                   </button>
@@ -403,27 +476,29 @@ function UploadForm() {
           <div className="px-4 py-5 sm:p-6">
             {loading ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="animate-spin h-8 w-8 text-[#005C48]" />
+                <Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--accent-color)' }} />
               </div>
             ) : (
               <>
                 {activeTab === "conflictos"
                   ? (
                       <>
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center justify-center sm:justify-start">
-                          <AlertTriangle className="text-red-500 mr-2" />
+                        <h3 className="text-md font-medium mb-4 flex items-center justify-center sm:justify-start" 
+                            style={{ color: 'var(--text-color)' }}>
+                          <AlertTriangle className="mr-2" style={{ color: 'var(--danger-text)' }} />
                           {desaprobados.length} conflictos detectados
                         </h3>
-                        {renderTableWithPagination(desaprobados, "red-900")}
+                        {renderTableWithPagination(desaprobados, "error")}
                       </>
                     )
                   : (
                       <>
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center justify-center sm:justify-start">
-                          <CheckCircle className="text-green-500 mr-2" />
+                        <h3 className="text-md font-medium mb-4 flex items-center justify-center sm:justify-start" 
+                            style={{ color: 'var(--text-color)' }}>
+                          <CheckCircle className="mr-2" style={{ color: 'var(--success-text)' }} />
                           {aprobados.length} agendas válidas
                         </h3>
-                        {renderTableWithPagination(aprobados, "[#005C48]")}
+                        {renderTableWithPagination(aprobados)}
                       </>
                     )
                 }

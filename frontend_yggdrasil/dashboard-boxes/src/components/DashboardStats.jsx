@@ -147,15 +147,14 @@ const DashboardPage = () => {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="text-center">
-          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
-          <p className="text-gray-600">Cargando estadisticas del dashboard...</p>
+          <RefreshCw className="animate-spin h-12 w-12 mx-auto mb-4" style={{ color: 'var(--accent-color)' }} />
+          <p style={{ color: 'var(--text-muted)' }}>Cargando estadisticas del dashboard...</p>
         </div>
       </div>
     );
   }
-
 
   //descargar reporte en diferentes formatos
   const handleDownloadReport = async (format) => {
@@ -526,7 +525,7 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress sx={{ color: '#005C48' }} />
+        <CircularProgress sx={{ color: 'var(--accent-color)' }} />
       </Box>
     );
   }
@@ -539,8 +538,8 @@ const DashboardPage = () => {
           variant="contained" 
           onClick={() => window.location.reload()}
           sx={{ 
-            backgroundColor: '#005C48', 
-            '&:hover': { backgroundColor: '#4a9d7a' },
+            backgroundColor: 'var(--accent-color)', 
+            '&:hover': { backgroundColor: 'var(--accent-hover)' },
             textTransform: 'none',
             fontWeight: 500,
             borderRadius: '8px',
@@ -562,10 +561,10 @@ const DashboardPage = () => {
     );
   }
 
-  const COLORS = ['#005C48', '#DB9500', '#FF8042', '#0088FE', '#00C49F'];
+  const COLORS = ['var(--accent-color)', '#DB9500', '#FF8042', '#0088FE', '#00C49F'];
 
   return (
-    <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <Box sx={{ p: 3, minHeight: '100vh', backgroundColor: 'var(--bg-secondary)' }}>
       {/* Header Section */}
       <Box sx={{ 
         display: 'flex', 
@@ -576,7 +575,7 @@ const DashboardPage = () => {
         gap: 2
       }}>
         <Typography variant="h4" sx={{ 
-          color: '#1e293b', 
+          color: 'var(--text-color)', 
           fontWeight: 'bold', 
           fontSize: '1.8rem',
           letterSpacing: '-0.5px',
@@ -595,21 +594,22 @@ const DashboardPage = () => {
             minWidth: 180,
             '& .MuiOutlinedInput-root': {
               borderRadius: '8px',
-              borderColor: '#e2e8f0',
+              borderColor: 'var(--border-color)',
+              backgroundColor: 'var(--bg-color)',
               '&:hover fieldset': {
-                borderColor: '#005C48'
+                borderColor: 'var(--accent-color)'
               }
             }
           }}>
             <Select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              startAdornment={<Filter size={18} style={{ marginRight: 8, color: '#64748b' }} />}
+              startAdornment={<Filter size={18} style={{ marginRight: 8, color: 'var(--text-muted)' }} />}
               sx={{ 
-                color: '#1e293b',
+                color: 'var(--text-color)',
                 fontWeight: 500,
                 '& .MuiSelect-icon': {
-                  color: '#64748b'
+                  color: 'var(--text-muted)'
                 }
               }}
             >
@@ -626,8 +626,8 @@ const DashboardPage = () => {
               startIcon={<Download size={18} />}
               onClick={() => handleDownloadReport("PDF")}
               sx={{ 
-                backgroundColor: '#005C48', 
-                '&:hover': { backgroundColor: '#4a9d7a' },
+                backgroundColor: 'var(--accent-color)', 
+                '&:hover': { backgroundColor: 'var(--accent-hover)' },
                 borderRadius: '8px',
                 px: 3,
                 py: 1,
@@ -644,11 +644,12 @@ const DashboardPage = () => {
               startIcon={<Download size={18} />}
               onClick={() => handleDownloadReport("Excel")}
               sx={{ 
-                borderColor: '#005C48',
-                color: '#005C48',
+                borderColor: 'var(--accent-color)',
+                color: 'var(--accent-color)',
+                backgroundColor: 'var(--bg-color)',
                 '&:hover': { 
-                  backgroundColor: 'rgba(95, 183, 153, 0.08)',
-                  borderColor: '#4a9d7a'
+                  backgroundColor: 'var(--accent-bg)',
+                  borderColor: 'var(--accent-hover)'
                 },
                 borderRadius: '8px',
                 px: 3,
@@ -690,7 +691,7 @@ const DashboardPage = () => {
             <span style={{
               fontWeight: 800,
               fontSize: '1.1rem',
-              color: '#005C48',
+              color: 'var(--accent-color)',
             }}>OCUPACIÓN TOTAL</span>
           </>
             }
@@ -698,24 +699,24 @@ const DashboardPage = () => {
           <span style={{
             fontWeight: 900,
             fontSize: '2.3rem',
-            color: '#005C48',
+            color: 'var(--accent-color)',
             letterSpacing: '-1px',
-            textShadow: '0 2px 8px #e6f4ef'
+            textShadow: '0 2px 8px var(--accent-bg)'
           }}>{stats.porcentaje_ocupacion}%</span>
             }
             description={
           <span style={{
             fontWeight: 500,
-            color: 'black',
+            color: 'var(--text-color)',
             fontSize: '0.95rem'
           }}>Porcentaje de tiempo utilizado</span>
             }
-            color="#005C48"
+            color="var(--accent-color)"
             sx={{ 
           gridColumn: { xs: '1', sm: '1', md: '1' },
           gridRow: { xs: '1', sm: '1', md: '1' },
           height: { xs: '100%', sm: '100%', md: '100%' },
-          background: 'linear-gradient(90deg, #e6f4ef 0%, #f8fafc 100%)',
+          background: 'linear-gradient(90deg, var(--accent-bg) 0%, var(--bg-secondary) 100%)',
           '& .MuiCardContent-root': { py: 1 },
           transition: 'transform 0.3s ease, box-shadow 0.3s ease',
           '&:hover': {
@@ -724,128 +725,127 @@ const DashboardPage = () => {
           }
             }}
           />
-
           <MetricCard 
             title={
-          <>
-            <span style={{
-              fontWeight: 800,
-              fontSize: '1.1rem',
-              color: '#DB9500',
-            }}>HORAS MUERTAS</span>
-          </>
+              <>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  color: 'var(--warning-color)',
+                }}>HORAS MUERTAS</span>
+              </>
             }
             value={
-          <span style={{
-            fontWeight: 900,
-            fontSize: '2.3rem',
-            color: '#DB9500',
-            letterSpacing: '-1px',
-            textShadow: '0 2px 8px #fff8e1'
-          }}>{stats.horas_muertas}</span>
+              <span style={{
+                fontWeight: 900,
+                fontSize: '2.3rem',
+                color: 'var(--warning-color)',
+                letterSpacing: '-1px',
+                textShadow: '0 2px 8px var(--warning-bg)'
+              }}>{stats.horas_muertas}</span>
             }
             description={
-          <span style={{
-            fontWeight: 500,
-            color: 'black',
-            fontSize: '0.95rem'
-          }}>Tiempo entre reservas no utilizado</span>
+              <span style={{
+                fontWeight: 500,
+                color: 'var(--text-color)',
+                fontSize: '0.95rem'
+              }}>Tiempo entre reservas no utilizado</span>
             }
-            color="#DB9500"
+            color="var(--warning-color)"
             sx={{
-          gridColumn: { xs: '1', sm: '2', md: '2' },
-          gridRow: { xs: '2', sm: '1', md: '1' },
-          height: { xs: '100%', sm: '100%', md: '100%' },
-          background: 'linear-gradient(90deg, #fff8e1 0%, #f8fafc 100%)',
-          '& .MuiCardContent-root': { py: 1 },
-          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: '0 10px 20px rgba(219, 149, 0, 0.13)'
-          }
+              gridColumn: { xs: '1', sm: '2', md: '2' },
+              gridRow: { xs: '2', sm: '1', md: '1' },
+              height: { xs: '100%', sm: '100%', md: '100%' },
+              background: 'linear-gradient(90deg, var(--warning-bg) 0%, var(--bg-secondary) 100%)',
+              '& .MuiCardContent-root': { py: 1 },
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 10px 20px rgba(219, 149, 0, 0.13)'
+              }
             }}
           />
 
           <MetricCard 
             title={
-          <>
-            <span style={{
-              fontWeight: 800,
-              fontSize: '1.1rem',
-              color: '#FF8042',
-            }}>BOX MÁS USADO</span>
-          </>
+              <>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  color: 'var(--error-color)',
+                }}>BOX MÁS USADO</span>
+              </>
             }
             value={
-          <span style={{
-            fontWeight: 900,
-            fontSize: '2.3rem',
-            color: '#FF8042',
-            letterSpacing: '-1px',
-            textShadow: '0 2px 8px #fff3e6'
-          }}>{stats.box_mas_usado.id}</span>
+              <span style={{
+                fontWeight: 900,
+                fontSize: '2.3rem',
+                color: 'var(--error-color)',
+                letterSpacing: '-1px',
+                textShadow: '0 2px 8px var(--error-bg)'
+              }}>{stats.box_mas_usado.id}</span>
             }
             description={
-          <span style={{
-            fontWeight: 500,
-            color: 'black',
-            fontSize: '0.95rem'
-          }}>{stats.box_mas_usado.reservas} reservas</span>
+              <span style={{
+                fontWeight: 500,
+                color: 'var(--text-color)',
+                fontSize: '0.95rem'
+              }}>{stats.box_mas_usado.reservas} reservas</span>
             }
-            color="#FF8042"
+            color="var(--error-color)"
             sx={{ 
-          gridColumn: { xs: '1', sm: '1', md: '3' },
-          gridRow: { xs: '3', sm: '2', md: '1' },
-          height: { xs: '100%', sm: '100%', md: '100%' },
-          background: 'linear-gradient(90deg, #fff3e6 0%, #f8fafc 100%)',
-          '& .MuiCardContent-root': { py: 1 },
-          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: '0 10px 20px rgba(255, 128, 66, 0.13)'
-          }
-             }}
+              gridColumn: { xs: '1', sm: '1', md: '3' },
+              gridRow: { xs: '3', sm: '2', md: '1' },
+              height: { xs: '100%', sm: '100%', md: '100%' },
+              background: 'linear-gradient(90deg, var(--error-bg) 0%, var(--bg-secondary) 100%)',
+              '& .MuiCardContent-root': { py: 1 },
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 10px 20px rgba(255, 128, 66, 0.13)'
+              }
+            }}
           />
 
           <MetricCard 
             title={
-          <>
-            <span style={{
-              fontWeight: 800,
-              fontSize: '1.1rem',
-              color: '#0088FE',
-            }}>BOX MENOS USADO</span>
-          </>
+              <>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  color: 'var(--info-color)',
+                }}>BOX MENOS USADO</span>
+              </>
             }
             value={
-          <span style={{
-            fontWeight: 900,
-            fontSize: '2.3rem',
-            color: '#0088FE',
-            letterSpacing: '-1px',
-            textShadow: '0 2px 8px #e6f4ff'
-          }}>{stats.box_menos_usado.id}</span>
+              <span style={{
+                fontWeight: 900,
+                fontSize: '2.3rem',
+                color: 'var(--info-color)',
+                letterSpacing: '-1px',
+                textShadow: '0 2px 8px var(--info-bg)'
+              }}>{stats.box_menos_usado.id}</span>
             }
             description={
-          <span style={{
-            fontWeight: 500,
-            color: 'black',
-            fontSize: '0.95rem'
-          }}>{stats.box_menos_usado.reservas} reservas</span>
+              <span style={{
+                fontWeight: 500,
+                color: 'var(--text-color)',
+                fontSize: '0.95rem'
+              }}>{stats.box_menos_usado.reservas} reservas</span>
             }
-            color="#0088FE"
+            color="var(--info-color)"
             sx={{ 
-          gridColumn: { xs: '1', sm: '2', md: '4' },
-          gridRow: { xs: '4', sm: '2', md: '1' },
-          height: { xs: '100%', sm: '100%', md: '100%' },
-          background: 'linear-gradient(90deg, #e6f4ff 0%, #f8fafc 100%)',
-          '& .MuiCardContent-root': { py: 1 },
-          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-5px)',
-            boxShadow: '0 10px 20px rgba(0, 136, 254, 0.13)'
-          }
-             }}
+              gridColumn: { xs: '1', sm: '2', md: '4' },
+              gridRow: { xs: '4', sm: '2', md: '1' },
+              height: { xs: '100%', sm: '100%', md: '100%' },
+              background: 'linear-gradient(90deg, var(--info-bg) 0%, var(--bg-secondary) 100%)',
+              '& .MuiCardContent-root': { py: 1 },
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 10px 20px rgba(0, 136, 254, 0.13)'
+              }
+            }}
           />
 
           {/*gráfico de evolución semanal */}
@@ -861,23 +861,24 @@ const DashboardPage = () => {
           <ChartCard title="Evolución Semanal de Reservas">
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={stats.evolucion_semana} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                 <XAxis 
                   dataKey="day" 
-                  tick={{ fill: '#64748b' }}
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
                 />
                 <YAxis 
                   domain={['dataMin - 5', 'dataMax + 10']} 
-                  tick={{ fill: '#64748b' }}
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'var(--bg-color)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    color: 'var(--text-color)'
                   }}
                   formatter={(value, name) => {
                     if (name === 'Reservas') return [`${value} reservas`, 'Total del día'];
@@ -895,8 +896,8 @@ const DashboardPage = () => {
                   {stats.evolucion_semana.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={entry.value > (stats.total_reservas/7) ? '#005C48' : '#DB9500'} 
-                      stroke="#ffffff"
+                      fill={entry.value > (stats.total_reservas/7) ? 'var(--accent-color)' : '#DB9500'} 
+                      stroke="var(--bg-color)"
                       strokeWidth={1}
                     />
                   ))}
@@ -925,7 +926,7 @@ const DashboardPage = () => {
               justifyContent: 'space-around', 
               mt: 1, 
               pt: 1, 
-              borderTop: '1px solid #f1f5f9',
+              borderTop: '1px solid var(--border-color)',
               flexWrap: 'wrap',
               gap: 1
             }}>
@@ -933,12 +934,12 @@ const DashboardPage = () => {
                 <Box sx={{ 
                   width: 12, 
                   height: 12, 
-                  bgcolor: '#005C48', 
+                  bgcolor: 'var(--accent-color)', 
                   mr: 1, 
                   borderRadius: '2px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }} />
-                <Typography variant="caption" sx={{ color: '#64748b' }}>Día sobre promedio</Typography>
+                <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>Día sobre promedio</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Box sx={{ 
@@ -949,10 +950,11 @@ const DashboardPage = () => {
                   borderRadius: '2px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }} />
-                <Typography variant="caption" sx={{ color: '#64748b' }}>Día bajo promedio</Typography>
+                <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>Día bajo promedio</Typography>
               </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ 
+            <Typography variant="body2" sx={{ 
+              color: 'var(--text-muted)',
               mt: 1, 
               textAlign: 'center',
               fontStyle: 'italic'
@@ -962,7 +964,7 @@ const DashboardPage = () => {
           </ChartCard>
         </Box>
 
-        {/*tabla de especialidads*/}
+        {/*tabla de especialidades*/}
         <Box id="tabla-especialidades" sx={{ 
           gridColumn: { xs: '1', sm: '1 / 3', md: '3 / 5' },
           gridRow: { xs: '6', sm: '5 / span 2', md: '2 / 4' },
@@ -980,23 +982,31 @@ const DashboardPage = () => {
               flexWrap: 'wrap',
               gap: 1
             }}>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
+              <FormControl size="small" sx={{ 
+                minWidth: 120,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'var(--bg-color)',
+                  '& fieldset': {
+                    borderColor: 'var(--border-color)'
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'var(--accent-color)'
+                  }
+                }
+              }}>
                 <Select
                   value={especialidadFilter}
                   onChange={(e) => setEspecialidadFilter(e.target.value)}
                   sx={{ 
-                    color: '#005C48',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#e2e8f0'
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#005C48'
+                    color: 'var(--text-color)',
+                    '& .MuiSelect-icon': {
+                      color: 'var(--text-muted)'
                     }
                   }}
                 >
-                  <MenuItem value="top10">Top 10 Especialidades</MenuItem>
-                  <MenuItem value="bottom10">Últimas 10 Especialidades</MenuItem>
-                  <MenuItem value="all">Todas las Especialidades</MenuItem>
+                  <MenuItem value="top10" sx={{ color: 'var(--text-color)', backgroundColor: 'var(--bg-color)' }}>Top 10 Especialidades</MenuItem>
+                  <MenuItem value="bottom10" sx={{ color: 'var(--text-color)', backgroundColor: 'var(--bg-color)' }}>Últimas 10 Especialidades</MenuItem>
+                  <MenuItem value="all" sx={{ color: 'var(--text-color)', backgroundColor: 'var(--bg-color)' }}>Todas las Especialidades</MenuItem>
                 </Select>
               </FormControl>
               
@@ -1005,12 +1015,12 @@ const DashboardPage = () => {
                   <Box sx={{ 
                     width: 12, 
                     height: 12, 
-                    bgcolor: '#005C48', 
+                    bgcolor: 'var(--accent-color)', 
                     mr: 1, 
                     borderRadius: '2px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                   }} />
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>Principal</Typography>
+                  <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>Principal</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Box sx={{ 
@@ -1021,55 +1031,54 @@ const DashboardPage = () => {
                     borderRadius: '2px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                   }} />
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>Secundaria</Typography>
+                  <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>Secundaria</Typography>
                 </Box>
               </Box>
-              <p className="text-sm text-gray-500 text-center py-2 md:hidden">
+              <p className="text-sm text-center py-2 md:hidden" style={{ color: 'var(--text-muted)' }}>
                 Desliza horizontalmente para ver más columnas
               </p>
             </Box>
 
-
             <Box sx={{ 
               height: 250, 
               overflow: 'auto', 
-              border: '1px solid #f1f5f9', 
+              border: '1px solid var(--border-color)', 
               borderRadius: '8px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05) inset'
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05) inset',
+              backgroundColor: 'var(--bg-color)'
             }}>
-
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ 
                       fontWeight: 'bold', 
-                      bgcolor: '#f8fafc',
-                      color: '#1e293b',
-                      borderBottom: '1px solid #e2e8f0'
+                      bgcolor: 'var(--bg-tertiary)',
+                      color: 'var(--text-color)',
+                      borderBottom: '1px solid var(--border-color)'
                     }}>#</TableCell>
                     <TableCell sx={{ 
                       fontWeight: 'bold', 
-                      bgcolor: '#f8fafc',
-                      color: '#1e293b',
-                      borderBottom: '1px solid #e2e8f0'
+                      bgcolor: 'var(--bg-tertiary)',
+                      color: 'var(--text-color)',
+                      borderBottom: '1px solid var(--border-color)'
                     }}>Especialidad</TableCell>
                     <TableCell sx={{ 
                       fontWeight: 'bold', 
-                      bgcolor: '#f8fafc',
-                      color: '#1e293b',
-                      borderBottom: '1px solid #e2e8f0'
+                      bgcolor: 'var(--bg-tertiary)',
+                      color: 'var(--text-color)',
+                      borderBottom: '1px solid var(--border-color)'
                     }} align="right">Reservas</TableCell>
                     <TableCell sx={{ 
                       fontWeight: 'bold', 
-                      bgcolor: '#f8fafc',
-                      color: '#1e293b',
-                      borderBottom: '1px solid #e2e8f0'
+                      bgcolor: 'var(--bg-tertiary)',
+                      color: 'var(--text-color)',
+                      borderBottom: '1px solid var(--border-color)'
                     }} align="right">Boxes</TableCell>
                     <TableCell sx={{ 
                       fontWeight: 'bold', 
-                      bgcolor: '#f8fafc',
-                      color: '#1e293b',
-                      borderBottom: '1px solid #e2e8f0'
+                      bgcolor: 'var(--bg-tertiary)',
+                      color: 'var(--text-color)',
+                      borderBottom: '1px solid var(--border-color)'
                     }} align="center">Tipo</TableCell>
                   </TableRow>
                 </TableHead>
@@ -1078,20 +1087,36 @@ const DashboardPage = () => {
                     <TableRow 
                       key={index} 
                       sx={{ 
-                        '&:nth-of-type(odd)': { backgroundColor: '#f8fafc' },
-                        '&:hover': { backgroundColor: '#f1f5f9' }
+                        '&:nth-of-type(odd)': { backgroundColor: 'var(--bg-tertiary)' },
+                        '&:hover': { backgroundColor: 'var(--bg-table-alternative)' },
+                        backgroundColor: 'var(--bg-table-alternative-ii)'
                       }}
                     >
-                      <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>{index + 1}</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }}>{especialidad.name}</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }} align="right">{especialidad.value.toLocaleString()}</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }} align="right">{especialidad.boxes}</TableCell>
-                      <TableCell sx={{ borderBottom: '1px solid #f1f5f9' }} align="center">
+                      <TableCell sx={{ 
+                        borderBottom: '1px solid var(--border-color)',
+                        color: 'var(--text-color)'
+                      }}>{index + 1}</TableCell>
+                      <TableCell sx={{ 
+                        borderBottom: '1px solid var(--border-color)',
+                        color: 'var(--text-color)'
+                      }}>{especialidad.name}</TableCell>
+                      <TableCell sx={{ 
+                        borderBottom: '1px solid var(--border-color)',
+                        color: 'var(--text-color)'
+                      }} align="right">{especialidad.value.toLocaleString()}</TableCell>
+                      <TableCell sx={{ 
+                        borderBottom: '1px solid var(--border-color)',
+                        color: 'var(--text-color)'
+                      }} align="right">{especialidad.boxes}</TableCell>
+                      <TableCell sx={{ 
+                        borderBottom: '1px solid var(--border-color)',
+                        color: 'var(--text-color)'
+                      }} align="center">
                         <Box sx={{ 
                           display: 'inline-block',
                           width: 12, 
                           height: 12, 
-                          bgcolor: especialidad.es_principal ? '#005C48' : '#DB9500',
+                          bgcolor: especialidad.es_principal ? 'var(--accent-color)' : '#DB9500',
                           borderRadius: '2px',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                         }} />
@@ -1101,7 +1126,8 @@ const DashboardPage = () => {
                 </TableBody>
               </Table>
             </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ 
+            <Typography variant="caption" sx={{ 
+              color: 'var(--text-muted)',
               mt: 1, 
               display: 'block',
               fontStyle: 'italic'
@@ -1135,11 +1161,12 @@ const DashboardPage = () => {
                     dataKey="value"
                     label={({ value }) => `${value}`}  
                     labelLine={false}
-                  > #                   {stats.tipo_reservas.map((entry, index) => (
+                  >
+                    {stats.tipo_reservas.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
                         fill={COLORS[index % COLORS.length]}
-                        stroke="#fff"  
+                        stroke="var(--bg-color)"  
                         strokeWidth={2}
                       />
                     ))}
@@ -1152,8 +1179,9 @@ const DashboardPage = () => {
                     contentStyle={{
                       borderRadius: '8px',
                       boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                      border: 'none',
-                      backgroundColor: '#ffffff'
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
                     }}
                   />
                   <Legend 
@@ -1162,7 +1190,7 @@ const DashboardPage = () => {
                     align="center"
                     wrapperStyle={{ 
                       paddingTop: '10px',
-                      color: '#64748b'
+                      color: 'var(--text-muted)'
                     }}
                   />
                 </PieChart>
@@ -1176,11 +1204,11 @@ const DashboardPage = () => {
               gap: 2,
               mt: 1,
               p: 1,
-              backgroundColor: '#f8fafc',
+              backgroundColor: 'var(--bg-tertiary)',
               borderRadius: '8px',
-              border: '1px solid #f1f5f9'
+              border: '1px solid var(--border-color)'
             }}>
-              <Typography variant="h6" sx={{ color: '#1e293b', fontWeight: '500' }}>
+              <Typography variant="h6" sx={{ color: 'var(--text-color)', fontWeight: '500' }}>
                 Total: <strong>{stats.total_reservas}</strong> reservas
               </Typography>
             </Box>
@@ -1192,14 +1220,16 @@ const DashboardPage = () => {
           title="Tiempo Médico Promedio"
           value={`${stats.tiempo_medico?.toFixed(1) || '0'} min`}
           description="Por atención médica"
-          color="#005C48"
+          color="var(--accent-color)"
           sx={{ 
             gridColumn: { xs: '1', sm: '1', md: '2' },
             gridRow: { xs: '8', sm: '8', md: '4' },
+            backgroundColor: 'var(--bg-color)',
+            borderLeft: '4px solid var(--accent-color)',
             transition: 'transform 0.3s ease, box-shadow 0.3s ease',
             '&:hover': {
               transform: 'translateY(-5px)',
-              boxShadow: '0 10px 20px rgba(0, 92, 72, 0.1)'
+              boxShadow: '0 10px 20px rgba(27, 93, 82, 0.1)'
             }
           }}
         />
@@ -1212,6 +1242,8 @@ const DashboardPage = () => {
           sx={{ 
             gridColumn: { xs: '1', sm: '2', md: '2' },
             gridRow: { xs: '9', sm: '8', md: '5' },
+            backgroundColor: 'var(--bg-color)',
+            borderLeft: '4px solid #DB9500',
             transition: 'transform 0.3s ease, box-shadow 0.3s ease',
             '&:hover': {
               transform: 'translateY(-5px)',
@@ -1231,42 +1263,53 @@ const DashboardPage = () => {
           }
         }}>
           <ChartCard title="Ocupación por Turno">
-            <Box sx={{ mb: 2, p: 1, backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-              <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', fontStyle: 'italic' }}>
+            <Box sx={{ 
+              mb: 2, 
+              p: 1, 
+              backgroundColor: 'var(--bg-tertiary)', 
+              borderRadius: '8px', 
+              border: '1px solid var(--border-color)' 
+            }}>
+              <Typography variant="body2" sx={{ 
+                color: 'var(--text-color)', 
+                textAlign: 'center', 
+                fontStyle: 'italic' 
+              }}>
                 Porcentaje de ocupación de boxes en cada turno (AM/PM)
               </Typography>
             </Box>
             
             <ResponsiveContainer width="100%" height={200}>
               <BarChart layout="vertical" data={stats.ocupacion_turnos} margin={{ top: 10, left: 30, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
                 <XAxis 
                   type="number" 
                   domain={[0, 100]} 
-                  tick={{ fill: '#64748b' }}
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
                 >
                   <Label 
                     value="Porcentaje de ocupación (%)" 
                     position="insideBottom" 
                     offset={-5} 
-                    style={{ fill: '#64748b', fontSize: '0.8rem' }}
+                    style={{ fill: 'var(--text-muted)', fontSize: '0.8rem' }}
                   />
                 </XAxis>
                 <YAxis 
                   dataKey="name" 
                   type="category" 
-                  tick={{ fill: '#64748b' }}
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: 'var(--text-muted)' }}
+                  axisLine={{ stroke: 'var(--border-color)' }}
                 />
                 <Tooltip 
                   formatter={(value) => [`${value}% de ocupación`, 'Porcentaje']}
                   labelFormatter={(label) => `Turno: ${label}`}
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'var(--bg-color)',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    color: 'var(--text-color)'
                   }}
                 />
                 <Bar dataKey="value" name="Ocupación" animationDuration={1500}>
@@ -1275,7 +1318,7 @@ const DashboardPage = () => {
                       key={`cell-${index}`} 
                       fill={COLORS[index % COLORS.length]} 
                       radius={[0, 4, 4, 0]}
-                      stroke="#FFFFFF"
+                      stroke="var(--bg-color)"
                     />
                   ))}
                 </Bar>
@@ -1284,7 +1327,7 @@ const DashboardPage = () => {
                     paddingTop: '10px',
                     fontSize: '0.8rem'
                   }}
-                  formatter={(value) => <span style={{ color: '#64748b' }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: 'var(--text-muted)' }}>{value}</span>}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -1301,7 +1344,7 @@ const DashboardPage = () => {
                   display: 'flex', 
                   alignItems: 'center',
                   p: 1,
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: 'var(--bg-tertiary)',
                   borderRadius: '4px',
                   border: `1px solid ${COLORS[index % COLORS.length]}`
                 }}>
@@ -1312,7 +1355,7 @@ const DashboardPage = () => {
                     mr: 1,
                     borderRadius: '2px'
                   }} />
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>
+                  <Typography variant="caption" sx={{ color: 'var(--text-muted)' }}>
                     {turno.name}: <strong>{turno.value}%</strong>
                   </Typography>
                 </Box>
@@ -1335,7 +1378,9 @@ const MetricCard = ({ title, value, description, color, sx }) => (
       borderLeft: `4px solid ${color}`,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'center', 
+      justifyContent: 'center',
+      backgroundColor: 'var(--bg-color)',
+      color: 'var(--text-color)',
       ...sx 
     }}
   >
@@ -1352,9 +1397,8 @@ const MetricCard = ({ title, value, description, color, sx }) => (
     }}>
       <Typography 
         variant="subtitle1" 
-        color="text.secondary" 
-        gutterBottom
         sx={{ 
+          color: 'var(--text-muted)',
           fontWeight: 500,
           fontSize: '0.875rem',
           mb: 1.5 
@@ -1376,8 +1420,8 @@ const MetricCard = ({ title, value, description, color, sx }) => (
       </Typography>
       <Typography 
         variant="body2" 
-        color="text.secondary"
         sx={{
+          color: 'var(--text-muted)',
           fontSize: '0.75rem',
           opacity: 0.8,
           mt: 1 
@@ -1396,9 +1440,11 @@ const ChartCard = ({ title, children }) => (
     sx={{ 
       height: '100%',
       borderRadius: '12px',
-      borderTop: '4px solid #005C48',
+      borderTop: '4px solid var(--accent-color)',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      backgroundColor: 'var(--bg-color)',
+      color: 'var(--text-color)'
     }}
   >
     <CardContent sx={{ 
@@ -1413,7 +1459,7 @@ const ChartCard = ({ title, children }) => (
       <Typography 
         variant="subtitle1" 
         sx={{ 
-          color: '#005C48', 
+          color: 'var(--accent-color)', 
           fontWeight: 'bold', 
           mb: 2,
           fontSize: '1rem',
@@ -1425,7 +1471,7 @@ const ChartCard = ({ title, children }) => (
         <Box sx={{ 
           width: '4px', 
           height: '20px', 
-          bgcolor: '#005C48',
+          bgcolor: 'var(--accent-color)',
           borderRadius: '2px'
         }} />
         {title}
