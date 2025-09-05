@@ -1081,16 +1081,15 @@ const parseYYYYMMDD = (str) => {
 
   return (
     <>
-      <div className="p-8 space-y-6">
+      <div className="p-8 space-y-6" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}>
         {/* ===== Agendamiento ===== */}
-        <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento</h1>
-        <p className="text-center text-gray-600 text-lg mb-8">Selecciona el tipo de agenda que deseas crear, sin topes de horarios</p>
-
+        <h1 className="text-center text-4xl font-bold mt-8 mb-3" style={{ color: 'var(--text-color)' }}>Agendamiento</h1>
+        <p className="text-center text-lg mb-8" style={{ color: 'var(--text-muted)' }}>Selecciona el tipo de agenda que deseas crear, sin topes de horarios</p>
+  
         <div 
           className="flex flex-col md:flex-row gap-6 "
           onMouseLeave={() => setTipoAgendamiento(null)} 
         >
-
           {/* Opción Médica */}
           <div
             onClick={() => navigate('/agendas/agendar-medica')}
@@ -1103,6 +1102,7 @@ const parseYYYYMMDD = (str) => {
                 tipoAgendamiento === "medica"
                   ? "rgba(95,183,153,0.85)"
                   : "rgba(0,0,0,0.65)",
+              boxShadow: 'var(--bg-color) === "#111827" ? "0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"'
             }}
           >
             <div className={`text-center ${tipoAgendamiento === "medica" ? "text-black" : "text-white"}`}>
@@ -1115,7 +1115,7 @@ const parseYYYYMMDD = (str) => {
               </p>
             </div>
           </div>
-
+  
           {/* Opción No Médica */}
           <div
             onClick={() => navigate('/agendas/agendar-no-medica')}
@@ -1128,6 +1128,7 @@ const parseYYYYMMDD = (str) => {
                 tipoAgendamiento === "no_medica"
                   ? "rgba(95,183,153,0.85)"
                   : "rgba(0,0,0,0.65)",
+              boxShadow: 'var(--bg-color) === "#111827" ? "0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3)" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"'
             }}
           >
             <div className={`text-center ${tipoAgendamiento === "no_medica" ? "text-black" : "text-white"}`}>
@@ -1141,17 +1142,17 @@ const parseYYYYMMDD = (str) => {
             </div>
           </div>
         </div>
-
+  
         {/* ===== Gestionar agendas ===== */}
         <div ref={gestionRef}>
-          <h1 className="text-center text-4xl font-bold mt-12 mb-3">Gestionar agendas actuales</h1>
-          <p className="text-center text-gray-600 text-lg mb-8">
+          <h1 className="text-center text-4xl font-bold mt-12 mb-3" style={{ color: 'var(--text-color)' }}>Gestionar agendas actuales</h1>
+          <p className="text-center text-lg mb-8" style={{ color: 'var(--text-muted)' }}>
             Consulta, filtra y exporta las agendas según tus criterios
           </p>
         </div>
-
+  
         <div className="flex justify-center mt-6">
-          <div className="relative flex bg-gray-100 rounded-2xl p-1 shadow-inner">
+          <div className="relative flex rounded-2xl p-1 shadow-inner" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             {["todas", "box", "medico", "pasillo"].map((v) => (
               <button
                 key={v}
@@ -1162,15 +1163,17 @@ const parseYYYYMMDD = (str) => {
                     setAgendasSinFiltrar([]);
                   }
                 }}
-                className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${
-                  vista === v ? "text-white" : "text-gray-600"
-                } lg:px-16 lg:py-2 lg:w-auto`}
+                className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-xl transition-colors lg:px-16 lg:py-2 lg:w-auto`}
+                style={{
+                  color: vista === v ? 'white' : 'var(--text-muted)'
+                }}
               >
                 {v.charAt(0).toUpperCase() + v.slice(1)}
                 {vista === v && (
                   <motion.div
                     layoutId="selector"
-                    className="absolute inset-0 bg-[#005C48] rounded-xl z-[-1]"
+                    className="absolute inset-0 rounded-xl z-[-1]"
+                    style={{ backgroundColor: 'var(--accent-color)' }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   />
                 )}
@@ -1178,764 +1181,841 @@ const parseYYYYMMDD = (str) => {
             ))}
           </div>
         </div>
-
+  
         <div className="flex flex-wrap justify-center items-center gap-4 mt-6">
-
           {/* Filtros adicionales */}
           <div className="flex items-center gap-6 flex-wrap mt-4">
             {/* Mostrar solo topes */}
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <div
-                  className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                    filtroTopes
-                      ? "bg-[#005C48] border-[#005C48]"
-                      : "border-gray-400 bg-white"
-                  }`}
-                >
-                  {filtroTopes && <Check className="w-4 h-4 text-white" />}
-                </div>
-                    <input
-                    type="checkbox"
-                    checked={filtroTopes}
-                    onChange={(e) => setFiltroTopes(e.target.checked)}
-                    className="hidden"
-                  />
-                  <span className="text-gray-700 text-sm sm:text-base">Solo topes</span>
-                </label>
-    
-                {/* Mostrar solo inhabilitados */}
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <div
-                    className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all ${
-                      filtroInhabilitados
-                        ? "bg-orange-500 border-orange-500"
-                        : "border-gray-400 bg-white"
-                    }`}
-                  >
-                    {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={filtroInhabilitados}
-                    onChange={(e) => setFiltroInhabilitados(e.target.checked)}
-                    className="hidden"
-                  />
-                  <span className="text-gray-700 text-sm sm:text-base">Solo inhabilitados</span>
-                </label>
-              </div>
-    
-                {vista === "box" && (
-                  <>
-                    <input 
-                type="number" 
-                placeholder="ID de box" 
-                value={filtroId} 
-                onChange={(e) => setFiltroId(e.target.value)}
-                className="border rounded px-3 py-2 w-full sm:w-auto" 
-                    />
-                    
-                  </>
-                )}
-                
-                {vista === "medico" && (
-                  <div className="relative w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Nombre de médico (mínimo 2 caracteres)"
-                      value={filtroNombre}
-                      onChange={(e) => {
-                        setFiltroNombre(e.target.value);
-                        setActiveIndex(-1);
-                        if (e.target.value.length < 2) setSugerencias([]);
-                      }}
-                      onFocus={() => setInputFocused(true)}
-                      onBlur={() => setTimeout(() => {
-                        if (!document.activeElement?.closest('.sugerencias-container')) {
-                          setInputFocused(false);
-                        }
-                      }, 200)}
-                      onKeyDown={(e) => {
-                        if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-                          e.preventDefault();
-                          if (e.key === 'ArrowDown') {
-                            setActiveIndex((prev) => (prev + 1) % sugerencias.length);
-                          } else if (e.key === 'ArrowUp') {
-                            setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
-                          } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
-                            setFiltroNombre(sugerencias[activeIndex].nombre);
-                            setSugerencias([]);
-                            setInputFocused(false);
-                          }
-                        }
-                      }}
-                      className="border rounded px-3 py-2 w-full"
-                    />
-                    
-                    {cargandoSugerencias && (
-                      <div className="absolute right-3 top-2.5">
-                        <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                    )}
-                    
-                    {(inputFocused && sugerencias.length > 0) && (
-                      <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {sugerencias.map((medico, index) => (
-                          <li
-                            key={medico.id}
-                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                              index === activeIndex ? 'bg-gray-100' : ''
-                            }`}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setFiltroNombre(medico.nombre);
-                              setSugerencias([]);
-                              setInputFocused(false);
-                            }}
-                            onMouseEnter={() => setActiveIndex(index)}
-                          >
-                            {medico.nombre}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    
-                    {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
-                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg px-4 py-2 text-gray-500">
-                        {errorSugerencias || "No se encontraron médicos"}
-                      </div>
-                    )}
-                  </div>
-                )}
-              
-              {vista === "pasillo" && (
-                <select 
-                  value={pasilloSeleccionado} 
-                  onChange={(e) => setPasilloSeleccionado(e.target.value)}
-                  className="border rounded px-3 py-2 w-full sm:w-auto"
-                >
-                  <option value="">Selecciona un pasillo</option>
-                  {pasillos.map((p, i) => (
-                    <option key={i} value={p}>{p}</option>
-                  ))}
-                </select>
-              )}
-    
-              {/* Selector de rango de fechas mejorado */}
-              <div className="relative" ref={dateRangeRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowDateRangePicker(!showDateRangePicker)}
-                  className="flex items-center gap-2 border rounded px-3 py-2 w-full sm:w-auto bg-white hover:bg-gray-50"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  <span>{desde} a {hasta}</span>
-                </button>
-
-                {showDateRangePicker && (
-  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-white border rounded-lg shadow-lg z-10 p-3 w-[98vw] max-w-sm sm:w-[400px] sm:max-w-[98vw]">                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-sm">Seleccionar rango de fechas</h3>
-                      <button
-                        onClick={() => setShowDateRangePicker(false)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Tarjetas de visualización del rango seleccionado */}
-                    {tempStartDate && tempEndDate && (
-                      <div className="mb-3 p-2 bg-gray-50 rounded border">
-                        <p className="text-xs text-gray-600 mb-1">Rango seleccionado:</p>
-                        <div className="flex gap-2 text-xs">
-                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
-                            {formatDateToYYYYMMDD(tempStartDate)}
-                          </span>
-                          <span className="bg-[#005C48] text-white px-2 py-1 rounded">
-                            {formatDateToYYYYMMDD(tempEndDate)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Opciones rápidas - más compactas */}
-                    <div className="mb-3">
-                      <p className="text-sm font-medium mb-2">Rangos rápidos:</p>
-                      <div className="grid grid-cols-3 gap-1">
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            setTempStartDate(today);
-                            setTempEndDate(today);
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Hoy
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const nextWeek = new Date(today);
-                            nextWeek.setDate(today.getDate() + 7);
-                            setTempStartDate(today);
-                            setTempEndDate(nextWeek);
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          +1 Semana
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const start = startOfMonth(today);
-                            const end = endOfMonth(today);
-                            setTempStartDate(start);
-                            setTempEndDate(end);
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Este mes
-                        </button>
-
-                        {/* Opciones de bimestre y trimestre */}
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const start = startOfMonth(today);
-                            const end = endOfMonth(addMonths(today, 1));
-                            setTempStartDate(start);
-                            setTempEndDate(end);
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Bimestre
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const start = startOfMonth(today);
-                            const end = endOfMonth(addMonths(today, 2));
-                            setTempStartDate(start);
-                            setTempEndDate(end);
-                          }}
-                          className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Trimestre
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Contenedor del calendario con scroll único */}
-                    <div className="max-h-[280px] overflow-y-auto border rounded">
-                      <DateRange
-                        ranges={[{
-                          startDate: tempStartDate || parseYYYYMMDD(desde),
-                          endDate: tempEndDate || parseYYYYMMDD(hasta),
-                          key: "selection"
-                        }]}
-                        onChange={(item) => {
-                          setTempStartDate(item.selection.startDate);
-                          setTempEndDate(item.selection.endDate);
-                        }}
-                        moveRangeOnFirstSelection={false}
-                        locale={es}
-                        showDateDisplay={false}
-                        rangeColors={["#005C48"]}
-                        months={12}             // Mostrar todos los meses del año
-                        direction="vertical"    // Dirección vertical
-                        scroll={{ enabled: false }} // Deshabilitamos el scroll del DateRange
-                        // Limitar al año actual
-                        minDate={new Date(new Date().getFullYear(), 0, 1)}  // 1 enero del año actual
-                        maxDate={new Date(new Date().getFullYear(), 11, 31)} // 31 diciembre del año actual
-                      />
-                    </div>
-
-                    {/* Botones - dentro del contenedor principal */}
-                    <div className="mt-3 flex justify-end gap-2 border-t pt-3">
-                      <button
-                        onClick={() => {
-                          setTempStartDate(null);
-                          setTempEndDate(null);
-                          setShowDateRangePicker(false);
-                        }}
-                        className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (tempStartDate && tempEndDate) {
-                            setDesde(formatDateToYYYYMMDD(tempStartDate));
-                            setHasta(formatDateToYYYYMMDD(tempEndDate));
-                          }
-                          setTempStartDate(null);
-                          setTempEndDate(null);
-                          setShowDateRangePicker(false);
-                        }}
-                        disabled={!tempStartDate || !tempEndDate}
-                        className="px-3 py-1 bg-[#005C48] text-white rounded hover:bg-[#004335] disabled:opacity-50"
-                      >
-                        Aplicar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-
-
-              <button
-                onClick={() => fetchAgendas(true)}
-                disabled={loading}
-                className="flex items-center gap-2 bg-[#005C48] text-white px-4 py-2 rounded-lg hover:bg-[#4fa986] transition w-full sm:w-auto"
+                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all`}
+                style={{
+                  backgroundColor: filtroTopes ? 'var(--accent-color)' : 'var(--bg-color)',
+                  borderColor: filtroTopes ? 'var(--accent-color)' : 'var(--border-color)'
+                }}
               >
-                <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
-              </button>
-    
-              {agendas.length > 0 && (
-                <button 
-                  onClick={exportExcel} 
-                  className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
-                >
-                  <Download className="w-4 h-4"/> Exportar a Excel
-                </button>
+                {filtroTopes && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <input
+                type="checkbox"
+                checked={filtroTopes}
+                onChange={(e) => setFiltroTopes(e.target.checked)}
+                className="hidden"
+              />
+              <span className="text-sm sm:text-base" style={{ color: 'var(--text-color)' }}>Solo topes</span>
+            </label>
+  
+            {/* Mostrar solo inhabilitados */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                className={`w-5 h-5 flex items-center justify-center rounded-md border-2 transition-all`}
+                style={{
+                  backgroundColor: filtroInhabilitados ? '#d97706' : 'var(--bg-color)',
+                  borderColor: filtroInhabilitados ? '#d97706' : 'var(--border-color)'
+                }}
+              >
+                {filtroInhabilitados && <Check className="w-4 h-4 text-white" />}
+              </div>
+              <input
+                type="checkbox"
+                checked={filtroInhabilitados}
+                onChange={(e) => setFiltroInhabilitados(e.target.checked)}
+                className="hidden"
+              />
+              <span className="text-sm sm:text-base" style={{ color: 'var(--text-color)' }}>Solo inhabilitados</span>
+            </label>
+          </div>
+  
+          {vista === "box" && (
+            <input 
+              type="number" 
+              placeholder="ID de box" 
+              value={filtroId} 
+              onChange={(e) => setFiltroId(e.target.value)}
+              className="border rounded px-3 py-2 w-full sm:w-auto"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-color)'
+              }}
+            />
+          )}
+          
+          {vista === "medico" && (
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Nombre de médico (mínimo 2 caracteres)"
+                value={filtroNombre}
+                onChange={(e) => {
+                  setFiltroNombre(e.target.value);
+                  setActiveIndex(-1);
+                  if (e.target.value.length < 2) setSugerencias([]);
+                }}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setTimeout(() => {
+                  if (!document.activeElement?.closest('.sugerencias-container')) {
+                    setInputFocused(false);
+                  }
+                }, 200)}
+                onKeyDown={(e) => {
+                  if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                    e.preventDefault();
+                    if (e.key === 'ArrowDown') {
+                      setActiveIndex((prev) => (prev + 1) % sugerencias.length);
+                    } else if (e.key === 'ArrowUp') {
+                      setActiveIndex((prev) => (prev - 1 + sugerencias.length) % sugerencias.length);
+                    } else if (e.key === 'Enter' && sugerencias.length > 0 && activeIndex >= 0) {
+                      setFiltroNombre(sugerencias[activeIndex].nombre);
+                      setSugerencias([]);
+                      setInputFocused(false);
+                    }
+                  }
+                }}
+                className="border rounded px-3 py-2 w-full"
+                style={{
+                  backgroundColor: 'var(--bg-color)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-color)'
+                }}
+              />
+              
+              {cargandoSugerencias && (
+                <div className="absolute right-3 top-2.5">
+                  <svg className="animate-spin h-5 w-5" style={{ color: 'var(--text-muted)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+              
+              {(inputFocused && sugerencias.length > 0) && (
+                <ul className="sugerencias-container absolute z-10 mt-1 w-full border rounded-md shadow-lg max-h-60 overflow-auto" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--border-color)' }}>
+                  {sugerencias.map((medico, index) => (
+                    <li
+                      key={medico.id}
+                      className={`px-4 py-2 cursor-pointer transition-colors`}
+                      style={{
+                        backgroundColor: index === activeIndex ? 'var(--bg-secondary)' : 'var(--bg-color)',
+                        color: 'var(--text-color)'
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setFiltroNombre(medico.nombre);
+                        setSugerencias([]);
+                        setInputFocused(false);
+                      }}
+                      onMouseEnter={() => setActiveIndex(index)}
+                    >
+                      {medico.nombre}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              
+              {inputFocused && !cargandoSugerencias && sugerencias.length === 0 && filtroNombre.length >= 2 && (
+                <div className="absolute z-10 mt-1 w-full border rounded-md shadow-lg px-4 py-2" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
+                  {errorSugerencias || "No se encontraron médicos"}
+                </div>
               )}
             </div>
-    
-            {/* Tabla agendas */}
-            {agendas.length > 0 ? (
-              <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
-                <p className="text-sm text-gray-500 text-center py-2 md:hidden">
-                  Desliza horizontalmente para ver más columnas
-                </p>
-                <table className="min-w-full border border-gray-200 rounded-lg">
-
-
-                  <thead className="bg-gray-100">
-                    <tr>
-                      {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                        <th key={h} className="px-4 py-2 border text-center">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                  {agendasPaginadas.map((a, i) => {
-                    let rowClass = "hover:bg-gray-100 ";
-                    
-                    if (a.tope) {
-                      rowClass += "bg-red-200 ";
-                    } else if (a.boxInhabilitado) {
-                      rowClass += "bg-orange-200 ";
-                    } else if (i % 2 === 0) {
-                      rowClass += "bg-gray-50 ";
-                    } else {
-                      rowClass += "bg-white ";
-                    }
-    
-                        return (
-                        <tr key={i} className={rowClass}>
-                          <td className="px-4 py-2 border">{a.id}</td>
-                          <td 
-                            className="px-4 py-2 border cursor-pointer text-[#005C48] hover:underline font-bold"
-                            onClick={() => {
-                              window.scrollTo(0, 0);
-                              navigate(`/agendas/${a.box_id}`);
-                            }}
-                          >
-                            <div className="flex items-center justify-center gap-1">
-                            {a.box_id}
-                            {a.boxInhabilitado && (
-                              <span className="text-xs text-orange-600 flex items-center">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Inhabilitado
-                              </span>
-                            )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2 border">{a.fecha}</td>
-                          <td className="px-4 py-2 border">{a.hora_inicio}</td>
-                          <td className="px-4 py-2 border">{a.hora_fin}</td>
-                          <td className="px-4 py-2 border">{a.tipo}</td>
-                          <td className="px-4 py-2 border">{a.responsable}</td>
-                          <td className="px-4 py-2 border">
-                          {a.tope 
-                          ? `Tope con agenda #${a.tope}` 
-                          : a.boxInhabilitado 
-                            ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
-                            : a.observaciones || "-"
-                          }
-                          </td>
-                          <td className="px-4 py-2 border text-center">
-                          <div className="flex justify-center space-x-2">
-                            <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-100 text-blue-900 hover:bg-blue-200 transition-colors"
-                            onClick={() => abrirModalEdicion(a)}
-                            title="Editar agenda"
-                            >
-                            <Edit2 className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                            onClick={() => setModal({ tipo: "eliminar", data: a })}
-                            title="Eliminar agenda"
-                            >
-                            <Trash2 className="w-4 h-4" />
-                            </motion.button>
-                          </div>
-                          </td>
-                        </tr>
-                        );
-                      })}
-                      </tbody>
-                    </table>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto mt-4 shadow rounded-lg border border-gray-200">
-                    <table className="min-w-full">
-                      <thead className="bg-gray-100">
-                      <tr>
-                        {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
-                        <th key={h} className="px-4 py-3 border text-center">{h}</th>
-                        ))}
-                      </tr>
-                      </thead>
-                      <tbody>
-                      <tr>
-                        <td colSpan="9" className="px-4 py-32 text-center bg-white">
-                        {loading ? (
-                          <div className="flex flex-col items-center justify-center">
-                          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
-                          <p className="text-gray-600">Cargando agendas...</p>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center">
-                          <CalendarDays className="w-12 h-12 text-gray-300 mb-3" />
-                          <h3 className="text-lg font-medium text-gray-500 mb-1">
-                            No hay agendas buscadas
-                          </h3>
-                          <p className="text-gray-400">
-                            Haz uso de los filtros superiores para buscar agendas
-                          </p>
-                          </div>
-                        )}
-                        </td>
-                      </tr>
-                      </tbody>
-                    </table>
-                    </div>
-                  )}
-              
-              
-            {/* Estadísticas, pag navegación */}
-            {agendas.length > 0 && (
-              <div className="mt-6 space-y-4">
-                {/* Información y estadísticas */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <p className="text-sm text-gray-600 font-medium">
-                      Mostrando <span className="text-[#005C48] font-bold">{agendas.length}</span> agendas
-                    </p>
-                    
-                    {/* Contadores de estados */}
-                    <div className="flex items-center gap-3 text-xs">
-                      {filtroTopes && (
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                          {agendas.filter(a => a.tope).length} con tope
-                        </span>
-                      )}
-                      {filtroInhabilitados && (
-                        <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                          {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
-                        </span>
-                      )}
-                      {!filtroTopes && !filtroInhabilitados && (
-                        <>
-                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-                            {agendas.filter(a => a.tope).length} con tope
-                          </span>
-                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                            {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
-                          </span>
-                          <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
-                            {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
+          )}
+        
+          {vista === "pasillo" && (
+            <select 
+              value={pasilloSeleccionado} 
+              onChange={(e) => setPasilloSeleccionado(e.target.value)}
+              className="border rounded px-3 py-2 w-full sm:w-auto"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-color)'
+              }}
+            >
+              <option value="">Selecciona un pasillo</option>
+              {pasillos.map((p, i) => (
+                <option key={i} value={p}>{p}</option>
+              ))}
+            </select>
+          )}
+  
+          {/* Selector de rango de fechas mejorado */}
+          <div className="relative" ref={dateRangeRef}>
+            <button
+              type="button"
+              onClick={() => setShowDateRangePicker(!showDateRangePicker)}
+              className="flex items-center gap-2 border rounded px-3 py-2 w-full sm:w-auto transition-colors"
+              style={{
+                backgroundColor: 'var(--bg-color)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-color)'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-color)'}
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span>{desde} a {hasta}</span>
+            </button>
+  
+            {showDateRangePicker && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 border rounded-lg shadow-lg z-10 p-3 w-[98vw] max-w-sm sm:w-[400px] sm:max-w-[98vw]" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--border-color)' }}>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-sm" style={{ color: 'var(--text-color)' }}>Seleccionar rango de fechas</h3>
                   <button
-                    onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
-                    className="flex items-center gap-1 px-4 py-2 bg-[#005C48] text-white rounded-lg hover:bg-[#004335] transition-colors text-sm font-medium"
+                    onClick={() => setShowDateRangePicker(false)}
+                    className="transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => e.target.style.color = 'var(--text-color)'}
+                    onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                    </svg>
-                    Volver arriba
+                    ✕
                   </button>
                 </div>
-    
-                {/* Paginación */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>Filas por página:</span>
-                    <select 
-                      value={rowsPerPage}
-                      onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                      className="border rounded px-2 py-1 text-sm"
-                    >
-                      <option value={150}>150</option>
-                      <option value={100}>100</option>
-                      <option value={50}>50</option>
-                      <option value={10}>10</option>
-                      <option value={1000}>1000</option>
-                    </select>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                    >
-                      ← Anterior
-                    </button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const pageNum = i + 1;
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`w-8 h-8 rounded ${
-                              currentPage === pageNum
-                                ? 'bg-[#005C48] text-white'
-                                : 'border hover:bg-gray-100'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                      
-                      {totalPages > 5 && (
-                        <>
-                          <span className="px-1">...</span>
-                          <button
-                            onClick={() => setCurrentPage(totalPages)}
-                            className={`w-8 h-8 rounded ${
-                              currentPage === totalPages
-                                ? 'bg-[#005C48] text-white'
-                                : 'border hover:bg-gray-100'
-                            }`}
-                          >
-                            {totalPages}
-                          </button>
-                        </>
-                      )}
+  
+                {/* Tarjetas de visualización del rango seleccionado */}
+                {tempStartDate && tempEndDate && (
+                  <div className="mb-3 p-2 rounded border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Rango seleccionado:</p>
+                    <div className="flex gap-2 text-xs">
+                      <span className="text-white px-2 py-1 rounded" style={{ backgroundColor: 'var(--accent-color)' }}>
+                        {formatDateToYYYYMMDD(tempStartDate)}
+                      </span>
+                      <span className="text-white px-2 py-1 rounded" style={{ backgroundColor: 'var(--accent-color)' }}>
+                        {formatDateToYYYYMMDD(tempEndDate)}
+                      </span>
                     </div>
-                    
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                    >
-                      Siguiente →
-                    </button>
                   </div>
+                )}
+  
+                {/* Opciones rápidas - más compactas */}
+                <div className="mb-3">
+                  <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>Rangos rápidos:</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { label: "Hoy", action: () => { const today = new Date(); setTempStartDate(today); setTempEndDate(today); }},
+                      { label: "+1 Semana", action: () => { const today = new Date(); const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7); setTempStartDate(today); setTempEndDate(nextWeek); }},
+                      { label: "Este mes", action: () => { const today = new Date(); const start = startOfMonth(today); const end = endOfMonth(today); setTempStartDate(start); setTempEndDate(end); }},
+                      { label: "Bimestre", action: () => { const today = new Date(); const start = startOfMonth(today); const end = endOfMonth(addMonths(today, 1)); setTempStartDate(start); setTempEndDate(end); }},
+                      { label: "Trimestre", action: () => { const today = new Date(); const start = startOfMonth(today); const end = endOfMonth(addMonths(today, 2)); setTempStartDate(start); setTempEndDate(end); }}
+                    ].map((option, idx) => (
+                      <button
+                        key={idx}
+                        onClick={option.action}
+                        className="text-xs px-2 py-1 rounded transition-colors"
+                        style={{
+                          backgroundColor: 'var(--bg-secondary)',
+                          color: 'var(--text-color)'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+  
+                {/* Contenedor del calendario con scroll único */}
+                <div className="max-h-[280px] overflow-y-auto border rounded" style={{ borderColor: 'var(--border-color)' }}>
+                  <DateRange
+                    ranges={[{
+                      startDate: tempStartDate || parseYYYYMMDD(desde),
+                      endDate: tempEndDate || parseYYYYMMDD(hasta),
+                      key: "selection"
+                    }]}
+                    onChange={(item) => {
+                      setTempStartDate(item.selection.startDate);
+                      setTempEndDate(item.selection.endDate);
+                    }}
+                    moveRangeOnFirstSelection={false}
+                    locale={es}
+                    showDateDisplay={false}
+                    rangeColors={["var(--accent-color)"]}
+                    months={12}
+                    direction="vertical"
+                    scroll={{ enabled: false }}
+                    minDate={new Date(new Date().getFullYear(), 0, 1)}
+                    maxDate={new Date(new Date().getFullYear(), 11, 31)}
+                  />
+                </div>
+  
+                {/* Botones - dentro del contenedor principal */}
+                <div className="mt-3 flex justify-end gap-2 border-t pt-3" style={{ borderColor: 'var(--border-color)' }}>
+                  <button
+                    onClick={() => {
+                      setTempStartDate(null);
+                      setTempEndDate(null);
+                      setShowDateRangePicker(false);
+                    }}
+                    className="px-3 py-1 rounded transition-colors"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-color)'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (tempStartDate && tempEndDate) {
+                        setDesde(formatDateToYYYYMMDD(tempStartDate));
+                        setHasta(formatDateToYYYYMMDD(tempEndDate));
+                      }
+                      setTempStartDate(null);
+                      setTempEndDate(null);
+                      setShowDateRangePicker(false);
+                    }}
+                    disabled={!tempStartDate || !tempEndDate}
+                    className="px-3 py-1 text-white rounded transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: 'var(--accent-color)' }}
+                    onMouseEnter={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--accent-hover)')}
+                    onMouseLeave={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--accent-color)')}
+                  >
+                    Aplicar
+                  </button>
                 </div>
               </div>
             )}
-    
-            {/* Modal */}
-            {modal.tipo && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className={`bg-white rounded-lg p-6 shadow-lg max-h-[90vh] overflow-y-auto ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"} mt-24 sm:mt-12`}>
-                {modal.tipo === "success" ? (
-                  <>
-                    <h2 className="text-xl font-bold mb-4">Éxito</h2>
-                    <p className="mb-6 text-green-600">{modal.mensaje}</p>
-                    <div className="flex justify-end">
-                      <button 
-                        className="px-4 py-2 bg-[#005C48] text-white rounded" 
-                        onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+          </div>
+  
+          <button
+            onClick={() => fetchAgendas(true)}
+            disabled={loading}
+            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition w-full sm:w-auto"
+            style={{
+              backgroundColor: loading ? 'var(--disabled-bg)' : 'var(--accent-color)',
+              color: loading ? 'var(--disabled-text)' : 'white'
+            }}
+            onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--accent-hover)')}
+            onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = 'var(--accent-color)')}
+          >
+            <Search className="w-4 h-4" /> {loading ? "Cargando..." : "Buscar"}
+          </button>
+  
+          {agendas.length > 0 && (
+            <button 
+              onClick={exportExcel} 
+              className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto transition-colors"
+            >
+              <Download className="w-4 h-4"/> Exportar a Excel
+            </button>
+          )}
+        </div>
+  
+        {/* Tabla agendas */}
+        {agendas.length > 0 ? (
+          <div className="overflow-x-auto mt-4 shadow rounded-lg relative">
+            <p className="text-sm text-center py-2 md:hidden" style={{ color: 'var(--text-muted)' }}>
+              Desliza horizontalmente para ver más columnas
+            </p>
+            <table className="min-w-full border rounded-lg" style={{ borderColor: 'var(--border-color)' }}>
+              <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                <tr>
+                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                    <th key={h} className="px-4 py-2 border text-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+              {agendasPaginadas.map((a, i) => {
+                let rowStyle = {};
+                
+                if (a.tope) {
+                  rowStyle.backgroundColor = 'var(--danger-bg)';
+                  rowStyle.color = 'var(--danger-text)';
+                } else if (a.boxInhabilitado) {
+                  rowStyle.backgroundColor = 'var(--bg-table-alt-warn)';
+                  rowStyle.color = 'var(--text-table-alt-warn)';
+                } else if (i % 2 === 0) {
+                  rowStyle.backgroundColor = 'var(--bg-tertiary)';
+                  rowStyle.color = 'var(--text-color)';
+                } else {
+                  rowStyle.backgroundColor = 'var(--bg-table-alternative-ii)';
+                  rowStyle.color = 'var(--text-color)';
+                }
+  
+                return (
+                  <tr 
+                    key={i} 
+                    className="transition-colors"
+                    style={rowStyle}
+                    onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = 'var(--bg-table-alternative)'}
+                    onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = rowStyle.backgroundColor}
+                  >
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.id}</td>
+                    <td 
+                      className="px-4 py-2 border cursor-pointer font-bold transition-colors"
+                      style={{ 
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--accent-color)'
+                      }}
+                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                      onClick={() => {
+                        window.scrollTo(0, 0);
+                        navigate(`/agendas/${a.box_id}`);
+                      }}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {a.box_id}
+                        {a.boxInhabilitado && (
+                          <span className="text-xs flex items-center" style={{ color: 'var(--warning-color)' }}>
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Inhabilitado
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.fecha}</td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.hora_inicio}</td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.hora_fin}</td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.tipo}</td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>{a.responsable}</td>
+                    <td className="px-4 py-2 border" style={{ borderColor: 'var(--border-color)' }}>
+                      {a.tope 
+                        ? `Tope con agenda #${a.tope}` 
+                        : a.boxInhabilitado 
+                          ? `Inhabilitado: ${a.motivoInhabilitacion || "Sin especificar"}` 
+                          : a.observaciones || "-"
+                      }
+                    </td>
+                    <td className="px-4 py-2 border text-center" style={{ borderColor: 'var(--border-color)' }}>
+                      <div className="flex justify-center space-x-2">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="flex items-center justify-center w-8 h-8 rounded-md transition-colors"
+                          style={{
+                            backgroundColor: 'var(--info-bg)',
+                            color: 'var(--info-text)'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--info-light)'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--info-bg)'}
+                          onClick={() => abrirModalEdicion(a)}
+                          title="Editar agenda"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="flex items-center justify-center w-8 h-8 rounded-md transition-colors"
+                          style={{
+                            backgroundColor: 'var(--danger-bg)',
+                            color: 'var(--danger-text)'
+                          }}
+                          onClick={() => setModal({ tipo: "eliminar", data: a })}
+                          title="Eliminar agenda"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto mt-4 shadow rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
+            <table className="min-w-full">
+              <thead style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                <tr>
+                  {["Agenda ID", "Box", "Fecha", "Hora Inicio", "Hora Fin", "Tipo", "Responsable", "Observaciones", "Acciones"].map(h => (
+                    <th key={h} className="px-4 py-3 border text-center" style={{ borderColor: 'var(--border-color)', color: 'var(--text-color)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan="9" className="px-4 py-32 text-center" style={{ backgroundColor: 'var(--bg-color)' }}>
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <RefreshCw className="animate-spin h-12 w-12 mx-auto mb-4" style={{ color: 'var(--accent-color)' }} />
+                        <p style={{ color: 'var(--text-muted)' }}>Cargando agendas...</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <CalendarDays className="w-12 h-12 mb-3" style={{ color: 'var(--text-muted)' }} />
+                        <h3 className="text-lg font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+                          No hay agendas buscadas
+                        </h3>
+                        <p style={{ color: 'var(--text-muted)' }}>
+                          Haz uso de los filtros superiores para buscar agendas
+                        </p>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        
+        {/* Estadísticas, pag navegación */}
+        {agendas.length > 0 && (
+          <div className="mt-6 space-y-4">
+            {/* Información y estadísticas */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 rounded-lg border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+                  Mostrando <span className="font-bold" style={{ color: 'var(--accent-color)' }}>{agendas.length}</span> agendas
+                </p>
+                
+                {/* Contadores de estados */}
+                <div className="flex items-center gap-3 text-xs">
+                  {filtroTopes && (
+                    <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>
+                      {agendas.filter(a => a.tope).length} con tope
+                    </span>
+                  )}
+                  {filtroInhabilitados && (
+                    <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+                      {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                    </span>
+                  )}
+                  {!filtroTopes && !filtroInhabilitados && (
+                    <>
+                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>
+                        {agendas.filter(a => a.tope).length} con tope
+                      </span>
+                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+                        {agendas.filter(a => a.boxInhabilitado).length} inhabilitados
+                      </span>
+                      <span className="px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-color)' }}>
+                        {agendas.filter(a => !a.tope && !a.boxInhabilitado).length} normales
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                onClick={() => window.scrollTo({ top: 420, behavior: 'smooth' })}
+                className="flex items-center gap-1 px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium"
+                style={{ backgroundColor: 'var(--accent-color)' }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--accent-color)'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                </svg>
+                Volver arriba
+              </button>
+            </div>
+  
+            {/* Paginación */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 rounded-lg border" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--border-color)' }}>
+              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+                <span>Filas por página:</span>
+                <select 
+                  value={rowsPerPage}
+                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                  className="border rounded px-2 py-1 text-sm"
+                  style={{
+                    backgroundColor: 'var(--bg-color)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-color)'
+                  }}
+                >
+                  <option value={150}>150</option>
+                  <option value={100}>100</option>
+                  <option value={50}>50</option>
+                  <option value={10}>10</option>
+                  <option value={1000}>1000</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-color)'
+                  }}
+                  onMouseEnter={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--bg-secondary)')}
+                  onMouseLeave={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--bg-color)')}
+                >
+                  ← Anterior
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8 h-8 rounded transition-colors"
+                        style={{
+                          backgroundColor: currentPage === pageNum ? 'var(--accent-color)' : 'var(--bg-color)',
+                          color: currentPage === pageNum ? 'white' : 'var(--text-color)',
+                          border: currentPage === pageNum ? 'none' : '1px solid var(--border-color)'
+                        }}
+                        onMouseEnter={(e) => currentPage !== pageNum && (e.target.style.backgroundColor = 'var(--bg-secondary)')}
+                        onMouseLeave={(e) => currentPage !== pageNum && (e.target.style.backgroundColor = 'var(--bg-color)')}
                       >
-                        Cerrar
+                        {pageNum}
                       </button>
-                    </div>
-                  </>
-                ) : modal.tipo === "alerta" ? (
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
                     <>
-                      <h2 className="text-xl font-bold mb-4">Aviso</h2>
-                      <p className="mb-6">{modal.mensaje}</p>
-                      <div className="flex justify-end">
-                        <button 
-                          className="px-4 py-2 bg-[#005C48] text-white rounded" 
-                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                        >
-                          Cerrar
-                        </button>
-                      </div>
-                    </>
-                  ) : modal.tipo === "eliminar" ? (
-                    <>
-                      <h2 className="text-xl font-bold mb-4">Confirmar eliminación</h2>
-                      <p className="mb-6">¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
-                      <div className="flex justify-end gap-3">
-                        <button 
-                          className="px-4 py-2 bg-gray-200 rounded" 
-                          onClick={() => setModal({ tipo: null, data: null })}
-                        >
-                          Cancelar
-                        </button>
-                        <button 
-                          className="px-4 py-2 bg-red-500 text-white rounded" 
-                          onClick={() => eliminarAgenda(modal.data.id)}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </>
-                  ) : modal.tipo === "editar" ? (
-                    <>
-                      <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-xl font-bold">Modificar agenda #{modal.data.id}</h2>
-                        <button 
-                          onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
-                          className="text-gray-500 hover:text-gray-700"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      
-                      {modal.mensaje && (
-                        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                          {modal.mensaje}
-                        </div>
-                      )}
-                      
-                      <form 
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const validacion = await validarModificacion(modal.data, agendas);
-                          if (validacion.valido) {
-                            modificarAgenda(e);
-                          } else {
-                            setModal({...modal, mensaje: validacion.mensaje});
-                          }
-                        }} 
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      <span className="px-1" style={{ color: 'var(--text-muted)' }}>...</span>
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="w-8 h-8 rounded transition-colors"
+                        style={{
+                          backgroundColor: currentPage === totalPages ? 'var(--accent-color)' : 'var(--bg-color)',
+                          color: currentPage === totalPages ? 'white' : 'var(--text-color)',
+                          border: currentPage === totalPages ? 'none' : '1px solid var(--border-color)'
+                        }}
+                        onMouseEnter={(e) => currentPage !== totalPages && (e.target.style.backgroundColor = 'var(--bg-secondary)')}
+                        onMouseLeave={(e) => currentPage !== totalPages && (e.target.style.backgroundColor = 'var(--bg-color)')}
                       >
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium">Box <span className="text-red-500">*</span></label>
-                          <input
-                            type="number"
-                            value={modal.data.box_id}
-                            onChange={async (e) => {
-                              const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
-                              setModal({ 
-                                ...modal, 
-                                data: newData,
-                                mensaje: null
-                              });
-                              
-                              setHorasDisponibles({
-                                inicio: [],
-                                fin: []
-                              });
-                              
-                              if (newData.fecha && newData.box_id) {
-                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                                setHorasDisponibles({
-                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                                  fin: []
-                                });
-                              }
-                            }}
-                            
-                            className={`border rounded px-3 py-2 w-full ${
-                              boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
-                                ? 'border-orange-500 bg-orange-50' 
-                                : 'border-gray-300'
-                            }`}
-                            required
-                          />
-                          {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
-                            <p className="text-orange-600 text-sm flex items-center">
-                              <AlertTriangle className="w-4 h-4 mr-1" />
-                              Este box está actualmente inhabilitado
-                            </p>
-                          )}
-                        </div>
-    
-                        {/* Campo Fecha */}
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium">Fecha <span className="text-red-500">*</span></label>
-                          <input
-                            type="date"
-                            value={modal.data.fecha}
-                            onChange={async (e) => {
-                              const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
-                              setModal({ 
-                                ...modal, 
-                                data: newData,
-                                mensaje: null
-                              });
-                              
-                              setHorasDisponibles({
-                                inicio: [],
-                                fin: []
-                              });
-                              
-                              if (newData.box_id && newData.fecha) {
-                                const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
-                                setHorasDisponibles({
-                                  inicio: Array.isArray(horasInicio) ? horasInicio : [],
-                                  fin: []
-                                });
-                              }
-                            }}
-                            className="border rounded px-3 py-2 w-full"
-                            required
-                          />
-                        </div>
-    
-                        {/* Campo Hora Inicio */}
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium">Hora inicio <span className="text-red-500">*</span></label>
-                          <select
-                            value={modal.data.hora_inicio}
-                            onChange={handleHoraInicioChange}
-                            className="border rounded px-3 py-2 w-full"
-                            required
-                          >
-                            <option value="">Seleccione hora</option>
-                            {horasDisponibles.inicio.map((hora, i) => (
-                              <option key={i} value={hora}>{hora}</option>
-                            ))}
-                          </select>
-                        </div>
-    
-                        {/* Campo Hora Fin */}
-                        <div className="space-y-2">
-                        <label className="block text-sm font-medium">Hora fin <span className="text-red-500">*</span></label>
-                        <select
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-color)'
+                  }}
+                  onMouseEnter={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--bg-secondary)')}
+                  onMouseLeave={(e) => !e.target.disabled && (e.target.style.backgroundColor = 'var(--bg-color)')}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+  
+        {/* Modal */}
+        {modal.tipo && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className={`rounded-lg p-6 shadow-lg max-h-[90vh] overflow-y-auto ${modal.tipo === "editar" ? "w-full max-w-2xl" : "w-96"} mt-24 sm:mt-12`} style={{ backgroundColor: 'var(--bg-color)' }}>
+              {modal.tipo === "success" ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-color)' }}>Éxito</h2>
+                  <p className="mb-6" style={{ color: 'var(--success-text)' }}>{modal.mensaje}</p>
+                  <div className="flex justify-end">
+                    <button 
+                      className="px-4 py-2 text-white rounded transition-colors" 
+                      style={{ backgroundColor: 'var(--accent-color)' }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--accent-color)'}
+                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </>
+              ) : modal.tipo === "alerta" ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-color)' }}>Aviso</h2>
+                  <p className="mb-6" style={{ color: 'var(--text-color)' }}>{modal.mensaje}</p>
+                  <div className="flex justify-end">
+                    <button 
+                      className="px-4 py-2 text-white rounded transition-colors" 
+                      style={{ backgroundColor: 'var(--accent-color)' }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--accent-color)'}
+                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </>
+              ) : modal.tipo === "eliminar" ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-color)' }}>Confirmar eliminación</h2>
+                  <p className="mb-6" style={{ color: 'var(--text-color)' }}>¿Seguro que quieres eliminar la agenda #{modal.data.id}?</p>
+                  <div className="flex justify-end gap-3">
+                    <button 
+                      className="px-4 py-2 rounded transition-colors" 
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-color)' }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
+                      onClick={() => setModal({ tipo: null, data: null })}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      className="px-4 py-2 text-white rounded transition-colors" 
+                      style={{ backgroundColor: 'var(--danger-bg)' }}
+                      onClick={() => eliminarAgenda(modal.data.id)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </>
+              ) : modal.tipo === "editar" ? (
+                <>
+                  <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-color)' }}>Modificar agenda #{modal.data.id}</h2>
+                    <button 
+                      onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
+                      className="transition-colors"
+                      style={{ color: 'var(--text-muted)' }}
+                      onMouseEnter={(e) => e.target.style.color = 'var(--text-color)'}
+                      onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  
+                  {modal.mensaje && (
+                    <div className="mb-4 p-3 rounded" style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger-text)' }}>
+                      {modal.mensaje}
+                    </div>
+                  )}
+                  
+                  <form 
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const validacion = await validarModificacion(modal.data, agendas);
+                      if (validacion.valido) {
+                        modificarAgenda(e);
+                      } else {
+                        setModal({...modal, mensaje: validacion.mensaje});
+                      }
+                    }} 
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Box <span className="text-red-500">*</span></label>
+                      <input
+                        type="number"
+                        value={modal.data.box_id}
+                        onChange={async (e) => {
+                          const newData = { ...modal.data, box_id: e.target.value, hora_inicio: "", hora_fin: "" };
+                          setModal({ 
+                            ...modal, 
+                            data: newData,
+                            mensaje: null
+                          });
+                          
+                          setHorasDisponibles({
+                            inicio: [],
+                            fin: []
+                          });
+                          
+                          if (newData.fecha && newData.box_id) {
+                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                            setHorasDisponibles({
+                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                              fin: []
+                            });
+                          }
+                        }}
+                        className={`border rounded px-3 py-2 w-full ${
+                          boxesInhabilitados.includes(parseInt(modal.data.box_id)) 
+                            ? 'border-orange-500' 
+                            : ''
+                        }`}
+                        style={{
+                          backgroundColor: boxesInhabilitados.includes(parseInt(modal.data.box_id)) ? 'var(--warning-bg)' : 'var(--bg-color)',
+                          borderColor: boxesInhabilitados.includes(parseInt(modal.data.box_id)) ? '#d97706' : 'var(--border-color)',
+                          color: 'var(--text-color)'
+                        }}
+                        required
+                      />
+                      {boxesInhabilitados.includes(parseInt(modal.data.box_id)) && (
+                        <p className="text-sm flex items-center" style={{ color: 'var(--warning-color)' }}>
+                          <AlertTriangle className="w-4 h-4 mr-1" />
+                          Este box está actualmente inhabilitado
+                        </p>
+                      )}
+                    </div>
+  
+                    {/* Campo Fecha */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Fecha <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        value={modal.data.fecha}
+                        onChange={async (e) => {
+                          const newData = { ...modal.data, fecha: e.target.value, hora_inicio: "", hora_fin: "" };
+                          setModal({ 
+                            ...modal, 
+                            data: newData,
+                            mensaje: null
+                          });
+                          
+                          setHorasDisponibles({
+                            inicio: [],
+                            fin: []
+                          });
+                          
+                          if (newData.box_id && newData.fecha) {
+                            const horasInicio = await generarHorasDisponibles(newData.fecha, newData.box_id);
+                            setHorasDisponibles({
+                              inicio: Array.isArray(horasInicio) ? horasInicio : [],
+                              fin: []
+                            });
+                          }
+                        }}
+                        className="border rounded px-3 py-2 w-full"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-color)'
+                        }}
+                        required
+                      />
+                    </div>
+  
+                    {/* Campo Hora Inicio */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Hora inicio <span className="text-red-500">*</span></label>
+                      <select
+                        value={modal.data.hora_inicio}
+                        onChange={handleHoraInicioChange}
+                        className="border rounded px-3 py-2 w-full"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-color)'
+                        }}
+                        required
+                      >
+                        <option value="">Seleccione hora</option>
+                        {horasDisponibles.inicio.map((hora, i) => (
+                          <option key={i} value={hora}>{hora}</option>
+                        ))}
+                      </select>
+                    </div>
+  
+                    {/* Campo Hora Fin */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Hora fin <span className="text-red-500">*</span></label>
+                      <select
                         value={modal.data.hora_fin}
                         onChange={(e) => {
                           const newData = { ...modal.data, hora_fin: e.target.value };
                           setModal({ ...modal, data: newData });
                         }}
                         className="border rounded px-3 py-2 w-full"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-color)'
+                        }}
                         disabled={!modal.data.hora_inicio || horasDisponibles.fin.length === 0}
                         required
                       >
@@ -1947,7 +2027,7 @@ const parseYYYYMMDD = (str) => {
                     </div>
                     
                     <div className="space-y-2 md:col-span-2 relative">
-                      <label className="block text-sm font-medium">Médico/Responsable <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Médico/Responsable <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1966,15 +2046,26 @@ const parseYYYYMMDD = (str) => {
                           onFocus={() => setMostrarSugerencias(true)}
                           onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                           className="border rounded px-3 py-2 w-full"
+                          style={{
+                            backgroundColor: 'var(--bg-color)',
+                            borderColor: 'var(--border-color)',
+                            color: 'var(--text-color)'
+                          }}
                           required
                         />
                         {mostrarSugerencias && sugerenciasMedico.length > 0 && (
-                          <ul className="sugerencias-container absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <ul className="sugerencias-container absolute z-10 mt-1 w-full border rounded-md shadow-lg max-h-60 overflow-auto" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--border-color)' }}>
                             {sugerenciasMedico.map((medico, index) => (
                               <li
                                 key={medico.id}
-                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                                className="px-4 py-2 cursor-pointer transition-colors"
+                                style={{
+                                  backgroundColor: 'var(--bg-color)',
+                                  color: 'var(--text-color)'
+                                }}
                                 onMouseDown={(e) => e.preventDefault()}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-color)'}
                                 onClick={() => {
                                   setModal({
                                     ...modal,
@@ -1994,30 +2085,41 @@ const parseYYYYMMDD = (str) => {
                         )}
                       </div>
                     </div>
-
+  
                     <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-medium">Observaciones</label>
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-color)' }}>Observaciones</label>
                       <textarea
                         value={modal.data.observaciones}
                         onChange={(e) =>
                           setModal({ ...modal, data: { ...modal.data, observaciones: e.target.value } })
                         }
                         className="border rounded px-3 py-2 w-full"
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-color)'
+                        }}
                         rows="3"
                       />
                     </div>
-
+  
                     <div className="flex justify-end gap-2 md:col-span-2 pt-4">
                       <button
                         type="button"
-                        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+                        className="px-4 py-2 rounded transition-colors"
+                        style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-color)' }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg-tertiary)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-secondary)'}
                         onClick={() => setModal({ tipo: null, data: null, mensaje: null })}
                       >
                         Cancelar
                       </button>
                       <button 
                         type="submit" 
-                        className="px-4 py-2 bg-[#005C48] text-white rounded hover:bg-green-700 transition"
+                        className="px-4 py-2 text-white rounded transition-colors"
+                        style={{ backgroundColor: 'var(--accent-color)' }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--accent-hover)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--accent-color)'}
                         disabled={!modal.data.hora_inicio || !modal.data.hora_fin || !modal.data.responsable || modal.mensaje}
                       >
                         Guardar cambios
@@ -2029,24 +2131,25 @@ const parseYYYYMMDD = (str) => {
             </div>
           </div>
         )}
-
+  
         {/* Botón flotante para subir */}
         {showScrollButton && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => {
-            const isMobile = window.innerWidth < 640; 
-            window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
-          }}
-          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#005C48] text-white shadow-lg flex items-center justify-center"
-          aria-label="Volver arriba"
-        >
-          <ChevronUp className="w-6 h-6" />
-        </motion.button>
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              const isMobile = window.innerWidth < 640; 
+              window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
+            }}
+            className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full text-white shadow-lg flex items-center justify-center"
+            style={{ backgroundColor: 'var(--accent-color)' }}
+            aria-label="Volver arriba"
+          >
+            <ChevronUp className="w-6 h-6" />
+          </motion.button>
         )}
       </div>
     </>

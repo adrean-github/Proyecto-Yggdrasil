@@ -578,7 +578,7 @@ export default function BoxDetalle() {
               onClick={() => setShowInventarioModal(true)}
               className="w-full mt-4 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
               style={{ 
-                backgroundColor: 'var(--info-bg)',
+                backgroundColor: 'var(--inv-bg)',
                 color: 'var(--info-text)'
               }}
             >
@@ -688,7 +688,7 @@ export default function BoxDetalle() {
               <ExternalLink size={18} style={{ color: 'var(--text-muted)' }} />
             </div>
             
-            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--info-bg)' }}>
+            <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--inv-bg)' }}>
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium" style={{ color: 'var(--info-text)' }}>Total de registros</span>
                 <span className="px-2 py-1 rounded-full text-xs font-semibold" style={{ 

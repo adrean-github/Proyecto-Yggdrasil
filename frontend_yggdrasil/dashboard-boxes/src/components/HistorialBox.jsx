@@ -23,7 +23,6 @@ import { buildApiUrl } from "../config/api";
 import { useLocation } from 'react-router-dom';
 
 export default function HistorialBox() {
-
   const location = useLocation();
   
   useEffect(() => {
@@ -53,14 +52,13 @@ export default function HistorialBox() {
     fetchHistorial();
   }, [id]);
 
-
-    // Mostrar/ocultar botón de scroll
+  // Mostrar/ocultar botón de scroll
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollButton(window.scrollY > 400);
     };
   
-      window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -149,13 +147,13 @@ export default function HistorialBox() {
 
   const getAccionColor = (accion) => {
     const colores = {
-      'INHABILITACION': 'bg-orange-200 text-yellow-800 border-orange-400',
-      'HABILITACION': 'bg-green-100 text-green-800 border-green-200',
-      'MODIFICACION': 'bg-blue-100 text-blue-800 border-blue-200',
-      'CREACION': 'bg-purple-100 text-purple-800 border-purple-200',
-      'ELIMINACION': 'bg-gray-100 text-gray-800 border-gray-200'
+      'INHABILITACION': 'bg-orange-200 text-yellow-800 border-orange-400 dark:bg-orange-800 dark:text-orange-200 dark:border-orange-600',
+      'HABILITACION': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-800 dark:text-green-200 dark:border-green-600',
+      'MODIFICACION': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:border-blue-600',
+      'CREACION': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-800 dark:text-purple-200 dark:border-purple-600',
+      'ELIMINACION': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'
     };
-    return colores[accion] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colores[accion] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600';
   };
 
   const getAccionIcon = (accion) => {
@@ -231,38 +229,42 @@ export default function HistorialBox() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="text-center">
-          <RefreshCw className="animate-spin h-12 w-12 text-[#1B5D52] mx-auto mb-4" />
-          <p className="text-gray-600">Cargando historial...</p>
+          <RefreshCw className="animate-spin h-12 w-12 mx-auto mb-4" style={{ color: 'var(--accent-color)' }} />
+          <p style={{ color: 'var(--text-muted)' }}>Cargando historial...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(`/boxes/${id}`)}
-            className="flex items-center gap-2 text-[#1B5D52] font-medium hover:text-[#14463d] transition-colors"
+            className="flex items-center gap-2 font-medium transition-colors"
+            style={{ color: 'var(--accent-color)' }}
           >
             <ArrowLeft size={20} />
             Volver al Box
           </button>
-          <div className="w-px h-6"></div>
+          <div className="w-px h-6" style={{ backgroundColor: 'var(--border-color)' }}></div>
         </div>
       </div>
 
       {/* Título y subtítulo centrados */}
       <div className="flex flex-col items-center space-y-2 mb-8">
-        <h1 className="text-center text-4xl font-bold mt-4">Historial de Modificaciones</h1>
-        <p className="text-center text-gray-600 text-lg">
+        <h1 className="text-center text-4xl font-bold mt-4" style={{ color: 'var(--text-color)' }}>
+          Historial de Modificaciones
+        </h1>
+        <p className="text-center text-lg" style={{ color: 'var(--text-muted)' }}>
           Visualiza el historial de estados y modificaciones del box seleccionado
         </p>
-        <span className="bg-green-100 text-[#1B5D52] px-4 py-2 rounded-full text-sm font-semibold mt-2">
+        <span className="px-4 py-2 rounded-full text-sm font-semibold mt-2"
+          style={{ backgroundColor: 'var(--accent-bg)', color: 'var(--accent-color)' }}>
           Box #{id}
         </span>
       </div>
@@ -270,51 +272,63 @@ export default function HistorialBox() {
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <motion.div
-          className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"
+          className="rounded-xl p-4 shadow-sm border"
+          style={{
+            backgroundColor: 'var(--bg-color)',
+            borderColor: 'var(--border-color)'
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total registros</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Total registros</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>{stats.total}</p>
             </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <FileStack className="text-blue-900" size={20}/> 
+            <div className="p-3 rounded-full" style={{ backgroundColor: 'var(--info-bg)' }}>
+              <FileStack size={20} style={{ color: 'var(--info-text)' }} /> 
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"
+          className="rounded-xl p-4 shadow-sm border"
+          style={{
+            backgroundColor: 'var(--bg-color)',
+            borderColor: 'var(--border-color)'
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Inhabilitaciones</p>
-              <p className="text-2xl font-bold text-orange-400">{stats.inhabilitaciones}</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Inhabilitaciones</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--historial-box-inhab, #d07315)' }}>{stats.inhabilitaciones}</p>
             </div>
-            <div className="bg-orange-200 p-3 rounded-full">
-              <XCircle className="text-yellow-800" size={20} />
+            <div className="p-3 rounded-full" style={{ backgroundColor: 'var(--warning-bg)' }}>
+              <XCircle size={20} style={{ color: 'var(--warning-text)' }} />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          className="bg-white rounded-xl p-4 shadow-sm border border-gray-200"
+          className="rounded-xl p-4 shadow-sm border"
+          style={{
+            backgroundColor: 'var(--bg-color)',
+            borderColor: 'var(--border-color)'
+          }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Habilitaciones</p>
-              <p className="text-2xl font-bold text-[#005C48]">{stats.habilitaciones}</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Habilitaciones</p>
+              <p className="text-2xl font-bold" style={{ color: 'var(--historial-box-hab, #246b46)' }}>{stats.habilitaciones}</p>
             </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <CheckCircle className="text-[green-800]" size={20} />
+            <div className="p-3 rounded-full" style={{ backgroundColor: 'var(--success-bg)' }}>
+              <CheckCircle size={20} style={{ color: 'var(--success-text)' }} />
             </div>
           </div>
         </motion.div>
@@ -322,14 +336,16 @@ export default function HistorialBox() {
         <div className="flex items-center gap-3">
           <button
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-green-100 text-[#005C48] rounded-lg hover:bg-green-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)' }}
           >
             <Download size={18} />
             Exportar CSV
           </button>
           <button
             onClick={printHistorial}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-900 rounded-lg hover:bg-blue-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--info-bg)', color: 'var(--info-text)' }}
           >
             <Printer size={18} />
             Imprimir
@@ -339,36 +355,50 @@ export default function HistorialBox() {
 
       {/* Filtros */}
       <motion.div
-        className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6"
+        className="rounded-xl p-6 shadow-sm border mb-6"
+        style={{
+          backgroundColor: 'var(--bg-color)',
+          borderColor: 'var(--border-color)'
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex items-center gap-3 mb-4">
-          <Filter className="text-gray-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-800">Filtros</h3>
+          <Filter size={20} style={{ color: 'var(--text-muted)' }} />
+          <h3 className="text-lg font-semibold" style={{ color: 'var(--text-color)' }}>Filtros</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>Buscar</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 placeholder="Usuario, comentario..."
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5D52] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)'
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Acción</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>Acción</label>
             <select
               value={filters.accion}
               onChange={(e) => setFilters(prev => ({ ...prev, accion: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5D52] focus:border-transparent"
+              className="w-full px-4 py-2 rounded-lg focus:ring-2 focus:border-transparent"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-color)',
+                border: '1px solid var(--border-color)'
+              }}
             >
               <option value="">Todas las acciones</option>
               <option value="INHABILITACION">Inhabilitación</option>
@@ -380,27 +410,37 @@ export default function HistorialBox() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>Desde</label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
               <input
                 type="date"
                 value={filters.fechaDesde}
                 onChange={(e) => setFilters(prev => ({ ...prev, fechaDesde: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5D52] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)'
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-color)' }}>Hasta</label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
               <input
                 type="date"
                 value={filters.fechaHasta}
                 onChange={(e) => setFilters(prev => ({ ...prev, fechaHasta: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1B5D52] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  color: 'var(--text-color)',
+                  border: '1px solid var(--border-color)'
+                }}
               />
             </div>
           </div>
@@ -410,17 +450,21 @@ export default function HistorialBox() {
       {/* Tabla de historial */}
       <motion.div
         id="historial-content"
-        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+        className="rounded-xl shadow-sm border overflow-hidden"
+        style={{
+          backgroundColor: 'var(--bg-color)',
+          borderColor: 'var(--border-color)'
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         {filteredHistorial.length === 0 ? (
           <div className="p-8 text-center">
-            <History className="mx-auto text-gray-400 mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            <History className="mx-auto mb-4" size={48} style={{ color: 'var(--text-muted)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-color)' }}>
               {historial.length === 0 ? 'No hay registros de modificaciones' : 'No se encontraron resultados'}
             </h3>
-            <p className="text-gray-500">
+            <p style={{ color: 'var(--text-muted)' }}>
               {historial.length === 0
                 ? 'Aún no se han realizado modificaciones en este box.'
                 : 'Intenta ajustar los filtros de búsqueda.'
@@ -430,30 +474,30 @@ export default function HistorialBox() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha y Hora</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comentario</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Fecha y Hora</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Usuario</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Acción</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Comentario</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>IP</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y" style={{ color: 'var(--border-color)' }}>
                 {filteredHistorial.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
+                  <tr key={index} className="transition-colors" style={{ backgroundColor: 'var(--bg-color)' }}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm" style={{ color: 'var(--text-color)' }}>
                         {item.fecha ? new Date(item.fecha).toLocaleDateString('es-ES') : 'N/A'}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
                         {item.fecha ? new Date(item.fecha).toLocaleTimeString('es-ES') : ''}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <User className="text-gray-400" size={16} />
-                        <span className="text-sm text-gray-900">{item.usuario || 'Sistema'}</span>
+                        <User size={16} style={{ color: 'var(--text-muted)' }} />
+                        <span className="text-sm" style={{ color: 'var(--text-color)' }}>{item.usuario || 'Sistema'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -463,18 +507,18 @@ export default function HistorialBox() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs">
+                      <div className="text-sm max-w-xs">
                         {item.comentario ? (
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-color)' }}>
                             {item.comentario}
                           </div>
                         ) : (
-                          <span className="text-gray-400">Sin comentario</span>
+                          <span style={{ color: 'var(--text-muted)' }}>Sin comentario</span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500 font-mono">
+                      <div className="text-sm font-mono" style={{ color: 'var(--text-muted)' }}>
                         {item.ip_address || 'N/A'}
                       </div>
                     </td>
@@ -489,13 +533,14 @@ export default function HistorialBox() {
       {/* Paginación (si hay muchos resultados) */}
       {filteredHistorial.length > 0 && (
         <div className="mt-6 flex justify-between items-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Mostrando {filteredHistorial.length} de {historial.length} registros
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 rounded-lg transition-colors"
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-color)' }}
             >
               ↑ Volver arriba
             </button>
@@ -503,27 +548,25 @@ export default function HistorialBox() {
         </div>
       )}
 
-
-      
-    {/* Botón flotante para subir */}
-    {showScrollButton && (
-      <motion.button
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
-      onClick={() => {
-        const isMobile = window.innerWidth < 640; 
-        window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
-      }}
-      className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-[#005C48] text-white shadow-lg flex items-center justify-center"
-      aria-label="Volver arriba"
-      >
-      <ChevronUp className="w-6 h-6" />
-    </motion.button>
-    )}
-              
+      {/* Botón flotante para subir */}
+      {showScrollButton && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            const isMobile = window.innerWidth < 640; 
+            window.scrollTo({ top: isMobile ? 740 : 420, behavior: 'smooth' });
+          }}
+          className="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
+          style={{ backgroundColor: 'var(--accent-color)', color: '#fff' }}
+          aria-label="Volver arriba"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </motion.button>
+      )}
     </div>
   );
 }

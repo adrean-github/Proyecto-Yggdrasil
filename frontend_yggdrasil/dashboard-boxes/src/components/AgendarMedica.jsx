@@ -7,6 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO, isBefore } from 'date-fns';
 import Autosuggest from 'react-autosuggest';
 import { buildApiUrl } from "../config/api";
+
 export default function AgendarMedica() {
   const navigate = useNavigate();
   const [boxId, setBoxId] = useState("");
@@ -32,19 +33,19 @@ export default function AgendarMedica() {
   const [medicoQuery, setMedicoQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
-// Funciones para el autosuggest
-const getSuggestions = (value) => {
-  const inputValue = value.trim().toLowerCase();
-  const inputLength = inputValue.length;
+  // Funciones para el autosuggest
+  const getSuggestions = (value) => {
+    const inputValue = value.trim().toLowerCase();
+    const inputLength = inputValue.length;
 
-  return inputLength === 0 
-    ? [] 
-    : medicosDisponibles.filter(medico =>
-        `${medico.nombre} ${medico.apellido || ''}`
-          .toLowerCase()
-          .includes(inputValue)
-      );
-};
+    return inputLength === 0 
+      ? [] 
+      : medicosDisponibles.filter(medico =>
+          `${medico.nombre} ${medico.apellido || ''}`
+            .toLowerCase()
+            .includes(inputValue)
+        );
+  };
 
   const formatDateToYYYYMMDD = (date) => {
     if (!date) return '';
@@ -80,9 +81,7 @@ const getSuggestions = (value) => {
     return true;
   };
 
-
-
-    const onSuggestionsFetchRequested = ({ value }) => {
+  const onSuggestionsFetchRequested = ({ value }) => {
     setSuggestions(getSuggestions(value));
   };
 
@@ -94,9 +93,19 @@ const getSuggestions = (value) => {
     return `${suggestion.nombre} ${suggestion.apellido || ''}`;
   };
 
-  const renderSuggestion = (suggestion) => (
-    <div className="px-4 py-2 hover:bg-gray-100">
-      {suggestion.nombre} {suggestion.apellido || ''}
+  const renderSuggestion = (suggestion, { isHighlighted }) => (
+    <div 
+      className="px-4 py-2 transition-colors duration-200 cursor-pointer border-b border-opacity-20 last:border-b-0"
+      style={{
+        backgroundColor: isHighlighted ? 'var(--accent-color)' : 'transparent',
+        color: isHighlighted ? '#ffffff' : 'var(--text-color)',
+        borderBottomColor: 'var(--border-color)'
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <User size={16} className="flex-shrink-0" />
+        <span className="font-medium">{suggestion.nombre} {suggestion.apellido || ''}</span>
+      </div>
     </div>
   );
 
@@ -104,7 +113,6 @@ const getSuggestions = (value) => {
     setMedicoId(suggestion.idMedico);
     setMedicoError("");
   };
-
 
   const buscarBoxesRecomendados = async () => {
     if (!validarFechaHora()) return;
@@ -148,7 +156,7 @@ const getSuggestions = (value) => {
     const boxData = boxesRecomendados.find(b => b.id === boxId);
     setSelectedBox(boxId);
     setBoxSeleccionadoData(boxData);
-    setPasoActual(3); // Ahora vamos a selección de médico
+    setPasoActual(3);
   };
 
   const validarMedico = () => {
@@ -164,13 +172,12 @@ const getSuggestions = (value) => {
 
   const avanzarAResumen = () => {
     if (validarMedico()) {
-      setPasoActual(4); // Ahora vamos al resumen
+      setPasoActual(4);
     }
   };
 
   const realizarReserva = async () => {
     try {
-    
       const response = await fetch(buildApiUrl('/api/reservar-medica/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,8 +205,6 @@ const getSuggestions = (value) => {
       setTimeout(() => setMensaje({ texto: "", tipo: "" }), 3000);
     }
   };
-
-
 
   const confirmarLiberarReserva = (id) => {
     setReservaALiberar(id);
@@ -266,47 +271,114 @@ const getSuggestions = (value) => {
     : boxesRecomendados;
 
   return (
-    <div className="min-h-screen relative pb-20 px-4 md:px-8 bg-gray-50">
+    <div 
+      className="min-h-screen relative pb-20 px-4 md:px-8 transition-colors duration-300" 
+      style={{ backgroundColor: 'var(--bg-secondary)' }}
+    >
       {/* Header */}
-      <div className="py-6 mb-6 border-b border-gray-200">
-        <h1 className="text-center text-4xl font-bold mt-8 mb-3">Agendamiento Médico</h1>
-        <p className="text-center text-gray-700">Reserva boxes para atenciones médicas y procedimientos</p>
+      <div 
+        className="py-6 mb-6 border-b transition-colors duration-300" 
+        style={{ borderColor: 'var(--border-color)' }}
+      >
+        <h1 
+          className="text-center text-4xl font-bold mt-8 mb-3 transition-colors duration-300" 
+          style={{ color: 'var(--text-color)' }}
+        >
+          Agendamiento Médico
+        </h1>
+        <p 
+          className="text-center transition-colors duration-300" 
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Reserva boxes para atenciones médicas y procedimientos
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Panel principal - izquierda */}
         <div className="flex-1 space-y-6">
           {/* Barra de progreso */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className={`flex flex-col items-center ${pasoActual >= 1 ? 'text-[#005C48]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pasoActual >= 1 ? 'bg-[#005C48] text-white' : 'bg-gray-200'}`}>
+          <div 
+            className="flex items-center justify-between p-4 rounded-lg shadow-sm border transition-colors duration-300" 
+            style={{ 
+              backgroundColor: 'var(--bg-color)', 
+              borderColor: 'var(--border-color)' 
+            }}
+          >
+            <div 
+              className="flex flex-col items-center" 
+              style={{ color: pasoActual >= 1 ? 'var(--accent-color)' : 'var(--text-muted)' }}
+            >
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300" 
+                style={{ 
+                  backgroundColor: pasoActual >= 1 ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                  color: pasoActual >= 1 ? '#ffffff' : 'var(--text-muted)'
+                }}
+              >
                 1
               </div>
               <span className="text-xs mt-1 text-center">Horario</span>
             </div>
             
-            <ChevronRight className={`mx-1 ${pasoActual >= 2 ? 'text-[#005C48]' : 'text-gray-300'}`} />
+            <ChevronRight 
+              className="mx-1 transition-colors duration-300" 
+              style={{ color: pasoActual >= 2 ? 'var(--accent-color)' : 'var(--text-muted)' }} 
+            />
             
-            <div className={`flex flex-col items-center ${pasoActual >= 2 ? 'text-[#005C48]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pasoActual >= 2 ? 'bg-[#005C48] text-white' : 'bg-gray-200'}`}>
+            <div 
+              className="flex flex-col items-center" 
+              style={{ color: pasoActual >= 2 ? 'var(--accent-color)' : 'var(--text-muted)' }}
+            >
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300" 
+                style={{ 
+                  backgroundColor: pasoActual >= 2 ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                  color: pasoActual >= 2 ? '#ffffff' : 'var(--text-muted)'
+                }}
+              >
                 2
               </div>
               <span className="text-xs mt-1 text-center">Box</span>
             </div>
 
-            <ChevronRight className={`mx-1 ${pasoActual >= 3 ? 'text-[#005C48]' : 'text-gray-300'}`} />
+            <ChevronRight 
+              className="mx-1 transition-colors duration-300" 
+              style={{ color: pasoActual >= 3 ? 'var(--accent-color)' : 'var(--text-muted)' }} 
+            />
             
-            <div className={`flex flex-col items-center ${pasoActual >= 3 ? 'text-[#005C48]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pasoActual >= 3 ? 'bg-[#005C48] text-white' : 'bg-gray-200'}`}>
+            <div 
+              className="flex flex-col items-center" 
+              style={{ color: pasoActual >= 3 ? 'var(--accent-color)' : 'var(--text-muted)' }}
+            >
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300" 
+                style={{ 
+                  backgroundColor: pasoActual >= 3 ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                  color: pasoActual >= 3 ? '#ffffff' : 'var(--text-muted)'
+                }}
+              >
                 3
               </div>
               <span className="text-xs mt-1 text-center">Médico</span>
             </div>
 
-            <ChevronRight className={`mx-1 ${pasoActual >= 4 ? 'text-[#005C48]' : 'text-gray-300'}`} />
+            <ChevronRight 
+              className="mx-1 transition-colors duration-300" 
+              style={{ color: pasoActual >= 4 ? 'var(--accent-color)' : 'var(--text-muted)' }} 
+            />
             
-            <div className={`flex flex-col items-center ${pasoActual >= 4 ? 'text-[#005C48]' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pasoActual >= 4 ? 'bg-[#005C48] text-white' : 'bg-gray-200'}`}>
+            <div 
+              className="flex flex-col items-center" 
+              style={{ color: pasoActual >= 4 ? 'var(--accent-color)' : 'var(--text-muted)' }}
+            >
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300" 
+                style={{ 
+                  backgroundColor: pasoActual >= 4 ? 'var(--accent-color)' : 'var(--bg-secondary)',
+                  color: pasoActual >= 4 ? '#ffffff' : 'var(--text-muted)'
+                }}
+              >
                 4
               </div>
               <span className="text-xs mt-1 text-center">Confirmar</span>
@@ -316,67 +388,113 @@ const getSuggestions = (value) => {
           {/* Paso 1: Selección de fecha y hora */}
           {pasoActual === 1 && (
             <motion.div
-              className="bg-white border border-[#005C48] rounded-lg p-6 shadow-lg"
+              className="border rounded-lg p-6 shadow-lg transition-colors duration-300"
+              style={{ 
+                backgroundColor: 'var(--bg-color)', 
+                borderColor: 'var(--accent-color)' 
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <h2 className="text-xl font-semibold text-[#005C48] mb-6 flex items-center gap-2">
+              <h2 
+                className="text-xl font-semibold mb-6 flex items-center gap-2 transition-colors duration-300" 
+                style={{ color: 'var(--accent-color)' }}
+              >
                 <Calendar size={20} /> Paso 1: Selecciona Fecha y Horario
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">Fecha *</label>
-                    <DatePicker
-                      selected={fecha}
-                      onChange={(date) => {
-                        setFecha(date);
-                        setFechaError("");
-                      }}
-                    className={`w-full border ${fechaError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50`}
+                  <label 
+                    className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    Fecha *
+                  </label>
+                  <DatePicker
+                    selected={fecha}
+                    onChange={(date) => {
+                      setFecha(date);
+                      setFechaError("");
+                    }}
+                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ${
+                      fechaError ? 'border-red-500 focus:border-red-500' : ''
+                    }`}
+                    style={{ 
+                      borderColor: fechaError ? '#ef4444' : 'var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
+                    }}
                     dateFormat="dd/MM/yyyy"
                     placeholderText="Seleccione fecha"
                     minDate={new Date()}
                     isClearable
+                    showPopperArrow={false}
+                    calendarClassName="custom-datepicker"
                   />
                   {fechaError && (
-                    <p className="mt-1 text-sm text-red-600">{fechaError}</p>
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle size={14} />
+                      {fechaError}
+                    </p>
                   )}
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">Hora Inicio *</label>
+                  <label 
+                    className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    Hora Inicio *
+                  </label>
                   <select
                     value={horaInicio}
                     onChange={(e) => {
                       setHoraInicio(e.target.value);
-                      // Reset horaFin cuando cambia horaInicio
                       const [h, m] = e.target.value.split(':').map(Number);
                       const nextValidTime = `${h.toString().padStart(2,'0')}:30`;
                       setHoraFin(nextValidTime);
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 transition-colors duration-300"
+                    style={{ 
+                      borderColor: 'var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
+                    }}
                   >
                     {Array.from({ length: 12 }, (_, i) => {
                       const hour = 8 + i;
-                      return <option key={hour} value={`${hour.toString().padStart(2,'0')}:00`}>{`${hour}:00`}</option>;
+                      return (
+                        <option key={hour} value={`${hour.toString().padStart(2,'0')}:00`}>
+                          {`${hour}:00`}
+                        </option>
+                      );
                     })}
                   </select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">Hora Fin *</label>
+                  <label 
+                    className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                    style={{ color: 'var(--text-color)' }}
+                  >
+                    Hora Fin *
+                  </label>
                   <select
                     value={horaFin}
                     onChange={(e) => setHoraFin(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 transition-colors duration-300"
+                    style={{ 
+                      borderColor: 'var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
+                    }}
                   >
                     {Array.from({ length: 12 }, (_, i) => {
                       const hour = 8 + i;
                       const optionHora = `${hour.toString().padStart(2,'0')}:30`;
                       
-                      // Verificar si la opción es válida comparando con horaInicio
                       const [hInicio, mInicio] = horaInicio.split(':').map(Number);
                       const [hOpcion, mOpcion] = optionHora.split(':').map(Number);
                       const minutosInicio = hInicio * 60 + mInicio;
@@ -391,13 +509,17 @@ const getSuggestions = (value) => {
                   </select>
                 </div>
               </div>
+
               <div className="mt-6">
                 <button
                   onClick={buscarBoxesRecomendados}
                   disabled={loading || !fecha}
                   className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-all ${
-                    loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#005C48] hover:bg-[#4fa986] shadow-md hover:shadow-lg'
+                    loading ? 'cursor-not-allowed opacity-60' : 'shadow-md hover:shadow-lg hover:brightness-110'
                   }`}
+                  style={{
+                    backgroundColor: loading ? 'var(--disabled-bg)' : 'var(--accent-color)'
+                  }}
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -418,40 +540,61 @@ const getSuggestions = (value) => {
           {/* Paso 2: Selección de Box */}
           {pasoActual === 2 && (
             <motion.div
-              className="bg-white border border-[#005C48] rounded-lg p-6 shadow-lg"
+              className="border rounded-lg p-6 shadow-lg transition-colors duration-300"
+              style={{ 
+                backgroundColor: 'var(--bg-color)', 
+                borderColor: 'var(--accent-color)' 
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#005C48] flex items-center gap-2">
+                <h2 
+                  className="text-xl font-semibold flex items-center gap-2 transition-colors duration-300" 
+                  style={{ color: 'var(--accent-color)' }}
+                >
                   <ClipboardList size={20} /> Paso 2: Selecciona un Box
                 </h2>
                 <button
                   onClick={() => setPasoActual(1)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
+                  className="text-sm flex items-center font-extrabold hover:opacity-80 transition-colors duration-300"
+                  style={{ color: 'var(--accent-color)' }}
                 >
                   <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
               
-              <p className="text-gray-600 mb-4">
+              <p 
+                className="mb-4 transition-colors duration-300" 
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Disponibles para {horaInicio} - {horaFin} el {fecha ? format(fecha, 'dd/MM/yyyy') : ''}
               </p>
               
               {/* Filtro por pasillo */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por pasillo</label>
+                <label 
+                  className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  Filtrar por pasillo
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Filter size={16} className="text-gray-400" />
+                    <Filter size={16} style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <input
                     type="text"
                     value={pasilloFiltro}
                     onChange={(e) => setPasilloFiltro(e.target.value)}
                     placeholder="Ingresa nombre de pasillo"
-                    className="pl-10 w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
+                    className="pl-10 w-full border rounded-lg px-3 py-2 focus:ring-2 transition-colors duration-300"
+                    style={{ 
+                      borderColor: 'var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-color)'
+                    }}
                   />
                 </div>
               </div>
@@ -463,17 +606,34 @@ const getSuggestions = (value) => {
                       key={box.id}
                       whileHover={{ scale: 1.03 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                      className={`border rounded-lg p-4 cursor-pointer transition-all duration-300 ${
                         selectedBox === box.id
-                          ? 'border-2 border-[#005C48] bg-[#f0f9f6] shadow-md'
-                          : 'border-gray-200 hover:border-[#005C48] hover:bg-[#f0f9f6]'
+                          ? 'border-2 shadow-md'
+                          : 'hover:shadow-md hover:border-[var(--accent-color)]'
                       }`}
+                      style={{
+                        borderColor: selectedBox === box.id ? 'var(--accent-color)' : 'var(--border-color)',
+                        backgroundColor: selectedBox === box.id ? 'var(--success-bg)' : 'var(--bg-color)'
+                      }}
                       onClick={() => seleccionarBox(box.id)}
                     >
-                      <div className="font-medium text-lg">Box {box.id}</div>
-                      <div className="text-sm text-gray-600">Pasillo: {box.pasillo}</div>
+                      <div 
+                        className="font-medium text-lg transition-colors duration-300" 
+                        style={{ color: 'var(--text-color)' }}
+                      >
+                        Box {box.id}
+                      </div>
+                      <div 
+                        className="text-sm transition-colors duration-300" 
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Pasillo: {box.pasillo}
+                      </div>
                       {selectedBox === box.id && (
-                        <div className="flex items-center gap-1 text-[#005C48] text-sm mt-2">
+                        <div 
+                          className="flex items-center gap-1 text-sm mt-2 transition-colors duration-300" 
+                          style={{ color: 'var(--accent-color)' }}
+                        >
                           <CheckCircle size={14} /> Seleccionado
                         </div>
                       )}
@@ -481,84 +641,157 @@ const getSuggestions = (value) => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <AlertCircle size={32} className="mx-auto text-gray-400 mb-2" />
-                  <p className="text-gray-500 font-medium">No hay boxes disponibles para este horario</p>
-                  <p className="text-sm text-gray-400 mt-1">Intenta con otro horario o fecha</p>
+                <div 
+                  className="text-center py-8 rounded-lg transition-colors duration-300" 
+                  style={{ backgroundColor: 'var(--bg-secondary)' }}
+                >
+                  <AlertCircle size={32} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                  <p 
+                    className="font-medium transition-colors duration-300" 
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    No hay boxes disponibles para este horario
+                  </p>
+                  <p 
+                    className="text-sm mt-1 transition-colors duration-300" 
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Intenta con otro horario o fecha
+                  </p>
                 </div>
               )}
             </motion.div>
           )}
 
-
-          
-
           {/* Paso 3: Selección de Médico */}
           {pasoActual === 3 && (
             <motion.div
-              className="bg-white border border-[#005C48] rounded-lg p-6 shadow-lg"
+              className="border rounded-lg p-6 shadow-lg transition-colors duration-300"
+              style={{ 
+                backgroundColor: 'var(--bg-color)', 
+                borderColor: 'var(--accent-color)' 
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#005C48] flex items-center gap-2">
+                <h2 
+                  className="text-xl font-semibold flex items-center gap-2 transition-colors duration-300" 
+                  style={{ color: 'var(--accent-color)' }}
+                >
                   <Stethoscope size={20} /> Paso 3: Selecciona un Médico
                 </h2>
                 <button
                   onClick={() => setPasoActual(2)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
+                  className="text-sm flex items-center font-extrabold hover:opacity-80 transition-colors duration-300"
+                  style={{ color: 'var(--accent-color)' }}
                 >
                   <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 
-              <p className="text-gray-600 mb-4">
+              <p 
+                className="mb-4 transition-colors duration-300" 
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Médicos disponibles para {horaInicio} - {horaFin} el {fecha ? format(fecha, 'dd/MM/yyyy') : ''}
               </p>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Médico *</label>
-                <Autosuggest
-                  suggestions={suggestions}
-                  onSuggestionsFetchRequested={onSuggestionsFetchRequested}
-                  onSuggestionsClearRequested={onSuggestionsClearRequested}
-                  getSuggestionValue={getSuggestionValue}
-                  renderSuggestion={renderSuggestion}
-                  onSuggestionSelected={onSuggestionSelected}
-                  inputProps={{
-                    placeholder: 'Buscar médico por nombre...',
-                    value: medicoQuery,
-                    onChange: (_, { newValue }) => {
-                      setMedicoQuery(newValue);
-                      if (!newValue) {
-                        setMedicoId("");
+                <label 
+                  className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  Médico *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <Stethoscope size={16} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                  <Autosuggest
+                    suggestions={suggestions}
+                    onSuggestionsFetchRequested={onSuggestionsFetchRequested}
+                    onSuggestionsClearRequested={onSuggestionsClearRequested}
+                    getSuggestionValue={getSuggestionValue}
+                    renderSuggestion={renderSuggestion}
+                    onSuggestionSelected={onSuggestionSelected}
+                    inputProps={{
+                      placeholder: 'Buscar médico por nombre...',
+                      value: medicoQuery,
+                      onChange: (_, { newValue }) => {
+                        setMedicoQuery(newValue);
+                        if (!newValue) {
+                          setMedicoId("");
+                        }
+                      },
+                      className: `pl-10 w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-opacity-50 transition-all duration-300 ${
+                        medicoError ? 'border-red-500 focus:border-red-500' : ''
+                      }`,
+                      style: { 
+                        borderColor: medicoError ? '#ef4444' : 'var(--border-color)',
+                        backgroundColor: 'var(--bg-color)',
+                        color: 'var(--text-color)',
+                        focusRingColor: 'var(--accent-color)'
                       }
-                    },
-                    className: `w-full border ${medicoError ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50`
-                  }}
-                  theme={{
-                    container: 'relative',
-                    suggestionsContainerOpen: 'absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto',
-                    suggestionHighlighted: 'bg-gray-100'
-                  }}
-                />
+                    }}
+                    theme={{
+                      container: 'relative',
+                      suggestionsContainerOpen: 'absolute z-10 mt-1 w-full border rounded-lg shadow-lg max-h-60 overflow-auto',
+                      suggestionsList: 'list-none m-0 p-0',
+                      suggestion: 'cursor-pointer',
+                      suggestionHighlighted: ''
+                    }}
+                    renderSuggestionsContainer={({ containerProps, children }) => (
+                      <div 
+                        {...containerProps} 
+                        className={containerProps.className}
+                        style={{
+                          backgroundColor: 'var(--bg-color)',
+                          borderColor: 'var(--border-color)',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+                        }}
+                      >
+                        {children}
+                      </div>
+                    )}
+                  />
+                </div>
                 <input
                   type="hidden"
                   name="medicoId"
                   value={medicoId}
                 />
                 {medicoError && (
-                  <p className="mt-1 text-sm text-red-600">{medicoError}</p>
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle size={14} />
+                    {medicoError}
+                  </p>
+                )}
+                {medicoId && (
+                  <div className="mt-2 flex items-center gap-2 text-sm" style={{ color: 'var(--success-text)' }}>
+                    <CheckCircle size={14} />
+                    <span>Médico seleccionado correctamente</span>
+                  </div>
                 )}
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones (opcional)</label>
+                <label 
+                  className="block text-sm font-medium mb-1 transition-colors duration-300" 
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  Observaciones (opcional)
+                </label>
                 <textarea
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#005C48] focus:ring-2 focus:ring-[#005C48]/50"
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 transition-colors duration-300"
+                  style={{ 
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-color)',
+                    color: 'var(--text-color)'
+                  }}
                   rows="3"
                   placeholder="Detalles adicionales sobre la agenda médica"
                 />
@@ -567,13 +800,19 @@ const getSuggestions = (value) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPasoActual(2)}
-                  className="flex-1 py-2 px-4 rounded-lg bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-all"
+                  className="flex-1 py-2 px-4 rounded-lg font-medium hover:opacity-90 transition-all duration-300"
+                  style={{ 
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-color)',
+                    border: '1px solid var(--border-color)'
+                  }}
                 >
                   Volver
                 </button>
                 <button
                   onClick={avanzarAResumen}
-                  className="flex-1 py-2 px-4 rounded-lg bg-[#005C48] text-white font-medium hover:bg-[#4fa986] shadow-md hover:shadow-lg transition-all"
+                  className="flex-1 py-2 px-4 rounded-lg text-white font-medium shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-300"
+                  style={{ backgroundColor: 'var(--accent-color)' }}
                 >
                   Continuar
                 </button>
@@ -581,52 +820,116 @@ const getSuggestions = (value) => {
             </motion.div>
           )}
 
-          {/*Paso 4: Confirmación final */}
+          {/* Paso 4: Confirmación final */}
           {pasoActual === 4 && (
             <motion.div
-              className="bg-white border border-[#005C48] rounded-lg p-6 shadow-lg"
+              className="border rounded-lg p-6 shadow-lg transition-colors duration-300"
+              style={{ 
+                backgroundColor: 'var(--bg-color)', 
+                borderColor: 'var(--accent-color)' 
+              }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#005C48] flex items-center gap-2">
+                <h2 
+                  className="text-xl font-semibold flex items-center gap-2 transition-colors duration-300" 
+                  style={{ color: 'var(--accent-color)' }}
+                >
                   <CheckCircle size={20} /> Paso 4: Confirmar agenda médica
                 </h2>
                 <button
                   onClick={() => setPasoActual(3)}
-                  className="text-sm text-[#005C48] hover:text-[#4fa986] flex items-center font-extrabold"
+                  className="text-sm flex items-center font-extrabold hover:opacity-80 transition-colors duration-300"
+                  style={{ color: 'var(--accent-color)' }}
                 >
                   <ChevronLeft size={20} className="mr-1" /> Volver
                 </button>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                <h3 className="font-medium text-gray-700 mb-3">Revisa los detalles antes de confirmar</h3>
+              <div 
+                className="p-4 rounded-lg mb-6 transition-colors duration-300" 
+                style={{ backgroundColor: 'var(--bg-secondary)' }}
+              >
+                <h3 
+                  className="font-medium mb-3 transition-colors duration-300" 
+                  style={{ color: 'var(--text-color)' }}
+                >
+                  Revisa los detalles antes de confirmar
+                </h3>
                 
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Box:</span>
-                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})</span>
+                    <span 
+                      className="transition-colors duration-300" 
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Box:
+                    </span>
+                    <span 
+                      className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right transition-colors duration-300" 
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      Box {selectedBox} (Pasillo: {boxSeleccionadoData?.pasillo})
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Médico:</span>
-                    <span className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right">
+                    <span 
+                      className="transition-colors duration-300" 
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Médico:
+                    </span>
+                    <span 
+                      className="font-medium break-words min-w-0 max-w-[140px] sm:max-w-xs text-right transition-colors duration-300" 
+                      style={{ color: 'var(--text-color)' }}
+                    >
                       {medicosDisponibles.find(m => m.idMedico === parseInt(medicoId))?.nombre}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fecha:</span>
-                    <span className="font-medium">{fecha ? format(fecha, 'dd/MM/yyyy') : ''}</span>
+                    <span 
+                      className="transition-colors duration-300" 
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Fecha:
+                    </span>
+                    <span 
+                      className="font-medium transition-colors duration-300" 
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      {fecha ? format(fecha, 'dd/MM/yyyy') : ''}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Horario:</span>
-                    <span className="font-medium">{horaInicio} - {horaFin}</span>
+                    <span 
+                      className="transition-colors duration-300" 
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Horario:
+                    </span>
+                    <span 
+                      className="font-medium transition-colors duration-300" 
+                      style={{ color: 'var(--text-color)' }}
+                    >
+                      {horaInicio} - {horaFin}
+                    </span>
                   </div>
                   {observaciones && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Observaciones:</span>
-                      <span className="font-medium text-right max-w-xs">{observaciones}</span>
+                      <span 
+                        className="transition-colors duration-300" 
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Observaciones:
+                      </span>
+                      <span 
+                        className="font-medium text-right max-w-xs transition-colors duration-300" 
+                        style={{ color: 'var(--text-color)' }}
+                      >
+                        {observaciones}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -635,13 +938,19 @@ const getSuggestions = (value) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPasoActual(3)}
-                  className="flex-1 py-3 px-4 rounded-lg bg-gray-200 text-gray-800 font-medium hover:bg-gray-300 transition-all"
+                  className="flex-1 py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-all duration-300"
+                  style={{ 
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-color)',
+                    border: '1px solid var(--border-color)'
+                  }}
                 >
                   Modificar
                 </button>
                 <button
                   onClick={realizarReserva}
-                  className="flex-1 py-3 px-4 rounded-lg bg-[#005C48] text-white font-medium hover:bg-[#4fa986] shadow-md hover:shadow-lg transition-all"
+                  className="flex-1 py-3 px-4 rounded-lg text-white font-medium shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-300"
+                  style={{ backgroundColor: 'var(--accent-color)' }}
                 >
                   Confirmar agenda médica
                 </button>
@@ -653,14 +962,19 @@ const getSuggestions = (value) => {
         {/* Panel de reservas - derecha */}
         <div className={`lg:w-80 ${!showReservas && 'hidden lg:block'}`}>
           <motion.div
-            className="bg-white border border-[#005C48] rounded-lg shadow-lg overflow-hidden"
+            className="border rounded-lg shadow-lg overflow-hidden transition-colors duration-300"
+            style={{ 
+              backgroundColor: 'var(--bg-color)', 
+              borderColor: 'var(--accent-color)' 
+            }}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
           >
             {/* Header del panel de reservas */}
             <div 
-              className="bg-[#005C48] text-white p-4 flex justify-between items-center cursor-pointer"
+              className="text-white p-4 flex justify-between items-center cursor-pointer transition-colors duration-300"
+              style={{ backgroundColor: 'var(--accent-color)' }}
               onClick={() => setShowReservas(!showReservas)}
             >
               <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -681,19 +995,37 @@ const getSuggestions = (value) => {
                       <motion.div
                         key={reserva.id}
                         whileHover={{ scale: 1.01 }}
-                        className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
+                        className="border rounded-lg p-3 hover:opacity-90 transition-all duration-300"
+                        style={{ 
+                          borderColor: 'var(--border-color)',
+                          backgroundColor: 'var(--bg-secondary)'
+                        }}
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <div className="font-medium text-[#005C48]">Box {reserva.box_id}</div>
-                            <div className="text-sm text-gray-600">
+                            <div 
+                              className="font-medium transition-colors duration-300" 
+                              style={{ color: 'var(--accent-color)' }}
+                            >
+                              Box {reserva.box_id}
+                            </div>
+                            <div 
+                              className="text-sm transition-colors duration-300" 
+                              style={{ color: 'var(--text-muted)' }}
+                            >
                               {reserva.fecha ? format(reserva.fecha, 'dd/MM/yyyy') : ''} • {reserva.hora_inicio} - {reserva.hora_fin}
                             </div>
-                            <div className="text-sm text-gray-700 mt-1">
+                            <div 
+                              className="text-sm mt-1 transition-colors duration-300" 
+                              style={{ color: 'var(--text-color)' }}
+                            >
                               Dr. {reserva.medico}
                             </div>
                             {reserva.observaciones && (
-                              <div className="text-xs text-gray-500 mt-1 italic">
+                              <div 
+                                className="text-xs mt-1 italic transition-colors duration-300" 
+                                style={{ color: 'var(--text-muted)' }}
+                              >
                                 "{reserva.observaciones}"
                               </div>
                             )}
@@ -703,7 +1035,12 @@ const getSuggestions = (value) => {
                               e.stopPropagation();
                               confirmarLiberarReserva(reserva.id);
                             }}
-                            className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded transition-colors"
+                            className="text-xs px-2 py-1 rounded hover:opacity-80 transition-all duration-300"
+                            style={{ 
+                              backgroundColor: 'var(--danger-bg)',
+                              color: 'var(--danger-text)',
+                              border: '1px solid var(--danger-border)'
+                            }}
                           >
                             Liberar
                           </button>
@@ -713,8 +1050,13 @@ const getSuggestions = (value) => {
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <Stethoscope size={24} className="mx-auto text-gray-400 mb-2" />
-                    <p className="text-gray-500">No tienes agendas médicas activas</p>
+                    <Stethoscope size={24} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                    <p 
+                      className="transition-colors duration-300" 
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      No tienes agendas médicas activas
+                    </p>
                   </div>
                 )}
               </div>
@@ -733,13 +1075,24 @@ const getSuggestions = (value) => {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-lg p-6 w-full max-w-md"
+              className="rounded-lg p-6 w-full max-w-md transition-colors duration-300"
+              style={{ backgroundColor: 'var(--bg-color)' }}
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
             >
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Confirmar liberación</h3>
-              <p className="text-gray-600 mb-6">¿Estás seguro de que deseas liberar esta agenda médica?</p>
+              <h3 
+                className="text-lg font-semibold mb-4 transition-colors duration-300" 
+                style={{ color: 'var(--text-color)' }}
+              >
+                Confirmar liberación
+              </h3>
+              <p 
+                className="mb-6 transition-colors duration-300" 
+                style={{ color: 'var(--text-muted)' }}
+              >
+                ¿Estás seguro de que deseas liberar esta agenda médica?
+              </p>
               
               <div className="flex justify-end gap-3">
                 <button
@@ -747,13 +1100,19 @@ const getSuggestions = (value) => {
                     setShowConfirmacion(false);
                     setReservaALiberar(null);
                   }}
-                  className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 rounded-lg hover:opacity-90 transition-all duration-300"
+                  style={{ 
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-color)',
+                    border: '1px solid var(--border-color)'
+                  }}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={liberarReserva}
-                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  className="px-4 py-2 rounded-lg text-white hover:opacity-90 transition-colors duration-300"
+                  style={{ backgroundColor: '#ef4444' }}
                 >
                   Sí, liberar
                 </button>
@@ -767,11 +1126,19 @@ const getSuggestions = (value) => {
       <AnimatePresence>
         {mensaje.texto && (
           <motion.div
-            className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 ${
-              mensaje.tipo === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
-              mensaje.tipo === 'info' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 
-              'bg-green-100 text-green-800 border border-green-200'
-            }`}
+            className="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 transition-colors duration-300"
+            style={{
+              backgroundColor: mensaje.tipo === 'error' ? 'var(--error-bg)' : 
+                             mensaje.tipo === 'info' ? 'var(--info-bg)' : 
+                             'var(--success-bg)',
+              color: mensaje.tipo === 'error' ? 'var(--error-text)' : 
+                     mensaje.tipo === 'info' ? 'var(--info-text)' : 
+                     'var(--success-text)',
+              borderColor: mensaje.tipo === 'error' ? 'var(--danger-border)' : 
+                          mensaje.tipo === 'info' ? 'var(--info-border)' : 
+                          'var(--success-border)',
+              border: '1px solid'
+            }}
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}

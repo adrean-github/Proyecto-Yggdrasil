@@ -103,36 +103,8 @@ function useUserPreferences() {
       
       if (darkMode) {
         document.documentElement.classList.add('dark');
-        // Variables CSS para modo oscuro
-        document.documentElement.style.setProperty('--bg-color', '#111827');
-        document.documentElement.style.setProperty('--bg-secondary', '#1f2937');
-        document.documentElement.style.setProperty('--text-color', '#f3f4f6');
-        document.documentElement.style.setProperty('--text-muted', '#9ca3af');
-        document.documentElement.style.setProperty('--accent-color', '#4ECDC4');
-        document.documentElement.style.setProperty('--accent-hover', '#81F7E5');
-        document.documentElement.style.setProperty('--accent-bg', 'rgba(78, 205, 196, 0.2)');
-        document.documentElement.style.setProperty('--border-color', '#374151');
-        document.documentElement.style.setProperty('--hover-bg', '#374151');
-        
-        // Variables para FullCalendar (modo oscuro)
-        document.documentElement.style.setProperty('--fc-toolbar-title-color', '#ffffff');
-        document.documentElement.style.setProperty('--fc-timegrid-slot-label-color', '#ffffff');
       } else {
         document.documentElement.classList.remove('dark');
-        // Variables CSS para modo claro
-        document.documentElement.style.setProperty('--bg-color', '#ffffff');
-        document.documentElement.style.setProperty('--bg-secondary', '#f9fafb');
-        document.documentElement.style.setProperty('--text-color', '#111827');
-        document.documentElement.style.setProperty('--text-muted', '#6b7280');
-        document.documentElement.style.setProperty('--accent-color', '#005C48');
-        document.documentElement.style.setProperty('--accent-hover', '#009B77');
-        document.documentElement.style.setProperty('--accent-bg', 'rgba(0, 92, 72, 0.1)');
-        document.documentElement.style.setProperty('--border-color', '#d1d5db');
-        document.documentElement.style.setProperty('--hover-bg', '#f3f4f6');
-        
-        // Variables para FullCalendar (modo claro)
-        document.documentElement.style.setProperty('--fc-toolbar-title-color', '#000000');
-        document.documentElement.style.setProperty('--fc-timegrid-slot-label-color', '#000000');
       }
     }
   }, [darkMode]);
